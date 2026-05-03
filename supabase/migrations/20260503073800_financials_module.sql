@@ -43,8 +43,8 @@ CREATE TABLE public.claim_items (
     certified_qty DECIMAL(12, 2) DEFAULT 0
 );
 
--- 4. EVM Calculation View (Conceptual)
--- This view aggregates Material Issues and (future) Labor costs
+-- 4. EVM Calculation View (Enhanced)
+-- This view aggregates Material Issues and Labor costs
 CREATE OR REPLACE VIEW public.project_cost_summaries AS
 WITH material_costs AS (
     SELECT 
@@ -53,6 +53,31 @@ WITH material_costs AS (
         SUM(qty_issued * unit_cost_at_issue) as total_material_cost
     FROM public.material_issues
     GROUP BY project_id, task_id
+),
+labor_costs AS (
+    SELECT 
+        t.project_id,
+        t.task_id,
+        SUM(
+            (t.regular_hours + (t.overtime_hours * COALESCE(pr.overtime_multiplier, 1.5))) * 
+            COALESCE(rr.hourly_rate, pr.hourly_rate, 0)
+        ) as total_labor_cost
+    FROM public.timesheet_entries t
+    -- Join project specific rates first
+    LEFT JOIN public.resource_rates rr ON t.project_id = rr.project_id 
+        AND rr.resource_name = (SELECT job_title FROM public.profiles WHERE id = t.user_id)
+    -- Join individual pay rates as fallback
+    LEFT JOIN LATERAL (
+        SELECT hourly_rate, overtime_multiplier
+        FROM public.pay_rates
+        WHERE user_id = t.user_id
+          AND effective_from <= t.work_date
+          AND (effective_to IS NULL OR effective_to >= t.work_date)
+        ORDER BY effective_from DESC
+        LIMIT 1
+    ) pr ON true
+    WHERE t.status = 'approved'
+    GROUP BY t.project_id, t.task_id
 ),
 planned_values AS (
     SELECT
@@ -77,14 +102,17 @@ SELECT
     COALESCE(pv.budget_at_completion, 0) as bac,
     COALESCE(pv.earned_value, 0) as ev,
     COALESCE(mc.total_material_cost, 0) as ac_materials,
-    -- Simplified AC (just materials for now, labor can be added later)
-    COALESCE(mc.total_material_cost, 0) as ac_total,
+    COALESCE(lc.total_labor_cost, 0) as ac_labor,
+    -- Total Actual Cost (AC)
+    COALESCE(mc.total_material_cost, 0) + COALESCE(lc.total_labor_cost, 0) as ac_total,
     CASE 
-        WHEN COALESCE(mc.total_material_cost, 0) > 0 THEN pv.earned_value / mc.total_material_cost
+        WHEN (COALESCE(mc.total_material_cost, 0) + COALESCE(lc.total_labor_cost, 0)) > 0 
+        THEN pv.earned_value / (COALESCE(mc.total_material_cost, 0) + COALESCE(lc.total_labor_cost, 0))
         ELSE 0 
     END as cpi
 FROM public.tasks t
 LEFT JOIN material_costs mc ON t.id = mc.task_id
+LEFT JOIN labor_costs lc ON t.id = lc.task_id
 LEFT JOIN planned_values pv ON t.id = pv.task_id;
 
 -- 5. RLS Policies

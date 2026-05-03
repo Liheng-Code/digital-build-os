@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, FileText, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { CLAIM_STATUS_COLORS } from '@/lib/financialMeta';
+import { CreateClaimDialog } from '@/components/financials/CreateClaimDialog';
 
 export default function ProgressClaims() {
   const { activeProject } = useProjects();
@@ -22,10 +23,7 @@ export default function ProgressClaims() {
           <h1 className="text-3xl font-bold tracking-tight">Progress Claims</h1>
           <p className="text-muted-foreground">Manage project valuations and billing cycles</p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Claim
-        </Button>
+        <CreateClaimDialog />
       </div>
 
       <Card>
