@@ -1,4 +1,4 @@
-import { UIEvent, useEffect, useMemo, useRef, useState } from "react";
+import * as React from "react";
 import { useProjects } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWbsTree } from "@/hooks/useWbsTree";
@@ -47,41 +47,41 @@ export default function WbsPage() {
   const { tasks, rollupByNode, projectRollup } = useWbsSchedule(projectId, nodes);
   const { dateSet: holidaySet } = useProjectHolidays(projectId);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [mainView, setMainView] = useState<MainView>("tree");
-  const [treeOpen, setTreeOpen] = useState(() => {
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [mainView, setMainView] = React.useState<MainView>("tree");
+  const [treeOpen, setTreeOpen] = React.useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved).treeOpen ?? true : true;
   });
-  const [mode, setMode] = useState<EditMode>({ kind: "view" });
-  const [predecessors, setPredecessors] = useState<DependencyLink[]>([]);
-  const [successors, setSuccessors] = useState<DependencyLink[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [secondTaskId, setSecondTaskId] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [editLink, setEditLink] = useState<DependencyLink | null>(null);
-  const [editRelation, setEditRelation] = useState<DepRelation>("FS");
-  const [editLag, setEditLag] = useState("0");
+  const [mode, setMode] = React.useState<EditMode>({ kind: "view" });
+  const [predecessors, setPredecessors] = React.useState<DependencyLink[]>([]);
+  const [successors, setSuccessors] = React.useState<DependencyLink[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null);
+  const [secondTaskId, setSecondTaskId] = React.useState<string | null>(null);
+  const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
+  const [editLink, setEditLink] = React.useState<DependencyLink | null>(null);
+  const [editRelation, setEditRelation] = React.useState<DepRelation>("FS");
+  const [editLag, setEditLag] = React.useState("0");
 
-  const leftGanttBodyRef = useRef<HTMLDivElement>(null);
-  const rightGanttBodyRef = useRef<HTMLDivElement>(null);
-  const syncingPaneRef = useRef<"left" | "right" | null>(null);
+  const leftGanttBodyRef = React.useRef<HTMLDivElement>(null);
+  const rightGanttBodyRef = React.useRef<HTMLDivElement>(null);
+  const syncingPaneRef = React.useRef<"left" | "right" | null>(null);
 
   const canEdit = roles.includes("admin") || roles.includes("project_manager");
   const canManage = canEdit;
 
-  const selectedNode = useMemo(
+  const selectedNode = React.useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
     [nodes, selectedId],
   );
 
-  const rows: GanttRow[] = useMemo(
+  const rows: GanttRow[] = React.useMemo(
     () => buildGanttRows({ nodes, tasks, collapsed, projectLabel: activeProject?.name ?? null }),
     [nodes, tasks, collapsed, activeProject],
   );
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!projectId || tasks.length === 0) {
       setPredecessors([]);
       setSuccessors([]);
@@ -129,12 +129,12 @@ export default function WbsPage() {
     });
   };
 
-  const handleLeftGanttScroll = (event: UIEvent<HTMLDivElement>) => {
+  const handleLeftGanttScroll = (event: React.UIEvent<HTMLDivElement>) => {
     if (syncingPaneRef.current === "right") return;
     syncGanttScroll("left", event.currentTarget.scrollTop);
   };
 
-  const handleRightGanttScroll = (event: UIEvent<HTMLDivElement>) => {
+  const handleRightGanttScroll = (event: React.UIEvent<HTMLDivElement>) => {
     if (syncingPaneRef.current === "left") return;
     syncGanttScroll("right", event.currentTarget.scrollTop);
   };

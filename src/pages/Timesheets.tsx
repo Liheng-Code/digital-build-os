@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import * as React from "react";
 import { format, startOfWeek, endOfWeek, addDays, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,22 +97,22 @@ const WEEK_DAYS = 7;
 export default function Timesheets() {
   const { user } = useAuth();
   const { projects, activeProject } = useProjects();
-  const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [tasks, setTasks] = useState<TaskOpt[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [taskInfo, setTaskInfo] = useState<Map<string, TaskInfo>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Entry | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [taskFilter, setTaskFilter] = useState<"all" | "today" | "yesterday">("all");
-  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [weekStart, setWeekStart] = React.useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [entries, setEntries] = React.useState<Entry[]>([]);
+  const [tasks, setTasks] = React.useState<TaskOpt[]>([]);
+  const [members, setMembers] = React.useState<Member[]>([]);
+  const [taskInfo, setTaskInfo] = React.useState<Map<string, TaskInfo>>(new Map());
+  const [loading, setLoading] = React.useState(true);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<Entry | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [taskFilter, setTaskFilter] = React.useState<"all" | "today" | "yesterday">("all");
+  const [stagedFiles, setStagedFiles] = React.useState<File[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
+  const weekEnd = React.useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
 
-  const load = useCallback(async () => {
+  const load = React.useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const startStr = format(weekStart, "yyyy-MM-dd");
@@ -128,10 +128,10 @@ export default function Timesheets() {
     setLoading(false);
   }, [user, weekStart, weekEnd]);
 
-  useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { load(); }, [load]);
 
   // Resolve task + WBS info for all entries shown this week
-  useEffect(() => {
+  React.useEffect(() => {
     const ids = Array.from(new Set(entries.map((e) => e.task_id).filter(Boolean))) as string[];
     if (ids.length === 0) { setTaskInfo(new Map()); return; }
     (async () => {
@@ -162,7 +162,7 @@ export default function Timesheets() {
   }, [entries]);
 
   // Load members
-  useEffect(() => {
+  React.useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("profiles")
@@ -173,7 +173,7 @@ export default function Timesheets() {
   }, []);
 
   // Load tasks for the selected member in the project
-  useEffect(() => {
+  React.useEffect(() => {
     if (!editing?.user_id || !editing?.project_id) return;
     (async () => {
       // 1. Get task IDs assigned to this member
@@ -202,13 +202,13 @@ export default function Timesheets() {
     })();
   }, [editing?.user_id, editing?.project_id]);
 
-  const totals = useMemo(() => {
+  const totals = React.useMemo(() => {
     const reg = entries.reduce((s, e) => s + Number(e.regular_hours), 0);
     const ot = entries.reduce((s, e) => s + Number(e.overtime_hours), 0);
     return { reg, ot, total: reg + ot };
   }, [entries]);
 
-  const dayTotals = useMemo(() => {
+  const dayTotals = React.useMemo(() => {
     const map = new Map<string, number>();
     for (const e of entries) {
       const k = e.work_date;

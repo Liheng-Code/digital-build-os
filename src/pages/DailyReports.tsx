@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Plus, ClipboardCheck, CalendarDays } from "lucide-react";
@@ -20,13 +20,13 @@ export default function DailyReports() {
   const { user, hasRole } = useAuth();
   const navigate = useNavigate();
   const { data: rows = [], isLoading, refetch } = useDsrList(activeProject?.id);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [search, setSearch] = React.useState("");
 
   const canCreate =
     hasRole("admin") || hasRole("project_manager") || hasRole("engineer") || hasRole("supervisor");
 
-  const filtered = useMemo(() => {
+  const filtered = React.useMemo(() => {
     return rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (search && !r.report_date.includes(search) && !(r.weather ?? "").toLowerCase().includes(search.toLowerCase())) return false;
@@ -34,7 +34,7 @@ export default function DailyReports() {
     });
   }, [rows, statusFilter, search]);
 
-  const stats = useMemo(() => {
+  const stats = React.useMemo(() => {
     const week = new Date();
     week.setDate(week.getDate() - 7);
     const recent = rows.filter((r) => new Date(r.report_date) >= week);

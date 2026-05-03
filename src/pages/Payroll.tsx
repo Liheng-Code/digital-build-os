@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import * as React from "react";
 import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,23 +71,23 @@ interface ProfileLite {
 export default function Payroll() {
   const { roles } = useAuth();
   const canManage = roles.includes("admin") || roles.includes("accountant");
-  const [periods, setPeriods] = useState<Period[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [lines, setLines] = useState<Line[]>([]);
-  const [rates, setRates] = useState<PayRate[]>([]);
-  const [profiles, setProfiles] = useState<ProfileLite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [periods, setPeriods] = React.useState<Period[]>([]);
+  const [activeId, setActiveId] = React.useState<string | null>(null);
+  const [lines, setLines] = React.useState<Line[]>([]);
+  const [rates, setRates] = React.useState<PayRate[]>([]);
+  const [profiles, setProfiles] = React.useState<ProfileLite[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [busy, setBusy] = React.useState(false);
 
-  const [periodDialog, setPeriodDialog] = useState(false);
-  const [newPeriod, setNewPeriod] = useState({
+  const [periodDialog, setPeriodDialog] = React.useState(false);
+  const [newPeriod, setNewPeriod] = React.useState({
     name: format(new Date(), "MMMM yyyy"),
     period_start: format(startOfMonth(new Date()), "yyyy-MM-dd"),
     period_end: format(endOfMonth(new Date()), "yyyy-MM-dd"),
   });
 
-  const [rateDialog, setRateDialog] = useState(false);
-  const [newRate, setNewRate] = useState({
+  const [rateDialog, setRateDialog] = React.useState(false);
+  const [newRate, setNewRate] = React.useState({
     user_id: "",
     hourly_rate: 25,
     overtime_multiplier: 1.5,
@@ -95,7 +95,7 @@ export default function Payroll() {
     effective_from: format(new Date(), "yyyy-MM-dd"),
   });
 
-  const loadPeriods = useCallback(async () => {
+  const loadPeriods = React.useCallback(async () => {
     setLoading(true);
     const [periodsRes, profilesRes, ratesRes] = await Promise.all([
       supabase.from("payroll_periods").select("*").order("period_start", { ascending: false }),
@@ -112,9 +112,9 @@ export default function Payroll() {
     setLoading(false);
   }, [activeId]);
 
-  useEffect(() => { loadPeriods(); }, [loadPeriods]);
+  React.useEffect(() => { loadPeriods(); }, [loadPeriods]);
 
-  const loadLines = useCallback(async () => {
+  const loadLines = React.useCallback(async () => {
     if (!activeId) { setLines([]); return; }
     const { data } = await supabase
       .from("payroll_lines")
@@ -125,11 +125,11 @@ export default function Payroll() {
     setLines(((data ?? []) as Line[]).map((l) => ({ ...l, profile: profMap.get(l.user_id) })));
   }, [activeId, profiles]);
 
-  useEffect(() => { loadLines(); }, [loadLines]);
+  React.useEffect(() => { loadLines(); }, [loadLines]);
 
   const activePeriod = periods.find((p) => p.id === activeId) ?? null;
 
-  const totals = useMemo(() => ({
+  const totals = React.useMemo(() => ({
     reg: lines.reduce((s, l) => s + Number(l.regular_hours), 0),
     ot: lines.reduce((s, l) => s + Number(l.overtime_hours), 0),
     pay: lines.reduce((s, l) => s + Number(l.total_pay), 0),
