@@ -30,6 +30,7 @@ import {
   Activity,
   DollarSign,
   ClipboardCheck,
+  Package,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -75,6 +76,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         roles: ["admin", "project_manager", "supervisor", "accountant", "qaqc_inspector"] },
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
+      { to: "/materials", label: "Materials", icon: Package },
     ],
   },
   {

@@ -27,6 +27,7 @@ import Notifications from "./pages/Notifications";
 import Wbs from "./pages/Wbs";
 import DailyReports from "./pages/DailyReports";
 import DailyReportDetail from "./pages/DailyReportDetail";
+import MaterialsProcurement from "./pages/MaterialsProcurement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -209,6 +210,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <DailyReportDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/materials"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <MaterialsProcurement />
                       </AppLayout>
                     </ProtectedRoute>
                   }
