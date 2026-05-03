@@ -79,7 +79,17 @@ const Index = () => {
   const completed = (counts.find((c) => c.status === "completed")?.count ?? 0)
     + (counts.find((c) => c.status === "closed")?.count ?? 0);
   const completion = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
-  const totalSpend = summaries?.reduce((acc, s) => acc + s.ac_total, 0) || 0;
+  
+  // Safe calculation in case view is missing or query fails
+  const totalSpend = useMemo(() => {
+    if (!summaries) return 0;
+    try {
+      return summaries.reduce((acc, s) => acc + (s.ac_total || 0), 0);
+    } catch (e) {
+      console.error("Error calculating spend:", e);
+      return 0;
+    }
+  }, [summaries]);
 
   const greeting = () => {
     const h = new Date().getHours();
