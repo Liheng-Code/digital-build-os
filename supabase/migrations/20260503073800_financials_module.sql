@@ -48,18 +48,17 @@ CREATE TABLE IF NOT EXISTS public.claim_items (
 );
 
 -- 4. EVM Calculation View (EVM Engine)
--- This view aggregates Material Issues and Labor costs from timesheets
+-- Financial Summary View (EVM Engine)
 CREATE OR REPLACE VIEW public.project_cost_summaries AS
 WITH task_budgets AS (
   -- Planned Value (PV) and Budget at Completion (BAC)
-  -- Based on BOQ items for materials and planned hours for labor
   SELECT 
     t.id as task_id,
     t.project_id,
     t.wbs_node_id,
     t.title as task_title,
-    COALESCE(t.planned_hours, 0) * 50 as labor_budget, -- Default rate $50 if not specified
-    COALESCE((SELECT SUM(total_cost) FROM public.boq_items WHERE task_id = t.id), 0) as material_budget
+    COALESCE(t.planned_hours, 0) * 50 as labor_budget, -- Default rate $50
+    COALESCE((SELECT SUM(planned_qty * unit_cost) FROM public.boq_items WHERE task_id = t.id), 0) as material_budget
   FROM public.tasks t
 ),
 actual_costs AS (
@@ -67,14 +66,7 @@ actual_costs AS (
   SELECT 
     t.id as task_id,
     -- Labor Actuals from Timesheet Entries
-    COALESCE((
-      SELECT SUM((te.regular_hours + te.overtime_hours * 1.5) * COALESCE(pr.hourly_rate, 50))
-      FROM public.timesheet_entries te
-      LEFT JOIN public.pay_rates pr ON te.user_id = pr.user_id 
-        AND pr.effective_from <= te.work_date 
-        AND (pr.effective_to IS NULL OR pr.effective_to >= te.work_date)
-      WHERE te.task_id = t.id AND te.status = 'approved'
-    ), 0) as ac_labor,
+    COALESCE((SELECT SUM((te.regular_hours + te.overtime_hours) * 50) FROM public.timesheet_entries te WHERE te.task_id = t.id AND te.status = 'approved'), 0) as ac_labor,
     -- Material Actuals from Material Issues
     COALESCE((SELECT SUM(qty_issued * unit_cost_at_issue) FROM public.material_issues WHERE task_id = t.id), 0) as ac_materials
   FROM public.tasks t
@@ -83,10 +75,9 @@ earned_value AS (
   -- Earned Value (EV) = BAC * % Complete
   SELECT 
     t.id as task_id,
-    (
-      (COALESCE(t.planned_hours, 0) * 50) + 
-      COALESCE((SELECT SUM(total_cost) FROM public.boq_items WHERE task_id = t.id), 0)
-    ) * (COALESCE(t.progress, 0) / 100.0) as ev
+    (COALESCE(t.planned_hours, 0) * 50 + 
+     COALESCE((SELECT SUM(planned_qty * unit_cost) FROM public.boq_items WHERE task_id = t.id), 0)) * 
+     (COALESCE(t.progress, 0) / 100.0) as ev
   FROM public.tasks t
 )
 SELECT 
@@ -100,13 +91,16 @@ SELECT
   ac.ac_labor,
   (ac.ac_materials + ac.ac_labor) as ac_total,
   CASE 
-    WHEN (ac.ac_materials + ac.ac_labor) > 0 THEN ev.ev / (ac.ac_materials + ac.ac_labor)
-    WHEN ev.ev > 0 THEN 2.0 -- High value if progress exists but no cost yet
+    WHEN (ac.ac_materials + ac.ac_labor) > 0 THEN ev.ev / NULLIF((ac.ac_materials + ac.ac_labor), 0)
     ELSE 1.0 
   END as cpi
 FROM task_budgets tb
 JOIN actual_costs ac ON tb.task_id = ac.task_id
 JOIN earned_value ev ON tb.task_id = ev.task_id;
+
+-- Ensure the view is accessible via API
+GRANT SELECT ON public.project_cost_summaries TO authenticated, anon, service_role;
+
 
 -- Grant access to authenticated users
 GRANT SELECT ON public.project_cost_summaries TO authenticated, anon;
