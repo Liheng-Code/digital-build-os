@@ -50,6 +50,283 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_delays: {
+        Row: {
+          category: Database["public"]["Enums"]["dsr_delay_category"]
+          created_at: string
+          description: string
+          dsr_id: string
+          id: string
+          impacted_task_id: string | null
+          lost_hours: number
+          severity: Database["public"]["Enums"]["dsr_severity"]
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["dsr_delay_category"]
+          created_at?: string
+          description: string
+          dsr_id: string
+          id?: string
+          impacted_task_id?: string | null
+          lost_hours?: number
+          severity?: Database["public"]["Enums"]["dsr_severity"]
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["dsr_delay_category"]
+          created_at?: string
+          description?: string
+          dsr_id?: string
+          id?: string
+          impacted_task_id?: string | null
+          lost_hours?: number
+          severity?: Database["public"]["Enums"]["dsr_severity"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_delays_dsr_id_fkey"
+            columns: ["dsr_id"]
+            isOneToOne: false
+            referencedRelation: "daily_site_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_equipment: {
+        Row: {
+          created_at: string
+          dsr_id: string
+          equipment_name: string
+          hours_operated: number
+          id: string
+          idle_hours: number
+          idle_reason: string | null
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          dsr_id: string
+          equipment_name: string
+          hours_operated?: number
+          id?: string
+          idle_hours?: number
+          idle_reason?: string | null
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          dsr_id?: string
+          equipment_name?: string
+          hours_operated?: number
+          id?: string
+          idle_hours?: number
+          idle_reason?: string | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_equipment_dsr_id_fkey"
+            columns: ["dsr_id"]
+            isOneToOne: false
+            referencedRelation: "daily_site_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_manpower: {
+        Row: {
+          actual_count: number
+          created_at: string
+          department: Database["public"]["Enums"]["department"] | null
+          dsr_id: string
+          id: string
+          notes: string | null
+          planned_count: number
+          trade_label: string | null
+        }
+        Insert: {
+          actual_count?: number
+          created_at?: string
+          department?: Database["public"]["Enums"]["department"] | null
+          dsr_id: string
+          id?: string
+          notes?: string | null
+          planned_count?: number
+          trade_label?: string | null
+        }
+        Update: {
+          actual_count?: number
+          created_at?: string
+          department?: Database["public"]["Enums"]["department"] | null
+          dsr_id?: string
+          id?: string
+          notes?: string | null
+          planned_count?: number
+          trade_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_manpower_dsr_id_fkey"
+            columns: ["dsr_id"]
+            isOneToOne: false
+            referencedRelation: "daily_site_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_progress_entries: {
+        Row: {
+          created_at: string
+          cumulative_pct: number
+          description: string | null
+          dsr_id: string
+          hours_spent: number
+          id: string
+          manpower_count: number
+          notes: string | null
+          progress_pct_today: number
+          qty_today: number
+          qty_unit: string | null
+          task_id: string | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          cumulative_pct?: number
+          description?: string | null
+          dsr_id: string
+          hours_spent?: number
+          id?: string
+          manpower_count?: number
+          notes?: string | null
+          progress_pct_today?: number
+          qty_today?: number
+          qty_unit?: string | null
+          task_id?: string | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          cumulative_pct?: number
+          description?: string | null
+          dsr_id?: string
+          hours_spent?: number
+          id?: string
+          manpower_count?: number
+          notes?: string | null
+          progress_pct_today?: number
+          qty_today?: number
+          qty_unit?: string | null
+          task_id?: string | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_progress_entries_dsr_id_fkey"
+            columns: ["dsr_id"]
+            isOneToOne: false
+            referencedRelation: "daily_site_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_site_reports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          general_notes: string | null
+          id: string
+          project_id: string
+          rejection_reason: string | null
+          report_date: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          site_status: Database["public"]["Enums"]["dsr_site_status"]
+          status: Database["public"]["Enums"]["dsr_status"]
+          submitted_at: string | null
+          submitted_by: string | null
+          temperature_c: number | null
+          updated_at: string
+          weather: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          general_notes?: string | null
+          id?: string
+          project_id: string
+          rejection_reason?: string | null
+          report_date: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          site_status?: Database["public"]["Enums"]["dsr_site_status"]
+          status?: Database["public"]["Enums"]["dsr_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          temperature_c?: number | null
+          updated_at?: string
+          weather?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          general_notes?: string | null
+          id?: string
+          project_id?: string
+          rejection_reason?: string | null
+          report_date?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          site_status?: Database["public"]["Enums"]["dsr_site_status"]
+          status?: Database["public"]["Enums"]["dsr_status"]
+          submitted_at?: string | null
+          submitted_by?: string | null
+          temperature_c?: number | null
+          updated_at?: string
+          weather?: string | null
+        }
+        Relationships: []
+      }
+      daily_visitors: {
+        Row: {
+          created_at: string
+          dsr_id: string
+          id: string
+          organization: string | null
+          purpose: string | null
+          time_in: string | null
+          time_out: string | null
+          visitor_name: string
+        }
+        Insert: {
+          created_at?: string
+          dsr_id: string
+          id?: string
+          organization?: string | null
+          purpose?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          visitor_name: string
+        }
+        Update: {
+          created_at?: string
+          dsr_id?: string
+          id?: string
+          organization?: string | null
+          purpose?: string | null
+          time_in?: string | null
+          time_out?: string | null
+          visitor_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_visitors_dsr_id_fkey"
+            columns: ["dsr_id"]
+            isOneToOne: false
+            referencedRelation: "daily_site_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_members: {
         Row: {
           created_at: string
@@ -164,6 +441,53 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dsr_attachments: {
+        Row: {
+          caption: string | null
+          created_at: string
+          dsr_id: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          related_task_id: string | null
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          dsr_id: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          related_task_id?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          dsr_id?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          related_task_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dsr_attachments_dsr_id_fkey"
+            columns: ["dsr_id"]
+            isOneToOne: false
+            referencedRelation: "daily_site_reports"
             referencedColumns: ["id"]
           },
         ]
@@ -1177,6 +1501,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_dsr_approver: { Args: { _uid: string }; Returns: boolean }
+      is_dsr_editor: { Args: { _uid: string }; Returns: boolean }
       seed_demo_run: { Args: never; Returns: Json }
       wbs_user_can: {
         Args: {
@@ -1223,6 +1549,17 @@ export type Database = {
         | "completed"
         | "rejected"
         | "cancelled"
+      dsr_delay_category:
+        | "weather"
+        | "material"
+        | "inspection"
+        | "design"
+        | "labor"
+        | "equipment"
+        | "other"
+      dsr_severity: "low" | "med" | "high"
+      dsr_site_status: "working" | "partial" | "closed"
+      dsr_status: "draft" | "submitted" | "approved" | "rejected"
       notification_priority: "low" | "normal" | "high" | "critical"
       notification_type:
         | "task_assigned"
@@ -1472,6 +1809,18 @@ export const Constants = {
         "rejected",
         "cancelled",
       ],
+      dsr_delay_category: [
+        "weather",
+        "material",
+        "inspection",
+        "design",
+        "labor",
+        "equipment",
+        "other",
+      ],
+      dsr_severity: ["low", "med", "high"],
+      dsr_site_status: ["working", "partial", "closed"],
+      dsr_status: ["draft", "submitted", "approved", "rejected"],
       notification_priority: ["low", "normal", "high", "critical"],
       notification_type: [
         "task_assigned",
