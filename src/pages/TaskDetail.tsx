@@ -36,6 +36,7 @@ import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { Department } from "@/lib/departmentMeta";
 import { DepartmentBadge } from "@/components/DepartmentBadge";
 import { TaskQaQcTab } from "@/components/qaqc/TaskQaQcTab";
+import { TaskMaterialsTab } from "@/components/materials/TaskMaterialsTab";
 
 interface Task {
   id: string;
@@ -438,12 +439,7 @@ export default function TaskDetail() {
             </TabsContent>
 
             <TabsContent value="materials">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Task Materials</CardTitle>
-                  <CardDescription>Coming soon: Track BOQ and material consumption for this task.</CardDescription>
-                </CardHeader>
-              </Card>
+              <TaskMaterialsTab taskId={task.id} projectId={task.project_id} />
             </TabsContent>
           </Tabs>
         </div>

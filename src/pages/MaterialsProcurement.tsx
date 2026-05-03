@@ -8,6 +8,10 @@ import { useMaterialRequests, useStockBalances } from '@/hooks/useMaterials';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { formatMrStatus } from '@/lib/materialsMeta';
+import { CreateMrDialog } from '@/components/materials/CreateMrDialog';
+import { IssueMaterialDialog } from '@/components/materials/IssueMaterialDialog';
+import { BoqManager } from '@/components/materials/BoqManager';
+import { BookOpen } from 'lucide-react';
 
 export default function MaterialsProcurement() {
   const { activeProject } = useProjects();
@@ -31,10 +35,14 @@ export default function MaterialsProcurement() {
 
       <div className="flex-1 overflow-auto p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 max-w-2xl mb-6">
+          <TabsList className="grid w-full grid-cols-5 max-w-3xl mb-6">
             <TabsTrigger value="dashboard" className="flex gap-2">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="boq" className="flex gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">BOQ</span>
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex gap-2">
               <ClipboardList className="h-4 w-4" />
@@ -46,20 +54,70 @@ export default function MaterialsProcurement() {
             </TabsTrigger>
             <TabsTrigger value="stock" className="flex gap-2">
               <Truck className="h-4 w-4" />
-              <span className="hidden sm:inline">Stock Balances</span>
+              <span className="hidden sm:inline">Stock</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total Stock Value</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    ${stockData?.reduce((acc, item) => acc + (item.qty_on_hand * item.avg_unit_cost), 0).toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Open Requests</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {mrData?.filter(mr => mr.status === 'requested' || mr.status === 'pending_approval').length || 0}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-destructive">
+                    {stockData?.filter(item => item.qty_on_hand < 10).length || 0}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader>
-                <CardTitle>Procurement Overview</CardTitle>
-                <CardDescription>A summary of your project's materials status</CardDescription>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest movements in procurement and stock</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Cost vs Budget comparisons and low stock alerts will appear here.</p>
+                <div className="space-y-4">
+                  {mrData?.slice(0, 5).map(mr => (
+                    <div key={mr.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">{mr.request_number}</p>
+                        <p className="text-xs text-muted-foreground">{mr.items?.length} items requested on {format(new Date(mr.request_date), 'MMM d')}</p>
+                      </div>
+                      <Badge variant="outline">{mr.status.toUpperCase()}</Badge>
+                    </div>
+                  ))}
+                  {(!mrData || mrData.length === 0) && (
+                    <p className="text-sm text-muted-foreground italic">No recent activity.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="boq" className="mt-0">
+            <BoqManager />
           </TabsContent>
 
           <TabsContent value="requests" className="mt-0">
@@ -69,10 +127,7 @@ export default function MaterialsProcurement() {
                   <CardTitle>Material Requests</CardTitle>
                   <CardDescription>Track and approve site requests for materials.</CardDescription>
                 </div>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Request
-                </Button>
+                <CreateMrDialog />
               </CardHeader>
               <CardContent>
                 {mrLoading ? (
@@ -131,9 +186,12 @@ export default function MaterialsProcurement() {
 
           <TabsContent value="stock" className="mt-0">
             <Card>
-              <CardHeader>
-                <CardTitle>Stock Balances</CardTitle>
-                <CardDescription>Real-time inventory levels on site.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>Stock Balances</CardTitle>
+                  <CardDescription>Real-time inventory levels on site.</CardDescription>
+                </div>
+                <IssueMaterialDialog />
               </CardHeader>
               <CardContent>
                 {stockLoading ? (
