@@ -65,6 +65,22 @@ export function useStockBalances(projectId: string) {
   });
 }
 
+export function usePurchaseOrders(projectId: string) {
+  return useQuery({
+    queryKey: ['purchase_orders', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as any[] as PurchaseOrder[];
+    },
+    enabled: !!projectId,
+  });
+}
+
 export function useMaterialIssues(projectId: string, taskId?: string) {
   return useQuery({
     queryKey: ['material_issues', projectId, taskId],

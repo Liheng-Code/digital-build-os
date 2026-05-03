@@ -4,13 +4,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, ClipboardList, ShoppingCart, Truck, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useMaterialRequests, useStockBalances } from '@/hooks/useMaterials';
+import { useMaterialRequests, useStockBalances, usePurchaseOrders } from '@/hooks/useMaterials';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { formatMrStatus } from '@/lib/materialsMeta';
+import { formatMrStatus, formatPoStatus } from '@/lib/materialsMeta';
 import { CreateMrDialog } from '@/components/materials/CreateMrDialog';
 import { IssueMaterialDialog } from '@/components/materials/IssueMaterialDialog';
 import { BoqManager } from '@/components/materials/BoqManager';
+import { CreatePoDialog } from '@/components/materials/CreatePoDialog';
+import { CreateGrnDialog } from '@/components/materials/CreateGrnDialog';
 import { BookOpen } from 'lucide-react';
 
 export default function MaterialsProcurement() {
@@ -19,6 +21,7 @@ export default function MaterialsProcurement() {
   
   const { data: mrData, isLoading: mrLoading } = useMaterialRequests(activeProject?.id || '');
   const { data: stockData, isLoading: stockLoading } = useStockBalances(activeProject?.id || '');
+  const { data: poData, isLoading: poLoading } = usePurchaseOrders(activeProject?.id || '');
 
   if (!activeProject) {
     return <div className="p-6">Select a project to view materials.</div>;
@@ -174,12 +177,55 @@ export default function MaterialsProcurement() {
 
           <TabsContent value="orders" className="mt-0">
             <Card>
-              <CardHeader>
-                <CardTitle>Purchase Orders & GRNs</CardTitle>
-                <CardDescription>Manage supplier orders and receive deliveries.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>Purchase Orders & GRNs</CardTitle>
+                  <CardDescription>Manage supplier orders and receive deliveries.</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <CreateGrnDialog />
+                  <CreatePoDialog />
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Purchase orders and goods received notes go here.</p>
+                <div className="rounded-md border">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-muted/50 text-muted-foreground font-medium border-b">
+                      <tr>
+                        <th className="p-3">PO Number</th>
+                        <th className="p-3">Supplier</th>
+                        <th className="p-3">Date</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {poLoading ? (
+                        <tr><td colSpan={5} className="p-3 text-center">Loading POs...</td></tr>
+                      ) : !poData || poData.length === 0 ? (
+                        <tr className="hover:bg-muted/30">
+                          <td colSpan={5} className="p-8 text-center text-muted-foreground italic">
+                            No purchase orders found. Create a PO from an approved MR to start.
+                          </td>
+                        </tr>
+                      ) : (
+                        poData.map(po => (
+                          <tr key={po.id} className="hover:bg-muted/50 transition-colors">
+                            <td className="p-3 font-medium">{po.po_number}</td>
+                            <td className="p-3">{po.supplier_name}</td>
+                            <td className="p-3">{format(new Date(po.po_date), 'MMM d, yyyy')}</td>
+                            <td className="p-3">
+                              <Badge variant={po.status === 'completed' ? 'default' : 'secondary'}>
+                                {formatPoStatus(po.status)}
+                              </Badge>
+                            </td>
+                            <td className="p-3 text-right font-medium">${po.total_amount.toLocaleString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
