@@ -77,6 +77,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/materials", label: "Materials", icon: Package },
+      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
     ],
   },
   {

@@ -28,6 +28,7 @@ import Wbs from "./pages/Wbs";
 import DailyReports from "./pages/DailyReports";
 import DailyReportDetail from "./pages/DailyReportDetail";
 import MaterialsProcurement from "./pages/MaterialsProcurement";
+import QualityControl from "./pages/QualityControl";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -223,6 +224,16 @@ const App = () => (
                       </AppLayout>
                     </ProtectedRoute>
                   }
+                />
+                <Route 
+                  path="/quality" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <QualityControl />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
                 />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

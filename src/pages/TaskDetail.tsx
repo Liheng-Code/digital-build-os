@@ -17,6 +17,9 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   TaskStatus, TaskPriority, TaskType,
@@ -32,6 +35,7 @@ import { format } from "date-fns";
 import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { Department } from "@/lib/departmentMeta";
 import { DepartmentBadge } from "@/components/DepartmentBadge";
+import { TaskQaQcTab } from "@/components/qaqc/TaskQaQcTab";
 
 interface Task {
   id: string;
@@ -319,106 +323,131 @@ export default function TaskDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main column */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main column */}
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-foreground whitespace-pre-wrap">
-                {task.description || <span className="text-muted-foreground italic">No description</span>}
-              </p>
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="qaqc">QA / QC</TabsTrigger>
+              <TabsTrigger value="materials">Materials</TabsTrigger>
+            </TabsList>
 
-          {/* Post update */}
-          {(isAssignedToMe || canPlan) && !["completed", "closed"].includes(task.status) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Post an update</CardTitle>
-                <CardDescription>Log progress, hours, or report a blocker.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={postUpdate} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="progress">Progress %</Label>
-                      <Input
-                        id="progress" name="progress" type="number" min={0} max={100}
-                        defaultValue={task.progress_pct}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="hours">Hours worked</Label>
-                      <Input id="hours" name="hours" type="number" min={0} step="0.25" defaultValue={0} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="note">Note</Label>
-                    <Textarea id="note" name="note" rows={2} maxLength={2000} placeholder="Progress notes, photos coming next..." />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Checkbox id="blocker" name="blocker" />
-                      <span>Flag as blocker</span>
-                    </label>
-                    <Button type="submit" disabled={posting}>
-                      {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                      Post update
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+            <TabsContent value="overview" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {task.description || <span className="text-muted-foreground italic">No description</span>}
+                  </p>
+                </CardContent>
+              </Card>
 
-          {/* Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity</CardTitle>
-              <CardDescription>{updates.length} update{updates.length === 1 ? "" : "s"}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {updates.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">No updates yet.</p>
-              ) : (
-                <div className="space-y-4">
-                  {updates.map((u) => {
-                    const p = profiles[u.user_id];
-                    return (
-                      <div key={u.id} className="flex gap-3">
-                        <Avatar className="h-8 w-8 shrink-0">
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                            {(p?.full_name || "?").split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-baseline gap-2">
-                            <span className="font-medium text-sm">{p?.full_name || "Unknown"}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(u.created_at), "MMM d, h:mm a")}
-                            </span>
-                            {u.is_blocker && (
-                              <Badge variant="secondary" className="bg-destructive-soft text-destructive">
-                                <AlertTriangle className="h-3 w-3" /> Blocker
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-foreground mt-1">
-                            {u.note || <span className="italic text-muted-foreground">No note</span>}
-                          </div>
-                          <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                            {u.progress_pct !== null && <span>Progress: {u.progress_pct}%</span>}
-                            {u.hours_worked ? <span>+{u.hours_worked}h</span> : null}
-                          </div>
+              {/* Post update */}
+              {(isAssignedToMe || canPlan) && !["completed", "closed"].includes(task.status) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Post an update</CardTitle>
+                    <CardDescription>Log progress, hours, or report a blocker.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={postUpdate} className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="progress">Progress %</Label>
+                          <Input
+                            id="progress" name="progress" type="number" min={0} max={100}
+                            defaultValue={task.progress_pct}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="hours">Hours worked</Label>
+                          <Input id="hours" name="hours" type="number" min={0} step="0.25" defaultValue={0} />
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div>
+                        <Label htmlFor="note">Note</Label>
+                        <Textarea id="note" name="note" rows={2} maxLength={2000} placeholder="Progress notes, photos coming next..." />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Checkbox id="blocker" name="blocker" />
+                          <span>Flag as blocker</span>
+                        </label>
+                        <Button type="submit" disabled={posting}>
+                          {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          Post update
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
+
+              {/* Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Activity</CardTitle>
+                  <CardDescription>{updates.length} update{updates.length === 1 ? "" : "s"}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {updates.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">No updates yet.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {updates.map((u) => {
+                        const p = profiles[u.user_id];
+                        return (
+                          <div key={u.id} className="flex gap-3">
+                            <Avatar className="h-8 w-8 shrink-0">
+                              <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                                {(p?.full_name || "?").split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-baseline gap-2">
+                                <span className="font-medium text-sm">{p?.full_name || "Unknown"}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(u.created_at), "MMM d, h:mm a")}
+                                </span>
+                                {u.is_blocker && (
+                                  <Badge variant="secondary" className="bg-destructive-soft text-destructive">
+                                    <AlertTriangle className="h-3 w-3" /> Blocker
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-sm text-foreground mt-1">
+                                {u.note || <span className="italic text-muted-foreground">No note</span>}
+                              </div>
+                              <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                {u.progress_pct !== null && <span>Progress: {u.progress_pct}%</span>}
+                                {u.hours_worked ? <span>+{u.hours_worked}h</span> : null}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="qaqc">
+              <TaskQaQcTab taskId={task.id} />
+            </TabsContent>
+
+            <TabsContent value="materials">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Task Materials</CardTitle>
+                  <CardDescription>Coming soon: Track BOQ and material consumption for this task.</CardDescription>
+                </CardHeader>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Side column */}
