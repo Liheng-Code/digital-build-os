@@ -237,6 +237,26 @@ const App = () => (
                     </ProtectedRoute>
                   } 
                 />
+                <Route 
+                  path="/financials" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <FinancialControl />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/financials/claims" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProgressClaims />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
