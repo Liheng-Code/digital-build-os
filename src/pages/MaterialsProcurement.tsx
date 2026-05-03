@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useProject } from '@/contexts/ProjectContext';
+import { useProjects } from '@/contexts/ProjectContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, ClipboardList, ShoppingCart, Truck, Plus } from 'lucide-react';
@@ -10,13 +10,13 @@ import { format } from 'date-fns';
 import { formatMrStatus } from '@/lib/materialsMeta';
 
 export default function MaterialsProcurement() {
-  const { currentProject } = useProject();
+  const { activeProject } = useProjects();
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  const { data: mrData, isLoading: mrLoading } = useMaterialRequests(currentProject?.id || '');
-  const { data: stockData, isLoading: stockLoading } = useStockBalances(currentProject?.id || '');
+  const { data: mrData, isLoading: mrLoading } = useMaterialRequests(activeProject?.id || '');
+  const { data: stockData, isLoading: stockLoading } = useStockBalances(activeProject?.id || '');
 
-  if (!currentProject) {
+  if (!activeProject) {
     return <div className="p-6">Select a project to view materials.</div>;
   }
 
