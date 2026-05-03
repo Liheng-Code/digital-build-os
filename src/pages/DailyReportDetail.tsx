@@ -55,7 +55,7 @@ export default function DailyReportDetail() {
 
   // ----- mutations -----
   const updateReport = async (patch: Row) => {
-    const { error } = await supabase.from("daily_site_reports").update(patch).eq("id", report.id);
+    const { error } = await (supabase.from("daily_site_reports") as any).update(patch).eq("id", report.id);
     if (error) return toast.error(error.message);
     refetch();
   };
@@ -234,7 +234,7 @@ function ProgressTab({ dsrId, rows, tasks, canEdit, onChange }: {
   const [draft, setDraft] = useState<Row>({ task_id: "", description: "", qty_today: 0, qty_unit: "", cumulative_pct: 0, manpower_count: 0, hours_spent: 0 });
   const add = async () => {
     if (!draft.task_id) return toast.error("Pick a task");
-    const { error } = await supabase.from("daily_progress_entries").insert({ ...draft, dsr_id: dsrId });
+    const { error } = await (supabase.from("daily_progress_entries") as any).insert({ ...draft, dsr_id: dsrId });
     if (error) return toast.error(error.message);
     setDraft({ task_id: "", description: "", qty_today: 0, qty_unit: "", cumulative_pct: 0, manpower_count: 0, hours_spent: 0 });
     onChange();
@@ -305,7 +305,7 @@ function ProgressTab({ dsrId, rows, tasks, canEdit, onChange }: {
 function ManpowerTab({ dsrId, rows, canEdit, onChange }: { dsrId: string; rows: Row[]; canEdit: boolean; onChange: () => void }) {
   const [draft, setDraft] = useState<Row>({ department: "construction", trade_label: "", planned_count: 0, actual_count: 0, notes: "" });
   const add = async () => {
-    const { error } = await supabase.from("daily_manpower").insert({ ...draft, dsr_id: dsrId });
+    const { error } = await (supabase.from("daily_manpower") as any).insert({ ...draft, dsr_id: dsrId });
     if (error) return toast.error(error.message);
     setDraft({ department: "construction", trade_label: "", planned_count: 0, actual_count: 0, notes: "" });
     onChange();
@@ -362,7 +362,7 @@ function EquipmentTab({ dsrId, rows, canEdit, onChange }: { dsrId: string; rows:
   const [draft, setDraft] = useState<Row>({ equipment_name: "", quantity: 1, hours_operated: 0, idle_hours: 0, idle_reason: "" });
   const add = async () => {
     if (!draft.equipment_name) return toast.error("Equipment name required");
-    const { error } = await supabase.from("daily_equipment").insert({ ...draft, dsr_id: dsrId });
+    const { error } = await (supabase.from("daily_equipment") as any).insert({ ...draft, dsr_id: dsrId });
     if (error) return toast.error(error.message);
     setDraft({ equipment_name: "", quantity: 1, hours_operated: 0, idle_hours: 0, idle_reason: "" });
     onChange();
@@ -412,7 +412,7 @@ function DelaysTab({ dsrId, rows, tasks, canEdit, onChange }: {
   const add = async () => {
     if (!draft.description) return toast.error("Description required");
     const payload = { ...draft, dsr_id: dsrId, impacted_task_id: draft.impacted_task_id || null };
-    const { error } = await supabase.from("daily_delays").insert(payload);
+    const { error } = await (supabase.from("daily_delays") as any).insert(payload);
     if (error) return toast.error(error.message);
     setDraft({ category: "other", description: "", impacted_task_id: null, lost_hours: 0, severity: "low" });
     onChange();
@@ -484,7 +484,7 @@ function VisitorsTab({ dsrId, rows, canEdit, onChange }: { dsrId: string; rows: 
   const add = async () => {
     if (!draft.visitor_name) return toast.error("Visitor name required");
     const payload = { ...draft, dsr_id: dsrId, time_in: draft.time_in || null, time_out: draft.time_out || null };
-    const { error } = await supabase.from("daily_visitors").insert(payload);
+    const { error } = await (supabase.from("daily_visitors") as any).insert(payload);
     if (error) return toast.error(error.message);
     setDraft({ visitor_name: "", organization: "", purpose: "", time_in: "", time_out: "" });
     onChange();
@@ -549,7 +549,7 @@ function PhotosTab({ dsrId, rows, canEdit, onChange }: { dsrId: string; rows: Ro
     const path = `${dsrId}/${Date.now()}-${file.name}`;
     const up = await supabase.storage.from("dsr-attachments").upload(path, file);
     if (up.error) { setUploading(false); return toast.error(up.error.message); }
-    const { error } = await supabase.from("dsr_attachments").insert({
+    const { error } = await (supabase.from("dsr_attachments") as any).insert({
       dsr_id: dsrId, storage_path: path, file_name: file.name,
       mime_type: file.type, size_bytes: file.size, uploaded_by: user.id,
     });
