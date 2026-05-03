@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import * as React from "react";
 import { Link2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -64,18 +64,18 @@ export function TaskDependencyDialog({
   onSelectTask,
   onCreateLink,
 }: TaskDependencyDialogProps) {
-  const [editRelation, setEditRelation] = useState<DepRelation>("FS");
-  const [editLag, setEditLag] = useState("0");
-  const [saving, setSaving] = useState(false);
+  const [editRelation, setEditRelation] = React.useState<DepRelation>("FS");
+  const [editLag, setEditLag] = React.useState("0");
+  const [saving, setSaving] = React.useState(false);
 
-  const selectedTask = useMemo(() => getTaskById(tasks, selectedTaskId ?? ""), [tasks, selectedTaskId]);
+  const selectedTask = React.useMemo(() => getTaskById(tasks, selectedTaskId ?? ""), [tasks, selectedTaskId]);
 
-  const predLinks = useMemo(() => {
+  const predLinks = React.useMemo(() => {
     if (!selectedTaskId) return [];
     return predecessors.filter((p) => p.task_id === selectedTaskId);
   }, [predecessors, selectedTaskId]);
 
-  const succLinks = useMemo(() => {
+  const succLinks = React.useMemo(() => {
     if (!selectedTaskId) return [];
     return successors.filter((s) => s.predecessor_id === selectedTaskId);
   }, [successors, selectedTaskId]);

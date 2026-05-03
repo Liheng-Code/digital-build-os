@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useProjectCostSummaries } from '@/hooks/useFinancials';
@@ -12,7 +12,7 @@ export default function FinancialControl() {
   const { activeProject } = useProjects();
   const { data: summaries, isLoading, error } = useProjectCostSummaries(activeProject?.id || '');
 
-  const stats = useMemo(() => {
+  const stats = React.useMemo(() => {
     if (!summaries) return { totalBac: 0, totalEv: 0, totalAc: 0, cpi: 0 };
     const totalBac = summaries.reduce((acc, s) => acc + (s.bac || 0), 0);
     const totalEv = summaries.reduce((acc, s) => acc + (s.ev || 0), 0);

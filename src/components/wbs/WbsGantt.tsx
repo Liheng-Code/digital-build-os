@@ -1,4 +1,4 @@
-import { RefObject, UIEvent, useMemo, useRef, useState } from "react";
+import * as React from "react";
 import { addDays, differenceInCalendarDays, format, isValid, max, min, parseISO, startOfDay } from "date-fns";
 import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,9 +58,9 @@ function safeDate(s: string | null) {
 }
 
 export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency }: Props) {
-  const [zoom, setZoom] = useState<Zoom>("week");
+  const [zoom, setZoom] = React.useState<Zoom>("week");
 
-  const range = useMemo(() => {
+  const range = React.useMemo(() => {
     const starts: Date[] = [];
     const ends: Date[] = [];
     for (const task of tasks) {
@@ -83,7 +83,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
   const dayWidth = ZOOM_PX[zoom];
   const chartWidth = totalDays * dayWidth;
 
-  const taskRowIndex = useMemo(() => {
+  const taskRowIndex = React.useMemo(() => {
     const map = new Map<string, number>();
     rows.forEach((row, index) => {
       if (row.kind === "task") map.set(row.id, index);
@@ -94,7 +94,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
   const today = startOfDay(new Date());
   const todayX = differenceInCalendarDays(today, range.start) * dayWidth;
 
-  const dayHeaders = useMemo(() => {
+  const dayHeaders = React.useMemo(() => {
     const items: { date: Date; isHoliday: boolean; isWeekend: boolean }[] = [];
     for (let i = 0; i < totalDays; i++) {
       const date = addDays(range.start, i);
@@ -107,7 +107,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     return items;
   }, [range.start, totalDays, holidaySet]);
 
-  const monthHeaders = useMemo(() => {
+  const monthHeaders = React.useMemo(() => {
     const groups: { label: string; span: number }[] = [];
     let current: { label: string; span: number } | null = null;
     for (const header of dayHeaders) {
@@ -123,8 +123,8 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     return groups;
   }, [dayHeaders]);
 
-  const headerScrollRef = useRef<HTMLDivElement>(null);
-  const bodyHorizontalScrollRef = useRef<HTMLDivElement>(null);
+  const headerScrollRef = React.useRef<HTMLDivElement>(null);
+  const bodyHorizontalScrollRef = React.useRef<HTMLDivElement>(null);
   const jumpToToday = () => {
     const element = bodyHorizontalScrollRef.current;
     if (!element) return;

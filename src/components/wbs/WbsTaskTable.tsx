@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import * as React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,16 +35,16 @@ interface Props {
 }
 
 export function WbsTaskTable({ nodes, tasks }: Props) {
-  const [sortField, setSortField] = useState<SortField>("start");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [filterBuilding, setFilterBuilding] = useState<string>("all");
-  const [filterLevel, setFilterLevel] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const [sortField, setSortField] = React.useState<SortField>("start");
+  const [sortDir, setSortDir] = React.useState<SortDir>("asc");
+  const [filterBuilding, setFilterBuilding] = React.useState<string>("all");
+  const [filterLevel, setFilterLevel] = React.useState<string>("all");
+  const [filterStatus, setFilterStatus] = React.useState<string>("all");
+  const [search, setSearch] = React.useState("");
 
-  const pathMap = useMemo(() => buildNodePathMap(nodes), [nodes]);
+  const pathMap = React.useMemo(() => buildNodePathMap(nodes), [nodes]);
 
-  const buildings = useMemo(() => {
+  const buildings = React.useMemo(() => {
     const set = new Set<string>();
     for (const n of nodes) {
       if (n.node_type === "building") set.add(n.name);
@@ -52,7 +52,7 @@ export function WbsTaskTable({ nodes, tasks }: Props) {
     return [...set].sort();
   }, [nodes]);
 
-  const levels = useMemo(() => {
+  const levels = React.useMemo(() => {
     const set = new Set<string>();
     for (const n of nodes) {
       if (n.node_type === "level") set.add(n.name);
@@ -60,7 +60,7 @@ export function WbsTaskTable({ nodes, tasks }: Props) {
     return [...set].sort();
   }, [nodes]);
 
-  const taskRows: TaskRow[] = useMemo(() => {
+  const taskRows: TaskRow[] = React.useMemo(() => {
     const today = new Date();
     return tasks.map((t) => {
       const pathInfo = t.wbs_node_id ? pathMap.get(t.wbs_node_id) : undefined;
@@ -87,7 +87,7 @@ export function WbsTaskTable({ nodes, tasks }: Props) {
     });
   }, [tasks, pathMap]);
 
-  const filtered = useMemo(() => {
+  const filtered = React.useMemo(() => {
     let rows = taskRows;
     if (filterBuilding !== "all") rows = rows.filter((r) => r.building === filterBuilding);
     if (filterLevel !== "all") rows = rows.filter((r) => r.level === filterLevel);
@@ -104,7 +104,7 @@ export function WbsTaskTable({ nodes, tasks }: Props) {
     return rows;
   }, [taskRows, filterBuilding, filterLevel, filterStatus, search]);
 
-  const sorted = useMemo(() => {
+  const sorted = React.useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => {
       switch (sortField) {

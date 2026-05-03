@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import * as React from 'react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useWbsTree } from '@/hooks/useWbsTree';
 import { useWbsSchedule } from '@/hooks/useWbsSchedule';
@@ -16,8 +16,8 @@ import { toast } from 'sonner';
 
 export function CreateClaimDialog() {
   const { activeProject } = useProjects();
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   
   const { nodes } = useWbsTree(activeProject?.id);
   const { tasks } = useWbsSchedule(activeProject?.id, nodes);
@@ -69,7 +69,7 @@ export function CreateClaimDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={!!open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
