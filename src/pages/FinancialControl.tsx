@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 export default function FinancialControl() {
   const { activeProject } = useProjects();
-  const { data: summaries, isLoading } = useProjectCostSummaries(activeProject?.id || '');
+  const { data: summaries, isLoading, error } = useProjectCostSummaries(activeProject?.id || '');
 
   const stats = useMemo(() => {
     if (!summaries) return { totalBac: 0, totalEv: 0, totalAc: 0, cpi: 0 };
@@ -40,6 +40,12 @@ export default function FinancialControl() {
 
   if (!activeProject) return <div className="p-6">Select a project.</div>;
   if (isLoading) return <div className="p-6 text-center">Crunching numbers...</div>;
+  if (error) return (
+    <div className="p-6 text-center space-y-4">
+      <div className="text-destructive font-bold text-xl">Data Error</div>
+      <p className="text-muted-foreground">{(error as any).message || "Failed to load project financials. Please ensure the database migrations are applied."}</p>
+    </div>
+  );
 
   return (
     <div className="p-6 space-y-6">

@@ -12,9 +12,15 @@ import { CreateClaimDialog } from '@/components/financials/CreateClaimDialog';
 
 export default function ProgressClaims() {
   const { activeProject } = useProjects();
-  const { data: claims, isLoading } = useProgressClaims(activeProject?.id || '');
+  const { data: claims, isLoading, error } = useProgressClaims(activeProject?.id || '');
 
   if (!activeProject) return <div className="p-6">Select a project.</div>;
+  if (error) return (
+    <div className="p-6 text-center space-y-4">
+      <div className="text-destructive font-bold text-xl">Connection Error</div>
+      <p className="text-muted-foreground">{(error as any).message || "Failed to load claims history."}</p>
+    </div>
+  );
 
   return (
     <div className="p-6 space-y-6">
