@@ -1,108 +1,164 @@
-## Dependency & Scheduling Module — Plan
+## Module 1 — Daily Site Report (DSR) & Progress Tracking
 
-Builds on what already exists (`task_predecessors`, `tasks.planned_start/planned_end/actual_*/progress_pct/status`, `WbsGantt`, `TaskDependenciesSection`, holidays). No renames, no breaking changes.
-
----
-
-### 1. Database (migration)
-
-**`tasks` — add columns**
-- `baseline_start date`, `baseline_end date` (nullable)
-- `planned_duration_days int generated always as (...) stored` — working-day count helper, computed in app instead if generated columns get tricky with holidays. Decision: compute in app, do NOT add a generated column (holidays vary by project).
-- Add `'blocked'` to `task_status` enum.
-- Allow status transition `assigned ↔ blocked`, `open ↔ blocked` in `validate_task_status_transition()`.
-
-**`schedule_calculation_logs` (new)**
-```
-id, project_id, triggered_by_task_id, triggered_by_user, trigger_reason text,
-affected_count int, payload jsonb, -- {before:[{id,start,end}], after:[...]}
-created_at
-```
-RLS: anyone authenticated can SELECT; INSERT only by admin/PM/engineer/supervisor.
-
-**`task_predecessors` — add validation trigger**
-- No self-dependency (`task_id != predecessor_id`)
-- No duplicate (already enforced by intended unique key — add `unique(task_id, predecessor_id)`)
-- Same project (join check)
-- No cycle: recursive CTE walking predecessors, raise on `task_id` reappearing.
-
-**Skip** new `task_dependencies`, `task_schedule_snapshots(_items)` tables — using baseline columns + log table covers the requirement.
-
-### 2. Scheduling utility (`src/lib/schedule.ts`)
-Pure functions, unit-testable:
-- `computeFinish(start, durationDays, holidays) → date`
-- `computeStart(predEnd, relation, lagDays, holidays) → date` for FS/SS/FF/SF
-- `cascade({tasks, deps, changedTaskId, holidays}) → Map<id, {newStart, newEnd}>` — BFS over successors, applies max constraint when multiple predecessors, stops when no further shift needed.
-- `taskBlockedStatus(task, predecessors, predTasks) → 'blocked' | null` — blocked if any hard-block predecessor not in `completed/approved/closed`.
-
-### 3. Status logic
-- New hook `useTaskBlockedness(projectId)` returns Map<taskId, 'blocked' | 'ready' | null>.
-- TaskDetail "Start task" button disabled when blocked (with tooltip listing blocking predecessors).
-- StatusBadge gets `blocked` variant (destructive tone).
-- Background: when a predecessor moves to completed/approved, dependent tasks recompute on next load (no trigger needed for v1).
-
-### 4. Cascade preview UI
-New component `ScheduleCascadeDialog`:
-- Triggered when user edits `planned_end` (or duration) in TaskDetail / inline-edit / Gantt drag.
-- Calls `cascade()` client-side using already-loaded tasks + `task_predecessors`.
-- Shows table: code | title | old start→new start | old end→new end | shift days.
-- "Apply" → batch `update tasks` + insert `schedule_calculation_logs` row with before/after payload.
-- "Cancel" → revert local state.
-
-### 5. Gantt drag-to-adjust (`WbsGantt.tsx`)
-- Add pointer handlers on each task bar:
-  - drag body = move (shift start & end equally)
-  - drag left edge = change start
-  - drag right edge = change end
-- Snap to day grid (`dayWidth`).
-- On drop: open ScheduleCascadeDialog with proposed change.
-- Permission gate: only admin / project_manager / engineer / supervisor; others get read-only bars.
-- Visual: blocked tasks render with diagonal-stripe pattern + destructive border; baseline shown as thin gray bar behind planned bar when baseline_* present.
-
-### 6. Task Detail — Dependencies tab improvements
-`TaskDependenciesSection.tsx` already covers predecessors. Add:
-- Successors list (query `task_predecessors where predecessor_id = taskId`).
-- Per-row status badge: ✓ satisfied / ⚠ pending / ⛔ blocking.
-- Cycle/duplicate errors surfaced from new DB trigger as friendly toasts.
-
-### 7. Schedule Management screen
-Reuse existing `/wbs` Gantt tab — add a third tab **"Schedule"** with:
-- Filters: discipline (department), status, WBS subtree, search.
-- Dense task table with all columns from spec (code, name, WBS path, discipline, status, planned start/finish, duration, actual start/finish, predecessor/successor counts, delay days, progress %).
-- Click row → opens TaskDetail drawer.
-- "Set baseline" button (admin/PM): copies current planned_start/end into baseline_start/end for all project tasks, with confirm.
-
-### 8. Permissions
-- Edit dependencies / dates: admin, project_manager, engineer, supervisor (matches existing `task_predecessors` insert policy).
-- Set/clear baseline: admin, project_manager only.
-- Everyone authenticated: view.
-
-### 9. Files
-
-**New**
-- `supabase/migrations/<ts>_dependency_scheduling.sql`
-- `src/lib/schedule.ts` (cascade + blocked logic)
-- `src/components/schedule/ScheduleCascadeDialog.tsx`
-- `src/components/schedule/ScheduleTable.tsx`
-- `src/components/schedule/SetBaselineButton.tsx`
-- `src/hooks/useTaskBlockedness.ts`
-
-**Edited**
-- `src/components/wbs/WbsGantt.tsx` — drag handlers, baseline bars, blocked styling
-- `src/components/wbs/WbsGanttTree.tsx` — add Successors/Predecessors count columns (optional, behind toggle)
-- `src/components/tasks/TaskDependenciesSection.tsx` — add successors panel, status badges
-- `src/pages/Wbs.tsx` — add "Schedule" tab
-- `src/pages/TaskDetail.tsx` — disable Start when blocked, show baseline vs planned variance
-- `src/components/StatusBadge.tsx` + `src/lib/taskMeta.ts` — `blocked` status
-- `src/hooks/useWbsGantt.ts` — fetch baseline_* + dep counts
-- `src/lib/scheduleMeta.ts` — extend `taskStatus()` with blocked input
-
-### 10. Out of scope (this round)
-- Multiple named snapshots (only single baseline).
-- Server-side recompute trigger (cascade is client-driven with audit log).
-- Resource leveling / critical path highlighting (can be a follow-up).
+The daily execution layer that ties planning (WBS/schedule) to labor (timesheets) and feeds real `progress_pct`, `actual_start/end`, and reporting.
 
 ---
 
-### Open assumption
-Adding `'blocked'` to the `task_status` enum is safe because nothing currently produces it. If you'd rather keep it as a *derived* state (computed in UI only, not stored), say so before I implement and I'll skip the enum change and the DB transitions.
+### 1. Scope
+
+One **Daily Site Report** per project per calendar day, owned by the site supervisor/engineer. Contains:
+- Site conditions (weather, temperature, site status: working / partial / closed)
+- Manpower headcount by department/trade (planned vs actual)
+- Equipment on site (name, qty, hours operated, idle reason)
+- Visitors / inspections occurred
+- Work performed — line items linked to **WBS nodes or tasks**, with quantity installed today + % complete
+- Delays & issues (category, description, impacted task, lost hours)
+- Photos / attachments
+- Supervisor notes
+- Submit → review → approve workflow (draft / submitted / approved / rejected)
+- PDF export + sign-off
+
+When a DSR is **approved**, progress entries automatically:
+- Update `tasks.progress_pct` (highest of submitted % so far)
+- Set `tasks.actual_start` if first progress > 0
+- Set `tasks.actual_end` when % reaches 100
+
+---
+
+### 2. Database
+
+New tables (all with RLS, project-scoped):
+
+```text
+daily_site_reports
+  id, project_id, report_date (unique per project),
+  weather, temperature_c, site_status (working|partial|closed),
+  general_notes, status (draft|submitted|approved|rejected),
+  submitted_by, submitted_at, reviewed_by, reviewed_at, rejection_reason,
+  created_by, created_at, updated_at
+
+daily_manpower
+  id, dsr_id, department (enum), trade_label,
+  planned_count, actual_count, notes
+
+daily_equipment
+  id, dsr_id, equipment_name, quantity,
+  hours_operated, idle_hours, idle_reason
+
+daily_progress_entries
+  id, dsr_id, task_id (nullable), wbs_node_id (nullable),
+  description, qty_today numeric, qty_unit text,
+  progress_pct_today int, cumulative_pct int,
+  manpower_count int, hours_spent numeric, notes
+  -- check: at least one of task_id / wbs_node_id is set
+
+daily_delays
+  id, dsr_id, category (weather|material|inspection|design|labor|equipment|other),
+  description, impacted_task_id (nullable),
+  lost_hours numeric, severity (low|med|high)
+
+daily_visitors
+  id, dsr_id, visitor_name, organization, purpose, time_in, time_out
+
+dsr_attachments
+  id, dsr_id, storage_path, file_name, mime_type, size_bytes,
+  caption, related_task_id (nullable), uploaded_by, created_at
+```
+
+**Trigger** on `daily_progress_entries` (when parent DSR moves to `approved`):
+- update `tasks.progress_pct = greatest(current, cumulative_pct)`
+- set `actual_start` if null and cumulative_pct > 0 (use DSR `report_date`)
+- set `actual_end = report_date::timestamptz` when cumulative_pct = 100
+- write a row into `task_status_history` if implied status change (in_progress / pending_approval)
+- insert into `schedule_calculation_logs` so the audit trail is unified
+
+**Storage bucket**: `dsr-attachments` (private), RLS keyed on project membership.
+
+**RLS summary**:
+- View: any authenticated project member
+- Insert / edit (draft): admin, project_manager, engineer, supervisor (and only on their project)
+- Approve / reject: admin, project_manager
+- Once `approved`, becomes immutable (only admin can reopen)
+
+---
+
+### 3. Pages & components
+
+**New route** `/daily-reports` (and `/daily-reports/:id`):
+- List page: table of DSRs for active project, filters (date range, status, author), "+ New report" button. Calendar heatmap toggle showing days with/without report.
+- Detail page: full editor with tabs — *Overview · Manpower · Equipment · Progress · Delays · Visitors · Photos*. Sticky header with status badge, submit/approve actions.
+
+**New components** under `src/components/dsr/`:
+- `DsrHeader.tsx` — date picker, weather, site status, status badge, action buttons
+- `DsrManpowerTab.tsx` — editable table grouped by department (auto-pulls planned headcount from active task assignments for the day as default)
+- `DsrEquipmentTab.tsx` — editable table
+- `DsrProgressTab.tsx` — line items: pick WBS node or task (uses existing `WbsNodePicker`), enter qty + cumulative %; shows previous cumulative for context
+- `DsrDelaysTab.tsx` — categorized delay list
+- `DsrVisitorsTab.tsx` — simple list
+- `DsrAttachmentsTab.tsx` — drag-drop uploader with captions, gallery view
+- `DsrApprovalBar.tsx` — submit / approve / reject with reason
+- `DsrPdfExportButton.tsx` — generates printable PDF (browser print stylesheet first; edge function later if needed)
+
+**Edited**:
+- `src/App.tsx` — add `/daily-reports` and `/daily-reports/:id` routes
+- `src/components/AppLayout.tsx` — add "Daily Reports" nav entry (icon: ClipboardCheck)
+- `src/pages/TaskDetail.tsx` — add "Recent progress" panel showing latest DSR entries for this task
+- `src/pages/Wbs.tsx` — show today's DSR progress overlay on Gantt (small dots on bars where progress was logged)
+- `src/pages/Index.tsx` (Dashboard) — KPI tile: "DSRs this week", "Days missed"
+
+**Hooks** under `src/hooks/`:
+- `useDailyReport(dsrId)` — fetches DSR + all child rows in parallel
+- `useDsrList(projectId, filters)`
+- `useTodayDsr(projectId)` — returns today's DSR if exists, else stub for quick-create
+- `useTaskProgressHistory(taskId)` — for TaskDetail panel
+
+**Utilities** under `src/lib/`:
+- `dsrMeta.ts` — status labels/tones, delay category labels, validation helpers
+- `dsrPdf.ts` — print-friendly HTML composition
+
+---
+
+### 4. Validation
+
+- One DSR per (project_id, report_date) — enforced by unique index
+- `cumulative_pct` per task must be monotonic across DSRs (guard in trigger; reject save with clear error if a later date tries to lower it)
+- Cannot submit with zero progress entries AND zero manpower (forces meaningful content)
+- Attachments capped per DSR (e.g. 50 files, 25 MB each)
+- Cross-check toast on submit: if DSR `actual_count` (manpower) ≠ count of timesheets logged that day, show non-blocking warning
+
+---
+
+### 5. Permissions matrix
+
+| Action | admin | PM | engineer | supervisor | worker | accountant |
+|---|---|---|---|---|---|---|
+| View DSR | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Create / edit draft | ✅ | ✅ | ✅ | ✅ | — | — |
+| Submit | ✅ | ✅ | ✅ | ✅ | — | — |
+| Approve / reject | ✅ | ✅ | — | — | — | — |
+| Reopen approved | ✅ | — | — | — | — | — |
+| Delete | ✅ | ✅ (own project) | — | — | — | — |
+
+---
+
+### 6. Out of scope (this round)
+
+- Mobile-native offline capture (web responsive only for now)
+- Auto-weather pull from external API
+- Toolbox-talks / safety incident module (separate future module)
+- Multi-day bulk progress entry
+
+---
+
+### 7. Delivery order
+
+1. Migration (tables, enums, indexes, trigger, RLS, storage bucket)
+2. Hooks + meta utilities
+3. List page + detail shell with status workflow
+4. Tabs in order: Overview → Progress → Manpower → Delays → Equipment → Visitors → Attachments
+5. Approval flow + trigger wiring to `tasks`
+6. Dashboard tile, TaskDetail panel, Gantt overlay
+7. PDF export
+8. QA pass & permissions verification
+
+Estimated: one substantial implementation pass, then a follow-up for polish & PDF.

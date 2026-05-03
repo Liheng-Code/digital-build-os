@@ -25,6 +25,8 @@ import Team from "./pages/Team";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Wbs from "./pages/Wbs";
+import DailyReports from "./pages/DailyReports";
+import DailyReportDetail from "./pages/DailyReportDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -187,6 +189,26 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Wbs />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/daily-reports"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <DailyReports />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/daily-reports/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <DailyReportDetail />
                       </AppLayout>
                     </ProtectedRoute>
                   }
