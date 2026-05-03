@@ -300,3 +300,57 @@ export function useCreateChecklistItem() {
     }
   });
 }
+
+export function useCreateNCR() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (values: Partial<NCR>) => {
+      const { data, error } = await supabase
+        .from('ncrs')
+        .insert([values])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ncrs', variables.project_id] });
+      if (variables.task_id) {
+        queryClient.invalidateQueries({ queryKey: ['task_qaqc', variables.task_id] });
+      }
+      toast.success('NCR created successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to create NCR: ' + error.message);
+    }
+  });
+}
+
+export function useCreatePunchItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (values: Partial<PunchListItem>) => {
+      const { data, error } = await supabase
+        .from('punch_list_items')
+        .insert([values])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['punch_list_items', variables.project_id] });
+      if (variables.task_id) {
+        queryClient.invalidateQueries({ queryKey: ['task_qaqc', variables.task_id] });
+      }
+      toast.success('Punch list item added');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to add punch item: ' + error.message);
+    }
+  });
+}

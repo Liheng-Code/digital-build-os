@@ -7,6 +7,8 @@ import { formatIrStatus, formatNcrStatus, formatPunchListStatus, InspectionReque
 import { format } from 'date-fns';
 import { RaiseIrDialog } from './RaiseIrDialog';
 import { InspectIrDialog } from './InspectIrDialog';
+import { CreateNcrDialog } from './CreateNcrDialog';
+import { CreatePunchItemDialog } from './CreatePunchItemDialog';
 import { AlertTriangle, ClipboardCheck, CheckSquare, Plus } from 'lucide-react';
 
 export function TaskQaQcTab({ taskId }: { taskId: string }) {
@@ -17,7 +19,9 @@ export function TaskQaQcTab({ taskId }: { taskId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <CreatePunchItemDialog />
+        <CreateNcrDialog />
         <RaiseIrDialog />
       </div>
 

@@ -15,6 +15,8 @@ import { format } from 'date-fns';
 import { RaiseIrDialog } from '@/components/qaqc/RaiseIrDialog';
 import { InspectIrDialog } from '@/components/qaqc/InspectIrDialog';
 import { ChecklistSetup } from '@/components/qaqc/ChecklistSetup';
+import { CreateNcrDialog } from '@/components/qaqc/CreateNcrDialog';
+import { CreatePunchItemDialog } from '@/components/qaqc/CreatePunchItemDialog';
 import { InspectionRequest, IrStatus } from '@/lib/qaqcMeta';
 import { cn } from '@/lib/utils';
 import { 
@@ -256,10 +258,7 @@ export default function QualityControl() {
                 <CardTitle>Non-Conformance Reports</CardTitle>
                 <CardDescription>Track critical quality deviations</CardDescription>
               </div>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                New NCR
-              </Button>
+              <CreateNcrDialog />
             </CardHeader>
             <CardContent>
               {ncrLoading ? (
@@ -309,10 +308,7 @@ export default function QualityControl() {
                 <CardTitle>Punch List</CardTitle>
                 <CardDescription>Minor defects and incomplete works</CardDescription>
               </div>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
+              <CreatePunchItemDialog />
             </CardHeader>
             <CardContent>
               {punchLoading ? (
