@@ -41,11 +41,12 @@ export interface ProjectCostSummary {
   wbs_node_id: string;
   task_id: string;
   task_title: string;
-  bac: number; -- Budget at Completion
-  ev: number;  -- Earned Value
+  bac: number; // Budget at Completion
+  ev: number;  // Earned Value
   ac_materials: number;
+  ac_labor: number;
   ac_total: number;
-  cpi: number; -- Cost Performance Index
+  cpi: number; // Cost Performance Index
 }
 
 export const CLAIM_STATUS_COLORS: Record<ClaimStatus, string> = {
