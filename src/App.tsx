@@ -29,6 +29,8 @@ import DailyReports from "./pages/DailyReports";
 import DailyReportDetail from "./pages/DailyReportDetail";
 import MaterialsProcurement from "./pages/MaterialsProcurement";
 import QualityControl from "./pages/QualityControl";
+import FinancialControl from "./pages/FinancialControl";
+import ProgressClaims from "./pages/ProgressClaims";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
