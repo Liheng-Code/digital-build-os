@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WbsTree } from "@/components/wbs/WbsTree";
 import { WbsNodeEditor } from "@/components/wbs/WbsNodeEditor";
 import { WbsAssignmentsTab } from "@/components/wbs/WbsAssignmentsTab";
+import { WbsFinancialsTab } from "@/components/financials/WbsFinancialsTab";
 import { WbsScheduleCard } from "@/components/wbs/WbsScheduleCard";
 import { WbsGanttTree } from "@/components/wbs/WbsGanttTree";
 import { WbsGantt } from "@/components/wbs/WbsGantt";
@@ -539,6 +540,7 @@ export default function WbsPage() {
                     <Tabs defaultValue={mode.kind === "edit" ? "edit" : "details"}>
                       <TabsList>
                         <TabsTrigger value="details">Details</TabsTrigger>
+                        <TabsTrigger value="financials">Financials</TabsTrigger>
                         <TabsTrigger value="edit">Edit</TabsTrigger>
                         <TabsTrigger value="permissions">Permissions</TabsTrigger>
                       </TabsList>
@@ -574,6 +576,10 @@ export default function WbsPage() {
                             })()}
                           </CardContent>
                         </Card>
+                      </TabsContent>
+                      
+                      <TabsContent value="financials" className="mt-4">
+                        <WbsFinancialsTab nodeId={selectedNode.id} projectId={activeProject.id} />
                       </TabsContent>
 
                       <TabsContent value="edit" className="mt-4">

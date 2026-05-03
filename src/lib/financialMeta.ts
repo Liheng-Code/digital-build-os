@@ -38,6 +38,7 @@ export interface ClaimItem {
 
 export interface ProjectCostSummary {
   project_id: string;
+  wbs_node_id: string;
   task_id: string;
   task_title: string;
   bac: number; -- Budget at Completion

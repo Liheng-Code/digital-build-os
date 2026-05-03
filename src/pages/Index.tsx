@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProjectCostSummaries } from "@/hooks/useFinancials";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +14,7 @@ import {
   CheckSquare,
   AlertTriangle,
   TrendingUp,
+  TrendingDown,
   ArrowRight,
   FolderKanban,
 } from "lucide-react";
@@ -29,6 +31,7 @@ const Index = () => {
   const [myTaskCount, setMyTaskCount] = useState(0);
   const [pendingApprovals, setPendingApprovals] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { data: summaries } = useProjectCostSummaries(activeProject?.id || "");
 
   useEffect(() => {
     const load = async () => {
@@ -76,6 +79,7 @@ const Index = () => {
   const completed = (counts.find((c) => c.status === "completed")?.count ?? 0)
     + (counts.find((c) => c.status === "closed")?.count ?? 0);
   const completion = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+  const totalSpend = summaries?.reduce((acc, s) => acc + s.ac_total, 0) || 0;
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -149,11 +153,11 @@ const Index = () => {
           to="/tasks"
         />
         <KPICard
-          icon={<AlertTriangle className="h-5 w-5" />}
-          label="Pending approvals"
-          value={loading ? null : pendingApprovals}
+          icon={<TrendingDown className="h-5 w-5" />}
+          label="Project Spend"
+          value={loading ? null : `$${totalSpend.toLocaleString()}`}
           tone="warning"
-          to="/approvals"
+          to="/financials"
         />
       </div>
 

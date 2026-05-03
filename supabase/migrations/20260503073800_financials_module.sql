@@ -97,6 +97,7 @@ planned_values AS (
 )
 SELECT 
     t.project_id,
+    t.wbs_node_id,
     t.id as task_id,
     t.title as task_title,
     COALESCE(pv.budget_at_completion, 0) as bac,

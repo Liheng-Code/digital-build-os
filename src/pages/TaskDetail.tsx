@@ -37,6 +37,7 @@ import { Department } from "@/lib/departmentMeta";
 import { DepartmentBadge } from "@/components/DepartmentBadge";
 import { TaskQaQcTab } from "@/components/qaqc/TaskQaQcTab";
 import { TaskMaterialsTab } from "@/components/materials/TaskMaterialsTab";
+import { TaskFinancialsTab } from "@/components/financials/TaskFinancialsTab";
 
 interface Task {
   id: string;
@@ -330,6 +331,7 @@ export default function TaskDetail() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="qaqc">QA / QC</TabsTrigger>
               <TabsTrigger value="materials">Materials</TabsTrigger>
+              <TabsTrigger value="financials">Financials</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -438,8 +440,12 @@ export default function TaskDetail() {
               <TaskQaQcTab taskId={task.id} />
             </TabsContent>
 
-            <TabsContent value="materials">
+            <TabsContent value="materials" className="mt-4">
               <TaskMaterialsTab taskId={task.id} projectId={task.project_id} />
+            </TabsContent>
+            
+            <TabsContent value="financials" className="mt-4">
+              <TaskFinancialsTab taskId={task.id} projectId={task.project_id} />
             </TabsContent>
           </Tabs>
         </div>
