@@ -67,6 +67,18 @@ function safeDate(s: string | null) {
 export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false }: Props) {
   const [zoom, setZoom] = React.useState<Zoom>("week");
   const [showCritical, setShowCritical] = React.useState(initialShowCritical);
+  const [tooltip, setTooltip] = React.useState<{
+    title: string;
+    code?: string | null;
+    start: Date | null;
+    end: Date | null;
+    progress: number;
+    status: string;
+    isMilestone?: boolean;
+    isSummary?: boolean;
+    x: number;
+    y: number;
+  } | null>(null);
   const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null);
 
   const range = React.useMemo(() => {
@@ -188,7 +200,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
   };
 
   return (
-    <TooltipProvider delayDuration={100}>
+    <>
       <div className="h-full overflow-hidden bg-background flex flex-col">
         <div className="flex flex-col overflow-hidden flex-1">
           <div className="flex items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur-sm z-30" style={{ height: TITLE_H }}>
@@ -367,9 +379,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
                           if (isMilestone) {
                             return (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="absolute inset-0">
+                              <div className="absolute inset-0">
                                     {baselineEl}
                                     <div
                                       className={cn(
@@ -381,27 +391,11 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                       style={{ left: left + dayWidth / 2 - 8 }}
                                       onClick={() => onTaskSelect?.(row.task.id, false)}
                                     />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="p-0 border-none bg-transparent shadow-none overflow-visible">
-                                  <GanttTooltipContent
-                                    title={row.task.title}
-                                    code={row.task.code}
-                                    start={start}
-                                    end={end}
-                                    progress={row.task.progress_pct}
-                                    status={status}
-                                    isMilestone
-                                  />
-                                </TooltipContent>
-                              </Tooltip>
-                            );
+                                  </div>);
                           }
 
                           return (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="absolute inset-0">
+                            <div className="absolute inset-0">
                                   {baselineEl}
                                   <div
                                     className={cn(
@@ -418,20 +412,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                       style={{ width: `${Math.min(100, row.task.progress_pct)}%` }}
                                     />
                                   </div>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="p-0 border-none bg-transparent shadow-none overflow-visible">
-                                <GanttTooltipContent
-                                  title={row.task.title}
-                                  code={row.task.code}
-                                  start={start}
-                                  end={end}
-                                  progress={row.task.progress_pct}
-                                  status={status}
-                                />
-                              </TooltipContent>
-                            </Tooltip>
-                          );
+                                </div>);
                         }
 
                         const rollup = row.kind === "project" ? projectRollup : rollupByNode?.get(row.id);
@@ -499,9 +480,8 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                           const progressWidth = Math.max(10, Math.min(width, (width * Math.min(100, rollup.progressPct)) / 100));
 
                           return (
-                            <Tooltip key={row.kind + row.id} open={activeTooltip === (row.kind + row.id)} onOpenChange={(open) => setActiveTooltip(open ? (row.kind + row.id) : null)}>
-                              <TooltipTrigger asChild>
-                                <div
+                            setActiveTooltip(open ? (row.kind + row.id) : null)}>
+                              <div
                                   className={cn(
                                     "absolute shadow-sm overflow-visible border cursor-default",
                                     summaryTone.shell,
@@ -534,21 +514,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                     </span>
                                   )}
                                 </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="p-0 border-none bg-transparent shadow-none overflow-visible">
-                              <GanttTooltipContent
-                                title={row.kind === "project" ? row.label : row.node.name}
-                                code={row.kind === "project" ? "PRJ" : row.node.code}
-                                start={start}
-                                end={end}
-                                progress={rollup.progressPct}
-                                status={rollup.status}
-                                isSummary
-                              />
-                            </TooltipContent>
-                          </Tooltip>
-                            );
+                              </div>);
                       })()}
                     </div>
                   )})}
@@ -704,7 +670,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
              </div>
            </div>
        </div>
-    </TooltipProvider>
+    </>
   );
  }
  function LegendItem({ color, label }: { color: string; label: string }) {
