@@ -468,6 +468,17 @@ export default function WbsPage() {
                         nodes={tree}
                         selectedId={selectedId}
                         nodeStats={nodeStats}
+                        projectRoot={
+                          activeProject
+                            ? {
+                                id: activeProject.id,
+                                code: activeProject.code,
+                                name: activeProject.name,
+                                progress: projectRollup?.progressPct ?? 0,
+                                taskCount: tasks.length,
+                              }
+                            : null
+                        }
                         onSelect={(id) => {
                           setSelectedId(id);
                           setMode({ kind: "view" });
