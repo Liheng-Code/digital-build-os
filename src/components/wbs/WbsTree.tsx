@@ -36,40 +36,9 @@ export function WbsTree({
   onMove,
   projectRoot,
 }: Props) {
+  const [projectOpen, setProjectOpen] = useState(true);
   return (
     <div className="text-sm">
-      {projectRoot && (
-        <div className="px-1.5 py-1.5 mb-1 border-b">
-          <div className="flex items-center gap-2 px-1.5 py-1.5 rounded-md bg-primary/5">
-            <FolderKanban className="h-4 w-4 text-primary shrink-0" />
-            <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
-              <span className="font-mono text-[11px] text-muted-foreground shrink-0">{projectRoot.code}</span>
-              <span className="truncate text-[13px] font-semibold">{projectRoot.name}</span>
-              <span className="text-[10px] text-muted-foreground/70 shrink-0">Project</span>
-            </div>
-            <div className="flex items-center gap-1.5 w-24 shrink-0">
-              <div className="flex-1 h-1.5 rounded-full bg-muted/80 overflow-hidden">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all duration-500",
-                    projectRoot.progress >= 100
-                      ? "bg-emerald-500"
-                      : projectRoot.progress > 50
-                        ? "bg-primary"
-                        : projectRoot.progress > 0
-                          ? "bg-primary/70"
-                          : "bg-transparent",
-                  )}
-                  style={{ width: `${projectRoot.progress}%` }}
-                />
-              </div>
-              <span className="text-[10px] tabular-nums text-muted-foreground w-7 text-right shrink-0">
-                {projectRoot.progress}%
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
       {canEdit && (
         <div className="px-2 py-2 border-b mb-1">
           <Button
@@ -82,7 +51,80 @@ export function WbsTree({
           </Button>
         </div>
       )}
-      {nodes.length === 0 ? (
+
+      {projectRoot ? (
+        <ul className="space-y-0.5">
+          <li>
+            <div
+              className="group flex items-start gap-1 px-1.5 py-1.5 rounded-md cursor-pointer hover:bg-primary/10 bg-primary/5 transition-colors"
+              onClick={() => setProjectOpen((o) => !o)}
+            >
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setProjectOpen((o) => !o); }}
+                className="mt-0.5 h-4 w-4 inline-flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label={projectOpen ? "Collapse" : "Expand"}
+              >
+                <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", projectOpen && "rotate-90")} />
+              </button>
+              <FolderKanban className="mt-0.5 h-3.5 w-3.5 text-primary shrink-0" />
+              <div className="flex-1 min-w-0 flex items-center gap-3 pr-2">
+                <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+                  <span className="font-mono text-[11px] text-muted-foreground shrink-0">{projectRoot.code}</span>
+                  <span className="truncate text-[13px] font-semibold">{projectRoot.name}</span>
+                  <span className="text-[10px] text-muted-foreground/70 hidden sm:inline shrink-0">Project</span>
+                </div>
+                <div className="flex items-center gap-1.5 w-24 shrink-0">
+                  <div className="flex-1 h-1.5 rounded-full bg-muted/80 overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        projectRoot.progress >= 100
+                          ? "bg-emerald-500"
+                          : projectRoot.progress > 50
+                            ? "bg-primary"
+                            : projectRoot.progress > 0
+                              ? "bg-primary/70"
+                              : "bg-transparent",
+                      )}
+                      style={{ width: `${projectRoot.progress}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] tabular-nums text-muted-foreground w-7 text-right shrink-0">
+                    {projectRoot.progress}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {projectOpen && (
+              nodes.length === 0 ? (
+                <div className="text-xs text-muted-foreground px-3 py-6 text-center">
+                  No WBS nodes yet.
+                  {canEdit && <div className="mt-1">Add your first building or zone.</div>}
+                </div>
+              ) : (
+                <ul className="space-y-0.5">
+                  {nodes.map((n) => (
+                    <TreeRow
+                      key={n.id}
+                      node={n}
+                      depth={1}
+                      selectedId={selectedId}
+                      onSelect={onSelect}
+                      onAddChild={onAddChild}
+                      canEdit={canEdit}
+                      search={search.toLowerCase()}
+                      nodeStats={nodeStats}
+                      onMove={onMove}
+                    />
+                  ))}
+                </ul>
+              )
+            )}
+          </li>
+        </ul>
+      ) : nodes.length === 0 ? (
         <div className="text-xs text-muted-foreground px-3 py-6 text-center">
           No WBS nodes yet.
           {canEdit && <div className="mt-1">Add your first building or zone.</div>}
