@@ -1,4 +1,4 @@
-import { RefObject, UIEvent } from "react";
+import { RefObject, UIEvent, useLayoutEffect, useRef, useState } from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -49,6 +49,16 @@ export function WbsGanttTree({
   onTaskSelect,
 }: Props) {
   const today = new Date();
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  // Sync header padding to match body scrollbar
+  useLayoutEffect(() => {
+    const body = bodyScrollRef?.current;
+    if (!body) return;
+    const width = body.offsetWidth - body.clientWidth;
+    setScrollbarWidth(width);
+  }, [bodyScrollRef]);
 
   return (
     <div className="h-full min-h-0 overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background)),hsl(var(--muted))/0.35)]">
@@ -59,8 +69,9 @@ export function WbsGanttTree({
         </div>
       </div>
       <div
+        ref={headerRef}
         className="border-b bg-muted/70 grid items-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-        style={{ height: HEADER_H, gridTemplateColumns: "80px minmax(200px,1fr) 66px 76px 76px 100px 80px" }}
+        style={{ height: HEADER_H, gridTemplateColumns: "80px minmax(200px,1fr) 66px 76px 76px 100px 80px", paddingRight: scrollbarWidth }}
       >
         <div className="px-3 border-r h-full flex items-center">WBS</div>
         <div className="px-4 border-r h-full flex items-center">Task / Node Name</div>
@@ -125,7 +136,7 @@ export function WbsGanttTree({
             >
                {/* WBS CODE COLUMN */}
                <div className="px-3 border-r h-full flex items-center font-mono text-[10px] text-muted-foreground truncate bg-muted/5 group-hover:bg-muted/20 transition-colors">
-                 {r.kind === "project" ? (r.label || "PRJ") : r.kind === "node" ? r.node.code : r.task.code || "-"}
+                 {r.kind === "project" ? r.code : r.kind === "node" ? r.node.code : r.task.code || "-"}
                </div>
 
               {/* NAME COLUMN WITH INDENTATION */}
