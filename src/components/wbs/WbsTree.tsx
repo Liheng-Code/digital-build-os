@@ -34,9 +34,42 @@ export function WbsTree({
   search,
   nodeStats,
   onMove,
+  projectRoot,
 }: Props) {
   return (
     <div className="text-sm">
+      {projectRoot && (
+        <div className="px-1.5 py-1.5 mb-1 border-b">
+          <div className="flex items-center gap-2 px-1.5 py-1.5 rounded-md bg-primary/5">
+            <FolderKanban className="h-4 w-4 text-primary shrink-0" />
+            <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+              <span className="font-mono text-[11px] text-muted-foreground shrink-0">{projectRoot.code}</span>
+              <span className="truncate text-[13px] font-semibold">{projectRoot.name}</span>
+              <span className="text-[10px] text-muted-foreground/70 shrink-0">Project</span>
+            </div>
+            <div className="flex items-center gap-1.5 w-24 shrink-0">
+              <div className="flex-1 h-1.5 rounded-full bg-muted/80 overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all duration-500",
+                    projectRoot.progress >= 100
+                      ? "bg-emerald-500"
+                      : projectRoot.progress > 50
+                        ? "bg-primary"
+                        : projectRoot.progress > 0
+                          ? "bg-primary/70"
+                          : "bg-transparent",
+                  )}
+                  style={{ width: `${projectRoot.progress}%` }}
+                />
+              </div>
+              <span className="text-[10px] tabular-nums text-muted-foreground w-7 text-right shrink-0">
+                {projectRoot.progress}%
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       {canEdit && (
         <div className="px-2 py-2 border-b mb-1">
           <Button
