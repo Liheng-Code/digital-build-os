@@ -88,6 +88,8 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     };
   }, [tasks]);
 
+  const today = startOfDay(new Date());
+
   // Basic Critical Path identification (tasks with no slack)
   const criticalSet = React.useMemo(() => {
     if (!showCritical || tasks.length === 0) return new Set<string>();
@@ -139,7 +141,6 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     return map;
   }, [rows]);
 
-  const today = startOfDay(new Date());
   const todayX = differenceInCalendarDays(today, range.start) * dayWidth;
 
   const dayHeaders = React.useMemo(() => {
@@ -337,6 +338,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                           const width = (differenceInCalendarDays(end, start) + 1) * dayWidth;
                           const isMilestone = differenceInCalendarDays(end, start) === 0;
 
+                          const status = taskStatus(row.task, today);
                           const isCritical = criticalSet.has(row.task.id);
                           const barTone =
                             isCritical ? "border-destructive bg-destructive/80"
@@ -347,10 +349,10 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
                           const isSecond = row.kind === "task" && row.task.id === secondTaskId;
                           
-                          // Baseline ghost bar
-                          const baseline = baselineByTask?.get(row.task.id);
-                          const bStart = safeDate(baseline?.baseline_start ?? row.task.baseline_start ?? null);
-                          const bEnd = safeDate(baseline?.baseline_end ?? row.task.baseline_end ?? null);
+                           // Baseline ghost bar
+                           const baseline = baselineByTask?.get(row.task.id);
+                           const bStart = safeDate(baseline?.baseline_start ?? null);
+                           const bEnd = safeDate(baseline?.baseline_end ?? null);
                           let baselineEl = null;
                           if (bStart && bEnd && bEnd >= bStart) {
                             const bLeft = differenceInCalendarDays(bStart, range.start) * dayWidth;
