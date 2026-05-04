@@ -2,9 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   InspectionChecklist, 
+  InspectionChecklistItem,
   InspectionRequest, 
   NCR, 
-  PunchListItem 
+  PunchListItem,
+  IrStatus,
+  ChecklistResult,
 } from '@/lib/qaqcMeta';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
