@@ -2636,6 +2636,7 @@ export type Database = {
           _description: string | null
           _estimated_hours: number
           _planned_end: string | null
+          _planned_start: string | null
           _priority: Database["public"]["Enums"]["task_priority"]
           _progress_pct: number
           _task_id: string

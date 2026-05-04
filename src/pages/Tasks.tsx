@@ -28,11 +28,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CreateTaskDialog } from "@/components/tasks/CreateTaskDialog";
+import { DisciplineMetaFields } from "@/components/tasks/DisciplineMetaFields";
 import {
   TaskStatus, TaskPriority, TaskType,
   TASK_PRIORITY_LABELS, TASK_PRIORITY_TONE, TASK_TYPE_LABELS,
   KANBAN_COLUMNS, TASK_STATUS_LABELS,
 } from "@/lib/taskMeta";
+import {
+  TaskWorkflowType, TaskCategory,
+  TASK_WORKFLOW_LABELS, TASK_CATEGORY_LABELS, CATEGORIES_BY_WORKFLOW,
+} from "@/lib/taskCategoryMeta";
 import {
   AlertTriangle,
   Bell,
@@ -52,9 +57,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTaskUnread } from "@/hooks/useTaskUnread";
-import { Department, DEPARTMENT_LABELS } from "@/lib/departmentMeta";
+import { Department, DEPARTMENT_LABELS, DEPT_INITIAL_STAGE } from "@/lib/departmentMeta";
 import { DepartmentBadge } from "@/components/DepartmentBadge";
 import { toast } from "sonner";
+import { WbsNodePicker } from "@/components/wbs/WbsNodePicker";
+import { WbsTreeNode } from "@/lib/wbsMeta";
+import type { Json } from "@/integrations/supabase/types";
 
 interface TaskRow {
   id: string;
@@ -64,10 +72,15 @@ interface TaskRow {
   priority: TaskPriority;
   task_type: TaskType;
   location_zone: string | null;
+  planned_start: string | null;
   planned_end: string | null;
   estimated_hours: number | null;
   progress_pct: number;
   department: Department | null;
+  discipline_meta: Json;
+  workflow_type: TaskWorkflowType | null;
+  category: TaskCategory | null;
+  wbs_node_id: string | null;
   task_assignments?: TaskAssignmentLite[];
 }
 
@@ -79,7 +92,15 @@ interface TaskAssignmentLite {
 type EditTaskForm = {
   title: string;
   description: string;
+  task_type: TaskType;
   priority: TaskPriority;
+  department: Department | "";
+  meta: Record<string, string>;
+  workflow_type: TaskWorkflowType | "";
+  category: TaskCategory | "";
+  wbs_node_id: string | null;
+  wbs_path: string;
+  planned_start: string;
   planned_end: string;
   estimated_hours: string;
   progress_pct: string;
@@ -99,7 +120,15 @@ export default function Tasks() {
   const [editForm, setEditForm] = useState<EditTaskForm>({
     title: "",
     description: "",
+    task_type: "other",
     priority: "medium",
+    department: "",
+    meta: {},
+    workflow_type: "",
+    category: "",
+    wbs_node_id: null,
+    wbs_path: "",
+    planned_start: "",
     planned_end: "",
     estimated_hours: "0",
     progress_pct: "0",
@@ -123,7 +152,7 @@ export default function Tasks() {
     setLoading(true);
     const { data } = await supabase
       .from("tasks")
-      .select("id, title, description, status, priority, task_type, location_zone, planned_end, estimated_hours, progress_pct, department, task_assignments(user_id, unassigned_at)")
+      .select("id, title, description, status, priority, task_type, location_zone, planned_start, planned_end, estimated_hours, progress_pct, department, discipline_meta, workflow_type, category, wbs_node_id, task_assignments(user_id, unassigned_at)")
       .eq("project_id", activeProject.id)
       .order("created_at", { ascending: false });
     setTasks((data ?? []) as TaskRow[]);
@@ -177,10 +206,37 @@ export default function Tasks() {
     setEditForm({
       title: task.title,
       description: task.description ?? "",
+      task_type: task.task_type,
       priority: task.priority,
+      department: task.department ?? "",
+      meta: isStringRecord(task.discipline_meta) ? task.discipline_meta : {},
+      workflow_type: task.workflow_type ?? "",
+      category: task.category ?? "",
+      wbs_node_id: task.wbs_node_id,
+      wbs_path: task.location_zone ?? "",
+      planned_start: task.planned_start ?? "",
       planned_end: task.planned_end ?? "",
       estimated_hours: String(task.estimated_hours ?? 0),
       progress_pct: String(task.progress_pct ?? 0),
+    });
+  };
+
+  const updateEditPlannedHours = (start: string, end: string) => {
+    setEditForm((prev) => {
+      if (!start || !end) {
+        return { ...prev, planned_start: start, planned_end: end, estimated_hours: "" };
+      }
+
+      const startDate = new Date(`${start}T00:00:00Z`);
+      const endDate = new Date(`${end}T00:00:00Z`);
+      const diffDays = Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+
+      return {
+        ...prev,
+        planned_start: start,
+        planned_end: end,
+        estimated_hours: diffDays > 0 ? String(diffDays * 8) : "",
+      };
     });
   };
 
@@ -202,27 +258,58 @@ export default function Tasks() {
       toast.error("Progress must be a whole number from 0 to 100");
       return;
     }
+    if (canPlan) {
+      if (!editForm.wbs_node_id || !editForm.wbs_path) {
+        toast.error("Pick a WBS location for this task");
+        return;
+      }
+      if (!editForm.department) {
+        toast.error("Pick a department for this task");
+        return;
+      }
+      if (!editForm.workflow_type) {
+        toast.error("Pick a Task Type (workflow)");
+        return;
+      }
+      if (!editForm.category) {
+        toast.error("Pick a Task Category");
+        return;
+      }
+    }
 
     setSavingAction(true);
-    const patch = {
+    const limitedPatch = {
       title,
       description: editForm.description.trim() || null,
       priority: editForm.priority,
+      planned_start: editForm.planned_start || null,
       planned_end: editForm.planned_end || null,
       estimated_hours: estimatedHours,
       progress_pct: progressPct,
     };
+    const plannerPatch = {
+      ...limitedPatch,
+      task_type: editForm.task_type,
+      wbs_node_id: editForm.wbs_node_id,
+      location_zone: editForm.wbs_path,
+      department: editForm.department || null,
+      dept_status: editForm.department ? DEPT_INITIAL_STAGE[editForm.department] : null,
+      discipline_meta: editForm.meta,
+      workflow_type: editForm.workflow_type || null,
+      category: editForm.category || null,
+    };
 
     const result = canPlan
-      ? await supabase.from("tasks").update(patch).eq("id", editingTask.id)
+      ? await supabase.from("tasks").update(plannerPatch).eq("id", editingTask.id)
       : await supabase.rpc("update_assigned_task_limited", {
         _task_id: editingTask.id,
-        _title: patch.title,
-        _description: patch.description,
-        _priority: patch.priority,
-        _planned_end: patch.planned_end,
-        _estimated_hours: patch.estimated_hours,
-        _progress_pct: patch.progress_pct,
+        _title: limitedPatch.title,
+        _description: limitedPatch.description,
+        _priority: limitedPatch.priority,
+        _planned_start: limitedPatch.planned_start,
+        _planned_end: limitedPatch.planned_end,
+        _estimated_hours: limitedPatch.estimated_hours,
+        _progress_pct: limitedPatch.progress_pct,
       });
 
     setSavingAction(false);
@@ -519,7 +606,7 @@ export default function Tasks() {
           <DialogHeader>
             <DialogTitle>Edit task</DialogTitle>
             <DialogDescription>
-              Update the core task fields allowed for your role.
+              Update this task using the same structure as the New Task form.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -544,6 +631,21 @@ export default function Tasks() {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
+                <Label>Discipline Type</Label>
+                <Select
+                  value={editForm.task_type}
+                  disabled={!canPlan}
+                  onValueChange={(value) => setEditForm((prev) => ({ ...prev, task_type: value as TaskType }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TASK_TYPE_LABELS) as TaskType[]).map((type) => (
+                      <SelectItem key={type} value={type}>{TASK_TYPE_LABELS[type]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Priority</Label>
                 <Select
                   value={editForm.priority}
@@ -557,13 +659,117 @@ export default function Tasks() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label>Department</Label>
+              <Select
+                value={editForm.department}
+                disabled={!canPlan}
+                onValueChange={(value) => {
+                  setEditForm((prev) => ({
+                    ...prev,
+                    department: value as Department,
+                    meta: prev.department === value ? prev.meta : {},
+                  }));
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(DEPARTMENT_LABELS) as Department[]).map((department) => (
+                    <SelectItem key={department} value={department}>{DEPARTMENT_LABELS[department]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {editForm.department && (
+              <fieldset disabled={!canPlan} className={!canPlan ? "opacity-70" : ""}>
+                <DisciplineMetaFields
+                  department={editForm.department}
+                  value={editForm.meta}
+                  onChange={(meta) => setEditForm((prev) => ({ ...prev, meta }))}
+                />
+              </fieldset>
+            )}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Task Type</Label>
+                <Select
+                  value={editForm.workflow_type}
+                  disabled={!canPlan}
+                  onValueChange={(value) => {
+                    setEditForm((prev) => ({
+                      ...prev,
+                      workflow_type: value as TaskWorkflowType,
+                      category: "",
+                    }));
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select task type" /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TASK_WORKFLOW_LABELS) as TaskWorkflowType[]).map((workflowType) => (
+                      <SelectItem key={workflowType} value={workflowType}>{TASK_WORKFLOW_LABELS[workflowType]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Task Category</Label>
+                <Select
+                  value={editForm.category}
+                  disabled={!canPlan || !editForm.workflow_type}
+                  onValueChange={(value) => setEditForm((prev) => ({ ...prev, category: value as TaskCategory }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={editForm.workflow_type ? "Select category" : "Pick task type first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editForm.workflow_type &&
+                      CATEGORIES_BY_WORKFLOW[editForm.workflow_type].map((category) => (
+                        <SelectItem key={category} value={category}>{TASK_CATEGORY_LABELS[category]}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>WBS location</Label>
+              {activeProject && canPlan ? (
+                <WbsNodePicker
+                  projectId={activeProject.id}
+                  value={editForm.wbs_node_id}
+                  onChange={(id, node: WbsTreeNode | null) => {
+                    setEditForm((prev) => ({
+                      ...prev,
+                      wbs_node_id: id,
+                      wbs_path: node?.path_text ?? prev.wbs_path,
+                    }));
+                  }}
+                  required
+                />
+              ) : (
+                <Input value={editForm.wbs_path || DASH} readOnly className="bg-muted/60" />
+              )}
+              {editForm.wbs_path && (
+                <p className="mt-1 font-mono text-[11px] text-muted-foreground">{editForm.wbs_path}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <Label htmlFor="edit-planned-start">Planned start</Label>
+                <Input
+                  id="edit-planned-start"
+                  type="date"
+                  value={editForm.planned_start}
+                  onChange={(event) => updateEditPlannedHours(event.target.value, editForm.planned_end)}
+                />
+              </div>
               <div>
                 <Label htmlFor="edit-planned-end">Planned end</Label>
                 <Input
                   id="edit-planned-end"
                   type="date"
                   value={editForm.planned_end}
-                  onChange={(event) => setEditForm((prev) => ({ ...prev, planned_end: event.target.value }))}
+                  onChange={(event) => updateEditPlannedHours(editForm.planned_start, event.target.value)}
                 />
               </div>
               <div>
@@ -574,22 +780,28 @@ export default function Tasks() {
                   min="0"
                   step="0.5"
                   value={editForm.estimated_hours}
-                  onChange={(event) => setEditForm((prev) => ({ ...prev, estimated_hours: event.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-progress">Progress %</Label>
-                <Input
-                  id="edit-progress"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={editForm.progress_pct}
-                  onChange={(event) => setEditForm((prev) => ({ ...prev, progress_pct: event.target.value }))}
+                  readOnly
+                  className="bg-muted/60"
                 />
               </div>
             </div>
+            <div>
+              <Label htmlFor="edit-progress">Progress %</Label>
+              <Input
+                id="edit-progress"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={editForm.progress_pct}
+                onChange={(event) => setEditForm((prev) => ({ ...prev, progress_pct: event.target.value }))}
+              />
+            </div>
+            {!canPlan && (
+              <p className="text-xs text-muted-foreground">
+                Some planning fields are locked for assignees. Managers can edit the full task setup.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setEditingTask(null)} disabled={savingAction}>
@@ -675,6 +887,11 @@ function TaskActions({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function isStringRecord(value: Json): value is Record<string, string> {
+  return !!value && !Array.isArray(value) && typeof value === "object" &&
+    Object.values(value).every((item) => typeof item === "string");
 }
 
 function SummaryCard({
