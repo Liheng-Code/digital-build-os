@@ -140,16 +140,30 @@ export function WbsGanttTree({
                </div>
 
               {/* NAME COLUMN WITH INDENTATION */}
-              <div
-                className="flex items-center gap-1.5 min-w-0 pr-2 border-r h-full"
-                style={{ paddingLeft: r.depth * 16 + 8 }}
-              >
-                {r.kind === "project" ? (
-                  <>
-                    <span className="h-5 w-5 shrink-0" />
-                    <span className="truncate font-bold text-primary">{r.label}</span>
-                  </>
-                ) : r.kind === "node" ? (
+               <div
+                 className="flex items-center gap-1.5 min-w-0 pr-2 border-r h-full"
+                 style={{ paddingLeft: r.depth * 16 + 8 }}
+               >
+                 {r.kind === "project" ? (
+                   <>
+                     <button
+                       type="button"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         onToggle(r.id);
+                       }}
+                       className="h-5 w-5 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-background hover:text-foreground shrink-0 transition-colors"
+                     >
+                       <ChevronRight
+                         className={cn(
+                           "h-3.5 w-3.5 transition-transform",
+                           !collapsed.has(r.id) && "rotate-90",
+                         )}
+                       />
+                     </button>
+                     <span className="truncate font-bold text-primary">{r.label}</span>
+                   </>
+                 ) : r.kind === "node" ? (
                   <>
                     {r.hasChildren ? (
                       <button

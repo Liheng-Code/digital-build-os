@@ -38,7 +38,9 @@ export function buildGanttRows({ nodes, tasks, collapsed, projectLabel, projectC
   const rows: GanttRow[] = [];
   const safeCollapsed = collapsed ?? new Set<string>();
   if (projectLabel && (nodes.length > 0 || tasks.length > 0)) {
+    const projectCollapsed = safeCollapsed.has("__project__");
     rows.push({ kind: "project", id: "__project__", label: projectLabel, code: projectCode ?? "PRJ", depth: 0, hasChildren: true });
+    if (projectCollapsed) return rows;
   }
   const walk = (parentId: string | null, depth: number) => {
     const kids = childrenOf.get(parentId) ?? [];
