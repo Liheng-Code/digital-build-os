@@ -702,24 +702,6 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                </div>
              </div>
            </div>
-
-           {/* FOOTER STATUS BAR */}
-           <div className="h-8 border-t bg-muted/30 flex items-center px-4 gap-6 text-[10px] text-muted-foreground font-medium shrink-0">
-             <div className="flex items-center gap-1.5">
-               <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-               <span className="uppercase tracking-wider">Live System</span>
-             </div>
-             <div className="w-px h-3 bg-border" />
-             <div>{rows.length} Visible Rows</div>
-             <div className="w-px h-3 bg-border" />
-             <div>Range: {format(range.start, "dd MMM yyyy")} - {format(range.end, "dd MMM yyyy")}</div>
-             <div className="w-px h-3 bg-border" />
-             <div className="ml-auto flex items-center gap-4">
-               <span>CPM Engine v1.0</span>
-               <span>CONSTRUCT Enterprise</span>
-             </div>
-           </div>
-         </div>
        </div>
     </TooltipProvider>
   );
