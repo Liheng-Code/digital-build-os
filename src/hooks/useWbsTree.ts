@@ -75,12 +75,18 @@ export function useWbsTree(projectId: string | null | undefined) {
       for (const n of nodeRows) {
         const tasks = gather(n.id);
         if (tasks.length === 0) continue;
-        const avgProgress =
-          tasks.reduce((sum, t) => sum + (t.progress_pct ?? 0), 0) / tasks.length;
+        let weighted = 0;
+        let totalW = 0;
+        for (const t of tasks) {
+          const w = Math.max(0.0001, Number(t.estimated_hours ?? 0)) || 1;
+          weighted += (Number(t.progress_pct) || 0) * w;
+          totalW += w;
+        }
+        const avgProgress = totalW > 0 ? Math.round(weighted / totalW) : 0;
         const starts = tasks.map((t) => t.planned_start).filter(Boolean) as string[];
         const ends = tasks.map((t) => t.planned_end).filter(Boolean) as string[];
         statsMap.set(n.id, {
-          avgProgress: Math.round(avgProgress),
+          avgProgress,
           taskCount: tasks.length,
           minStart: starts.length ? [...starts].sort()[0] : null,
           maxEnd: ends.length ? [...ends].sort().at(-1)! : null,
