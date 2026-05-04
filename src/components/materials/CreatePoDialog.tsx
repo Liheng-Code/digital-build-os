@@ -11,7 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Plus, Loader2, ShoppingBag } from "lucide-react";
-import { useMaterialRequests, useCreatePurchaseOrder } from '@/hooks/useMaterials';
+import { useMaterialRequests } from '@/hooks/useMaterials';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
