@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -26,12 +19,6 @@ import {
   buildWbsTree,
   type WbsTreeNode,
 } from "@/lib/wbsMeta";
-
-interface ProjectOpt {
-  id: string;
-  code: string;
-  name: string;
-}
 
 interface TaskRow {
   id: string;
@@ -85,31 +72,27 @@ const HEALTH_STYLES: Record<Health, { tile: string; tag: string; label: string }
   },
 };
 
-export function WbsLocationsDashboard() {
-  const [projects, setProjects] = useState<ProjectOpt[]>([]);
-  const [projectId, setProjectId] = useState<string>("");
+export function WbsLocationsDashboard({
+  projectId,
+  projectLabel,
+}: {
+  projectId: string;
+  projectLabel: string;
+}) {
   const [nodes, setNodes] = useState<WbsNode[]>([]);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  // Load projects
-  useEffect(() => {
-    supabase
-      .from("projects")
-      .select("id, code, name")
-      .order("code")
-      .then(({ data }) => {
-        const list = (data ?? []) as ProjectOpt[];
-        setProjects(list);
-        if (list.length && !projectId) setProjectId(list[0].id);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Load WBS + tasks for project
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || projectId === "all") {
+      setNodes([]);
+      setTasks([]);
+      setSelectedNodeId(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -284,39 +267,22 @@ export function WbsLocationsDashboard() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Project picker */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="mr-auto">
-          <h2 className="text-lg font-semibold">WBS Location Control</h2>
-          <p className="text-sm text-muted-foreground">
-            Drill into the work breakdown to spot overloaded or neglected zones.
-          </p>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="text-xs text-muted-foreground">Project</span>
-          <Select value={projectId} onValueChange={setProjectId}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select a project" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.code} · {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div>
+        <h2 className="text-lg font-semibold">WBS Location Control</h2>
+        <p className="text-sm text-muted-foreground">
+          Drill into the work breakdown to spot overloaded or neglected zones.
+          {projectLabel ? ` ${projectLabel}` : ""}
+        </p>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : !projectId ? (
+      ) : !projectId || projectId === "all" ? (
         <Card>
           <CardContent className="py-8 text-sm text-muted-foreground">
-            Select a project to view its WBS dashboard.
+            Select a single project from the top project filter to view its WBS dashboard.
           </CardContent>
         </Card>
       ) : nodes.length === 0 ? (

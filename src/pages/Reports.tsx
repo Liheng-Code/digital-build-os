@@ -410,6 +410,21 @@ export default function Reports() {
             Org-wide insights and per-member performance — {projectLabel}
           </p>
         </div>
+        <Filter label="Project">
+          <Select value={projectId} onValueChange={setProjectId}>
+            <SelectTrigger className="w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All projects</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.code} - {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Filter>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
@@ -420,21 +435,6 @@ export default function Reports() {
 
         <TabsContent value="overview" className="flex flex-col gap-6 mt-4">
           <div className="flex flex-wrap items-end gap-3">
-            <Filter label="Project">
-              <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All projects</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.code} · {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Filter>
             <Filter label="From">
               <Input
                 type="date"
@@ -493,7 +493,7 @@ export default function Reports() {
 
         {canSeeWbs && (
           <TabsContent value="wbs" className="mt-4">
-            <WbsLocationsDashboard />
+            <WbsLocationsDashboard projectId={projectId} projectLabel={projectLabel} />
           </TabsContent>
         )}
       </Tabs>
