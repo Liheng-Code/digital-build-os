@@ -50,6 +50,124 @@ export type Database = {
         }
         Relationships: []
       }
+      boq_items: {
+        Row: {
+          created_at: string
+          id: string
+          material_name: string
+          planned_qty: number
+          project_id: string
+          task_id: string | null
+          total_cost: number | null
+          unit_cost: number
+          uom: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_name: string
+          planned_qty?: number
+          project_id: string
+          task_id?: string | null
+          total_cost?: number | null
+          unit_cost?: number
+          uom: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_name?: string
+          planned_qty?: number
+          project_id?: string
+          task_id?: string | null
+          total_cost?: number | null
+          unit_cost?: number
+          uom?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boq_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boq_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "boq_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claim_items: {
+        Row: {
+          certified_qty: number | null
+          claim_id: string
+          curr_qty: number | null
+          description: string | null
+          id: string
+          planned_qty: number | null
+          prev_qty: number | null
+          total_to_date_qty: number | null
+          unit_rate: number | null
+          uom: string | null
+          wbs_node_id: string
+        }
+        Insert: {
+          certified_qty?: number | null
+          claim_id: string
+          curr_qty?: number | null
+          description?: string | null
+          id?: string
+          planned_qty?: number | null
+          prev_qty?: number | null
+          total_to_date_qty?: number | null
+          unit_rate?: number | null
+          uom?: string | null
+          wbs_node_id: string
+        }
+        Update: {
+          certified_qty?: number | null
+          claim_id?: string
+          curr_qty?: number | null
+          description?: string | null
+          id?: string
+          planned_qty?: number | null
+          prev_qty?: number | null
+          total_to_date_qty?: number | null
+          unit_rate?: number | null
+          uom?: string | null
+          wbs_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_items_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "progress_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_items_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_delays: {
         Row: {
           category: Database["public"]["Enums"]["dsr_delay_category"]
@@ -492,6 +610,589 @@ export type Database = {
           },
         ]
       }
+      grn_items: {
+        Row: {
+          accepted_qty: number
+          grn_id: string
+          id: string
+          material_name: string
+          notes: string | null
+          po_item_id: string | null
+          received_qty: number
+          rejected_qty: number
+          uom: string
+        }
+        Insert: {
+          accepted_qty: number
+          grn_id: string
+          id?: string
+          material_name: string
+          notes?: string | null
+          po_item_id?: string | null
+          received_qty: number
+          rejected_qty?: number
+          uom: string
+        }
+        Update: {
+          accepted_qty?: number
+          grn_id?: string
+          id?: string
+          material_name?: string
+          notes?: string | null
+          po_item_id?: string | null
+          received_qty?: number
+          rejected_qty?: number
+          uom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grn_items_grn_id_fkey"
+            columns: ["grn_id"]
+            isOneToOne: false
+            referencedRelation: "grns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grn_items_po_item_id_fkey"
+            columns: ["po_item_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grns: {
+        Row: {
+          created_at: string
+          delivery_date: string
+          delivery_note_ref: string | null
+          grn_number: string
+          id: string
+          po_id: string | null
+          project_id: string
+          received_by: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_date?: string
+          delivery_note_ref?: string | null
+          grn_number: string
+          id?: string
+          po_id?: string | null
+          project_id: string
+          received_by: string
+        }
+        Update: {
+          created_at?: string
+          delivery_date?: string
+          delivery_note_ref?: string | null
+          grn_number?: string
+          id?: string
+          po_id?: string | null
+          project_id?: string
+          received_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grns_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grns_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grns_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_checklist_items: {
+        Row: {
+          checklist_id: string
+          created_at: string
+          id: string
+          is_required: boolean
+          item_text: string
+          order_index: number
+        }
+        Insert: {
+          checklist_id: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          item_text: string
+          order_index?: number
+        }
+        Update: {
+          checklist_id?: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          item_text?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_checklists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          project_id: string
+          task_type: Database["public"]["Enums"]["task_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          project_id: string
+          task_type: Database["public"]["Enums"]["task_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          task_type?: Database["public"]["Enums"]["task_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_checklists_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_requests: {
+        Row: {
+          created_at: string
+          id: string
+          inspected_by: string | null
+          inspection_date: string | null
+          location: string | null
+          project_id: string
+          remarks: string | null
+          request_number: string
+          requested_by: string | null
+          requested_date: string
+          status: Database["public"]["Enums"]["ir_status"]
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inspected_by?: string | null
+          inspection_date?: string | null
+          location?: string | null
+          project_id: string
+          remarks?: string | null
+          request_number: string
+          requested_by?: string | null
+          requested_date?: string
+          status?: Database["public"]["Enums"]["ir_status"]
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inspected_by?: string | null
+          inspection_date?: string | null
+          location?: string | null
+          project_id?: string
+          remarks?: string | null
+          request_number?: string
+          requested_by?: string | null
+          requested_date?: string
+          status?: Database["public"]["Enums"]["ir_status"]
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_requests_inspected_by_fkey"
+            columns: ["inspected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "inspection_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_results: {
+        Row: {
+          checklist_item_id: string
+          comments: string | null
+          created_at: string
+          id: string
+          inspection_request_id: string
+          status: Database["public"]["Enums"]["checklist_result"] | null
+          updated_at: string
+        }
+        Insert: {
+          checklist_item_id: string
+          comments?: string | null
+          created_at?: string
+          id?: string
+          inspection_request_id: string
+          status?: Database["public"]["Enums"]["checklist_result"] | null
+          updated_at?: string
+        }
+        Update: {
+          checklist_item_id?: string
+          comments?: string | null
+          created_at?: string
+          id?: string
+          inspection_request_id?: string
+          status?: Database["public"]["Enums"]["checklist_result"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_results_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_results_inspection_request_id_fkey"
+            columns: ["inspection_request_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_issues: {
+        Row: {
+          id: string
+          issue_date: string
+          issued_by: string
+          material_name: string
+          notes: string | null
+          project_id: string
+          qty_issued: number
+          task_id: string
+          unit_cost_at_issue: number
+        }
+        Insert: {
+          id?: string
+          issue_date?: string
+          issued_by: string
+          material_name: string
+          notes?: string | null
+          project_id: string
+          qty_issued: number
+          task_id: string
+          unit_cost_at_issue?: number
+        }
+        Update: {
+          id?: string
+          issue_date?: string
+          issued_by?: string
+          material_name?: string
+          notes?: string | null
+          project_id?: string
+          qty_issued?: number
+          task_id?: string
+          unit_cost_at_issue?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_issues_issued_by_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_issues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_issues_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "material_issues_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_request_items: {
+        Row: {
+          approved_qty: number | null
+          boq_id: string | null
+          id: string
+          material_name: string
+          mr_id: string
+          notes: string | null
+          requested_qty: number
+          task_id: string | null
+          uom: string
+        }
+        Insert: {
+          approved_qty?: number | null
+          boq_id?: string | null
+          id?: string
+          material_name: string
+          mr_id: string
+          notes?: string | null
+          requested_qty: number
+          task_id?: string | null
+          uom: string
+        }
+        Update: {
+          approved_qty?: number | null
+          boq_id?: string | null
+          id?: string
+          material_name?: string
+          mr_id?: string
+          notes?: string | null
+          requested_qty?: number
+          task_id?: string | null
+          uom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_request_items_boq_id_fkey"
+            columns: ["boq_id"]
+            isOneToOne: false
+            referencedRelation: "boq_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_request_items_mr_id_fkey"
+            columns: ["mr_id"]
+            isOneToOne: false
+            referencedRelation: "material_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_request_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "material_request_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_requests: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string
+          request_date: string
+          request_number: string
+          requested_by: string
+          required_date: string
+          status: Database["public"]["Enums"]["mr_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          request_date?: string
+          request_number: string
+          requested_by: string
+          required_date: string
+          status?: Database["public"]["Enums"]["mr_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          request_date?: string
+          request_number?: string
+          requested_by?: string
+          required_date?: string
+          status?: Database["public"]["Enums"]["mr_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ncrs: {
+        Row: {
+          assigned_to: string | null
+          corrective_action: string | null
+          created_at: string
+          id: string
+          inspection_request_id: string | null
+          issue_description: string
+          ncr_number: string
+          project_id: string
+          reported_by: string | null
+          severity: Database["public"]["Enums"]["ncr_severity"]
+          status: Database["public"]["Enums"]["ncr_status"]
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          id?: string
+          inspection_request_id?: string | null
+          issue_description: string
+          ncr_number: string
+          project_id: string
+          reported_by?: string | null
+          severity?: Database["public"]["Enums"]["ncr_severity"]
+          status?: Database["public"]["Enums"]["ncr_status"]
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          id?: string
+          inspection_request_id?: string | null
+          issue_description?: string
+          ncr_number?: string
+          project_id?: string
+          reported_by?: string | null
+          severity?: Database["public"]["Enums"]["ncr_severity"]
+          status?: Database["public"]["Enums"]["ncr_status"]
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ncrs_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ncrs_inspection_request_id_fkey"
+            columns: ["inspection_request_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ncrs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ncrs_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ncrs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "ncrs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           actor_id: string | null
@@ -710,6 +1411,59 @@ export type Database = {
         }
         Relationships: []
       }
+      progress_claims: {
+        Row: {
+          claim_number: string
+          created_at: string | null
+          id: string
+          period_end: string
+          period_start: string
+          project_id: string
+          remarks: string | null
+          retention_pct: number | null
+          status: Database["public"]["Enums"]["claim_status"] | null
+          total_amount_certified: number | null
+          total_amount_claimed: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          claim_number: string
+          created_at?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          project_id: string
+          remarks?: string | null
+          retention_pct?: number | null
+          status?: Database["public"]["Enums"]["claim_status"] | null
+          total_amount_certified?: number | null
+          total_amount_claimed?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          claim_number?: string
+          created_at?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          project_id?: string
+          remarks?: string | null
+          retention_pct?: number | null
+          status?: Database["public"]["Enums"]["claim_status"] | null
+          total_amount_certified?: number | null
+          total_amount_claimed?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progress_claims_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_holidays: {
         Row: {
           created_at: string
@@ -817,6 +1571,225 @@ export type Database = {
         }
         Relationships: []
       }
+      punch_list_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          inspection_request_id: string | null
+          location: string | null
+          project_id: string
+          resolved_by: string | null
+          status: Database["public"]["Enums"]["punch_list_status"]
+          task_id: string | null
+          updated_at: string
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          inspection_request_id?: string | null
+          location?: string | null
+          project_id: string
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["punch_list_status"]
+          task_id?: string | null
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          inspection_request_id?: string | null
+          location?: string | null
+          project_id?: string
+          resolved_by?: string | null
+          status?: Database["public"]["Enums"]["punch_list_status"]
+          task_id?: string | null
+          updated_at?: string
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "punch_list_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "punch_list_items_inspection_request_id_fkey"
+            columns: ["inspection_request_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "punch_list_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "punch_list_items_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "punch_list_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "punch_list_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "punch_list_items_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_items: {
+        Row: {
+          id: string
+          material_name: string
+          mr_item_id: string | null
+          order_qty: number
+          po_id: string
+          total_price: number | null
+          unit_price: number
+          uom: string
+        }
+        Insert: {
+          id?: string
+          material_name: string
+          mr_item_id?: string | null
+          order_qty: number
+          po_id: string
+          total_price?: number | null
+          unit_price?: number
+          uom: string
+        }
+        Update: {
+          id?: string
+          material_name?: string
+          mr_item_id?: string | null
+          order_qty?: number
+          po_id?: string
+          total_price?: number | null
+          unit_price?: number
+          uom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_mr_item_id_fkey"
+            columns: ["mr_item_id"]
+            isOneToOne: false
+            referencedRelation: "material_request_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          id: string
+          po_date: string
+          po_number: string
+          project_id: string
+          status: Database["public"]["Enums"]["po_status"]
+          supplier_name: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          po_date?: string
+          po_number: string
+          project_id: string
+          status?: Database["public"]["Enums"]["po_status"]
+          supplier_name: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          po_date?: string
+          po_number?: string
+          project_id?: string
+          status?: Database["public"]["Enums"]["po_status"]
+          supplier_name?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_rates: {
+        Row: {
+          created_at: string | null
+          hourly_rate: number
+          id: string
+          project_id: string
+          resource_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          hourly_rate?: number
+          id?: string
+          project_id: string
+          resource_name: string
+        }
+        Update: {
+          created_at?: string | null
+          hourly_rate?: number
+          id?: string
+          project_id?: string
+          resource_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_rates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_calculation_logs: {
         Row: {
           affected_count: number
@@ -850,6 +1823,44 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_balances: {
+        Row: {
+          avg_unit_cost: number
+          id: string
+          last_updated: string
+          material_name: string
+          project_id: string
+          qty_on_hand: number
+          uom: string
+        }
+        Insert: {
+          avg_unit_cost?: number
+          id?: string
+          last_updated?: string
+          material_name: string
+          project_id: string
+          qty_on_hand?: number
+          uom: string
+        }
+        Update: {
+          avg_unit_cost?: number
+          id?: string
+          last_updated?: string
+          material_name?: string
+          project_id?: string
+          qty_on_hand?: number
+          uom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_balances_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_assignments: {
         Row: {
           assigned_at: string
@@ -879,6 +1890,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "task_assignments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
           {
             foreignKeyName: "task_assignments_task_id_fkey"
             columns: ["task_id"]
@@ -924,6 +1942,13 @@ export type Database = {
             foreignKeyName: "task_attachments_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -962,8 +1987,22 @@ export type Database = {
             foreignKeyName: "task_predecessors_predecessor_id_fkey"
             columns: ["predecessor_id"]
             isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_predecessors_predecessor_id_fkey"
+            columns: ["predecessor_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_predecessors_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
           },
           {
             foreignKeyName: "task_predecessors_task_id_fkey"
@@ -1007,6 +2046,13 @@ export type Database = {
             foreignKeyName: "task_status_history_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_status_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -1044,6 +2090,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "task_updates_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
           {
             foreignKeyName: "task_updates_task_id_fkey"
             columns: ["task_id"]
@@ -1299,8 +2352,22 @@ export type Database = {
             foreignKeyName: "timesheet_entries_afternoon_task_id_fkey"
             columns: ["afternoon_task_id"]
             isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_afternoon_task_id_fkey"
+            columns: ["afternoon_task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_break_task_id_fkey"
+            columns: ["break_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
           },
           {
             foreignKeyName: "timesheet_entries_break_task_id_fkey"
@@ -1313,8 +2380,22 @@ export type Database = {
             foreignKeyName: "timesheet_entries_morning_task_id_fkey"
             columns: ["morning_task_id"]
             isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_morning_task_id_fkey"
+            columns: ["morning_task_id"]
+            isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_ot_task_id_fkey"
+            columns: ["ot_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
           },
           {
             foreignKeyName: "timesheet_entries_ot_task_id_fkey"
@@ -1329,6 +2410,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
           },
           {
             foreignKeyName: "timesheet_entries_task_id_fkey"
@@ -1463,7 +2551,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      project_cost_summaries: {
+        Row: {
+          ac_labor: number | null
+          ac_materials: number | null
+          ac_total: number | null
+          bac: number | null
+          cpi: number | null
+          ev: number | null
+          project_id: string | null
+          task_id: string | null
+          task_title: string | null
+          wbs_node_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       compute_payroll_lines: {
@@ -1522,6 +2639,8 @@ export type Database = {
         | "worker"
         | "qaqc_inspector"
         | "accountant"
+      checklist_result: "pass" | "fail" | "n/a"
+      claim_status: "draft" | "submitted" | "certified" | "paid" | "rejected"
       dep_relation_type: "FS" | "SS" | "FF" | "SF"
       department:
         | "architecture"
@@ -1560,6 +2679,22 @@ export type Database = {
       dsr_severity: "low" | "med" | "high"
       dsr_site_status: "working" | "partial" | "closed"
       dsr_status: "draft" | "submitted" | "approved" | "rejected"
+      ir_status:
+        | "draft"
+        | "requested"
+        | "scheduled"
+        | "passed"
+        | "failed"
+        | "passed_with_remarks"
+      mr_status:
+        | "draft"
+        | "pending_approval"
+        | "approved"
+        | "rejected"
+        | "ordered"
+        | "fulfilled"
+      ncr_severity: "low" | "medium" | "high" | "critical"
+      ncr_status: "open" | "in_progress" | "resolved" | "closed"
       notification_priority: "low" | "normal" | "high" | "critical"
       notification_type:
         | "task_assigned"
@@ -1577,12 +2712,19 @@ export type Database = {
         | "timesheet_rejected"
         | "timesheet_flagged"
       payroll_period_status: "open" | "locked" | "paid"
+      po_status:
+        | "draft"
+        | "issued"
+        | "partially_received"
+        | "completed"
+        | "cancelled"
       project_status:
         | "planning"
         | "active"
         | "on_hold"
         | "completed"
         | "cancelled"
+      punch_list_status: "open" | "resolved" | "verified"
       task_category:
         | "design_log_report"
         | "design_summary_report"
@@ -1780,6 +2922,8 @@ export const Constants = {
         "qaqc_inspector",
         "accountant",
       ],
+      checklist_result: ["pass", "fail", "n/a"],
+      claim_status: ["draft", "submitted", "certified", "paid", "rejected"],
       dep_relation_type: ["FS", "SS", "FF", "SF"],
       department: [
         "architecture",
@@ -1821,6 +2965,24 @@ export const Constants = {
       dsr_severity: ["low", "med", "high"],
       dsr_site_status: ["working", "partial", "closed"],
       dsr_status: ["draft", "submitted", "approved", "rejected"],
+      ir_status: [
+        "draft",
+        "requested",
+        "scheduled",
+        "passed",
+        "failed",
+        "passed_with_remarks",
+      ],
+      mr_status: [
+        "draft",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "ordered",
+        "fulfilled",
+      ],
+      ncr_severity: ["low", "medium", "high", "critical"],
+      ncr_status: ["open", "in_progress", "resolved", "closed"],
       notification_priority: ["low", "normal", "high", "critical"],
       notification_type: [
         "task_assigned",
@@ -1839,6 +3001,13 @@ export const Constants = {
         "timesheet_flagged",
       ],
       payroll_period_status: ["open", "locked", "paid"],
+      po_status: [
+        "draft",
+        "issued",
+        "partially_received",
+        "completed",
+        "cancelled",
+      ],
       project_status: [
         "planning",
         "active",
@@ -1846,6 +3015,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      punch_list_status: ["open", "resolved", "verified"],
       task_category: [
         "design_log_report",
         "design_summary_report",

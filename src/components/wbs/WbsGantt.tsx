@@ -30,8 +30,8 @@ interface Props {
   holidaySet: Set<string>;
   rollupByNode?: Map<string, NodeRollup>;
   projectRollup?: NodeRollup | null;
-  bodyScrollRef?: RefObject<HTMLDivElement>;
-  onBodyScroll?: (event: UIEvent<HTMLDivElement>) => void;
+  bodyScrollRef?: React.RefObject<HTMLDivElement>;
+  onBodyScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   /** Set of task IDs currently blocked by hard predecessors. */
   blockedSet?: Set<string>;
   /** Map of task IDs that have a baseline (renders ghost bar). */
@@ -132,7 +132,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     element.scrollTo({ left: target, behavior: "smooth" });
   };
 
-  const syncHeaderScroll = (event: UIEvent<HTMLDivElement>) => {
+  const syncHeaderScroll = (event: React.UIEvent<HTMLDivElement>) => {
     if (!headerScrollRef.current) return;
     headerScrollRef.current.scrollLeft = event.currentTarget.scrollLeft;
   };

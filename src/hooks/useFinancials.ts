@@ -55,7 +55,7 @@ export function useCreateClaim() {
     mutationFn: async (values: Partial<ProgressClaim>) => {
       const { data, error } = await supabase
         .from('progress_claims')
-        .insert([values])
+        .insert([values as any])
         .select()
         .single();
       if (error) throw error;

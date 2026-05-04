@@ -2,9 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   InspectionChecklist, 
+  InspectionChecklistItem,
   InspectionRequest, 
   NCR, 
-  PunchListItem 
+  PunchListItem,
+  IrStatus,
+  ChecklistResult,
 } from '@/lib/qaqcMeta';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -105,7 +108,7 @@ export function useCreateIR() {
       // 1. Create IR
       const { data: ir, error: irError } = await supabase
         .from('inspection_requests')
-        .insert([irValues])
+        .insert([irValues as any])
         .select()
         .single();
 
@@ -267,7 +270,7 @@ export function useCreateChecklist() {
     mutationFn: async (values: Partial<InspectionChecklist>) => {
       const { data, error } = await supabase
         .from('inspection_checklists')
-        .insert([values])
+        .insert([values as any])
         .select()
         .single();
 
@@ -288,7 +291,7 @@ export function useCreateChecklistItem() {
     mutationFn: async (values: Partial<InspectionChecklistItem>) => {
       const { data, error } = await supabase
         .from('inspection_checklist_items')
-        .insert([values])
+        .insert([values as any])
         .select()
         .single();
 
@@ -308,7 +311,7 @@ export function useCreateNCR() {
     mutationFn: async (values: Partial<NCR>) => {
       const { data, error } = await supabase
         .from('ncrs')
-        .insert([values])
+        .insert([values as any])
         .select()
         .single();
 
@@ -335,7 +338,7 @@ export function useCreatePunchItem() {
     mutationFn: async (values: Partial<PunchListItem>) => {
       const { data, error } = await supabase
         .from('punch_list_items')
-        .insert([values])
+        .insert([values as any])
         .select()
         .single();
 
