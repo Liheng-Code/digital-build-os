@@ -235,290 +235,7 @@ export type Database = {
           created_by: string | null
           general_notes: string | null
           id: string
-          inspection_checklist_items: {
-            Row: {
-              checklist_id: string
-              created_at: string
-              id: string
-              is_required: boolean
-              item_text: string
-              order_index: number
-            }
-            Insert: {
-              checklist_id: string
-              created_at?: string
-              id?: string
-              is_required?: boolean
-              item_text: string
-              order_index?: number
-            }
-            Update: {
-              checklist_id?: string
-              created_at?: string
-              id?: string
-              is_required?: boolean
-              item_text?: string
-              order_index?: number
-            }
-            Relationships: [
-              {
-                foreignKeyName: "inspection_checklist_items_checklist_id_fkey"
-                columns: ["checklist_id"]
-                isOneToOne: false
-                referencedRelation: "inspection_checklists"
-                referencedColumns: ["id"]
-              },
-            ]
-          }
-          inspection_checklists: {
-            Row: {
-              created_at: string
-              description: string | null
-              id: string
-              name: string
-              project_id: string
-              task_type: Database["public"]["Enums"]["task_type"]
-              updated_at: string
-            }
-            Insert: {
-              created_at?: string
-              description?: string | null
-              id?: string
-              name: string
-              project_id: string
-              task_type: Database["public"]["Enums"]["task_type"]
-              updated_at?: string
-            }
-            Update: {
-              created_at?: string
-              description?: string | null
-              id?: string
-              name?: string
-              project_id?: string
-              task_type?: Database["public"]["Enums"]["task_type"]
-              updated_at?: string
-            }
-            Relationships: [
-              {
-                foreignKeyName: "inspection_checklists_project_id_fkey"
-                columns: ["project_id"]
-                isOneToOne: false
-                referencedRelation: "projects"
-                referencedColumns: ["id"]
-              },
-            ]
-          }
-          inspection_requests: {
-            Row: {
-              created_at: string
-              id: string
-              inspected_by: string | null
-              inspection_date: string | null
-              location: string | null
-              project_id: string
-              remarks: string | null
-              request_number: string
-              requested_by: string | null
-              requested_date: string
-              status: Database["public"]["Enums"]["ir_status"]
-              task_id: string | null
-              updated_at: string
-            }
-            Insert: {
-              created_at?: string
-              id?: string
-              inspected_by?: string | null
-              inspection_date?: string | null
-              location?: string | null
-              project_id: string
-              remarks?: string | null
-              request_number: string
-              requested_by?: string | null
-              requested_date?: string
-              status?: Database["public"]["Enums"]["ir_status"]
-              task_id?: string | null
-              updated_at?: string
-            }
-            Update: {
-              created_at?: string
-              id?: string
-              inspected_by?: string | null
-              inspection_date?: string | null
-              location?: string | null
-              project_id?: string
-              remarks?: string | null
-              request_number?: string
-              requested_by?: string | null
-              requested_date?: string
-              status?: Database["public"]["Enums"]["ir_status"]
-              task_id?: string | null
-              updated_at?: string
-            }
-            Relationships: [
-              {
-                foreignKeyName: "inspection_requests_inspected_by_fkey"
-                columns: ["inspected_by"]
-                isOneToOne: false
-                referencedRelation: "profiles"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "inspection_requests_project_id_fkey"
-                columns: ["project_id"]
-                isOneToOne: false
-                referencedRelation: "projects"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "inspection_requests_requested_by_fkey"
-                columns: ["requested_by"]
-                isOneToOne: false
-                referencedRelation: "profiles"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "inspection_requests_task_id_fkey"
-                columns: ["task_id"]
-                isOneToOne: false
-                referencedRelation: "tasks"
-                referencedColumns: ["id"]
-              },
-            ]
-          }
-          inspection_results: {
-            Row: {
-              checklist_item_id: string
-              comments: string | null
-              created_at: string
-              id: string
-              inspection_request_id: string
-              status: Database["public"]["Enums"]["checklist_result"] | null
-              updated_at: string
-            }
-            Insert: {
-              checklist_item_id: string
-              comments?: string | null
-              created_at?: string
-              id?: string
-              inspection_request_id: string
-              status?: Database["public"]["Enums"]["checklist_result"] | null
-              updated_at?: string
-            }
-            Update: {
-              checklist_item_id?: string
-              comments?: string | null
-              created_at?: string
-              id?: string
-              inspection_request_id?: string
-              status?: Database["public"]["Enums"]["checklist_result"] | null
-              updated_at?: string
-            }
-            Relationships: [
-              {
-                foreignKeyName: "inspection_results_checklist_item_id_fkey"
-                columns: ["checklist_item_id"]
-                isOneToOne: false
-                referencedRelation: "inspection_checklist_items"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "inspection_results_inspection_request_id_fkey"
-                columns: ["inspection_request_id"]
-                isOneToOne: false
-                referencedRelation: "inspection_requests"
-                referencedColumns: ["id"]
-              },
-            ]
-          }
           project_id: string
-          punch_list_items: {
-            Row: {
-              created_at: string
-              created_by: string | null
-              description: string
-              id: string
-              inspection_request_id: string | null
-              location: string | null
-              project_id: string
-              resolved_by: string | null
-              status: Database["public"]["Enums"]["punch_list_status"]
-              task_id: string | null
-              updated_at: string
-              verified_by: string | null
-            }
-            Insert: {
-              created_at?: string
-              created_by?: string | null
-              description: string
-              id?: string
-              inspection_request_id?: string | null
-              location?: string | null
-              project_id: string
-              resolved_by?: string | null
-              status?: Database["public"]["Enums"]["punch_list_status"]
-              task_id?: string | null
-              updated_at?: string
-              verified_by?: string | null
-            }
-            Update: {
-              created_at?: string
-              created_by?: string | null
-              description?: string
-              id?: string
-              inspection_request_id?: string | null
-              location?: string | null
-              project_id?: string
-              resolved_by?: string | null
-              status?: Database["public"]["Enums"]["punch_list_status"]
-              task_id?: string | null
-              updated_at?: string
-              verified_by?: string | null
-            }
-            Relationships: [
-              {
-                foreignKeyName: "punch_list_items_created_by_fkey"
-                columns: ["created_by"]
-                isOneToOne: false
-                referencedRelation: "profiles"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "punch_list_items_inspection_request_id_fkey"
-                columns: ["inspection_request_id"]
-                isOneToOne: false
-                referencedRelation: "inspection_requests"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "punch_list_items_project_id_fkey"
-                columns: ["project_id"]
-                isOneToOne: false
-                referencedRelation: "projects"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "punch_list_items_resolved_by_fkey"
-                columns: ["resolved_by"]
-                isOneToOne: false
-                referencedRelation: "profiles"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "punch_list_items_task_id_fkey"
-                columns: ["task_id"]
-                isOneToOne: false
-                referencedRelation: "tasks"
-                referencedColumns: ["id"]
-              },
-              {
-                foreignKeyName: "punch_list_items_verified_by_fkey"
-                columns: ["verified_by"]
-                isOneToOne: false
-                referencedRelation: "profiles"
-                referencedColumns: ["id"]
-              },
-            ]
-          }
           rejection_reason: string | null
           report_date: string
           reviewed_at: string | null
@@ -818,7 +535,7 @@ export type Database = {
           project_id?: string | null
           read_at?: string | null
           title?: string
-          type: Database["public"]["Enums"]["notification_type"]
+          type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
         }
         Relationships: []
@@ -959,90 +676,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      ncrs: {
-        Row: {
-          assigned_to: string | null
-          corrective_action: string | null
-          created_at: string
-          id: string
-          inspection_request_id: string | null
-          issue_description: string
-          ncr_number: string
-          project_id: string
-          reported_by: string | null
-          severity: Database["public"]["Enums"]["ncr_severity"]
-          status: Database["public"]["Enums"]["ncr_status"]
-          task_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          assigned_to?: string | null
-          corrective_action?: string | null
-          created_at?: string
-          id?: string
-          inspection_request_id?: string | null
-          issue_description: string
-          ncr_number: string
-          project_id: string
-          reported_by?: string | null
-          severity?: Database["public"]["Enums"]["ncr_severity"]
-          status?: Database["public"]["Enums"]["ncr_status"]
-          task_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          assigned_to?: string | null
-          corrective_action?: string | null
-          created_at?: string
-          id?: string
-          inspection_request_id?: string | null
-          issue_description?: string
-          ncr_number?: string
-          project_id?: string
-          reported_by?: string | null
-          severity?: Database["public"]["Enums"]["ncr_severity"]
-          status?: Database["public"]["Enums"]["ncr_status"]
-          task_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ncrs_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ncrs_inspection_request_id_fkey"
-            columns: ["inspection_request_id"]
-            isOneToOne: false
-            referencedRelation: "inspection_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ncrs_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ncrs_reported_by_fkey"
-            columns: ["reported_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ncrs_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {
@@ -1367,7 +1000,7 @@ export type Database = {
           id?: string
           reason?: string | null
           task_id?: string
-          to_status: Database["public"]["Enums"]["task_status"]
+          to_status?: Database["public"]["Enums"]["task_status"]
         }
         Relationships: [
           {
@@ -1889,7 +1522,6 @@ export type Database = {
         | "worker"
         | "qaqc_inspector"
         | "accountant"
-      checklist_result: "pass" | "fail" | "n/a"
       dep_relation_type: "FS" | "SS" | "FF" | "SF"
       department:
         | "architecture"
@@ -1928,21 +1560,6 @@ export type Database = {
       dsr_severity: "low" | "med" | "high"
       dsr_site_status: "working" | "partial" | "closed"
       dsr_status: "draft" | "submitted" | "approved" | "rejected"
-      ir_status:
-        | "draft"
-        | "requested"
-        | "scheduled"
-        | "passed"
-        | "failed"
-        | "passed_with_remarks"
-      material_issue_status: "draft" | "submitted"
-      material_request_status:
-        | "draft"
-        | "submitted"
-        | "approved"
-        | "rejected"
-        | "partially_fulfilled"
-        | "fulfilled"
       notification_priority: "low" | "normal" | "high" | "critical"
       notification_type:
         | "task_assigned"
@@ -1959,17 +1576,13 @@ export type Database = {
         | "timesheet_approved"
         | "timesheet_rejected"
         | "timesheet_flagged"
-      ncr_severity: "low" | "medium" | "high" | "critical"
-      ncr_status: "open" | "in_progress" | "resolved" | "closed"
       payroll_period_status: "open" | "locked" | "paid"
-      po_status: "draft" | "issued" | "partially_received" | "completed" | "cancelled"
       project_status:
         | "planning"
         | "active"
         | "on_hold"
         | "completed"
         | "cancelled"
-      punch_list_status: "open" | "resolved" | "verified"
       task_category:
         | "design_log_report"
         | "design_summary_report"

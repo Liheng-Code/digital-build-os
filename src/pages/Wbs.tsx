@@ -234,7 +234,7 @@ export default function WbsPage() {
   }
 
   return (
-    <div className="space-y-4 h-[calc(100vh-9rem)] flex flex-col">
+    <div className="space-y-4 h-[calc(100vh-9rem)] flex flex-col -mx-4 lg:-mx-6 px-2 lg:px-3 max-w-none">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Work Breakdown Structure</h1>
