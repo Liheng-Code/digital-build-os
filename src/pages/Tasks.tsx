@@ -1,14 +1,27 @@
 import { useEffect, useState, useCallback, useMemo, type ComponentType } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -27,9 +40,13 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock3,
+  Edit3,
   Inbox,
   LayoutGrid,
+  Loader2,
   List,
+  MoreHorizontal,
+  Trash2,
   Search,
   X,
 } from "lucide-react";
@@ -37,10 +54,12 @@ import { cn } from "@/lib/utils";
 import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { Department, DEPARTMENT_LABELS } from "@/lib/departmentMeta";
 import { DepartmentBadge } from "@/components/DepartmentBadge";
+import { toast } from "sonner";
 
 interface TaskRow {
   id: string;
   title: string;
+  description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
   task_type: TaskType;
@@ -49,19 +68,51 @@ interface TaskRow {
   estimated_hours: number | null;
   progress_pct: number;
   department: Department | null;
+  task_assignments?: TaskAssignmentLite[];
 }
+
+interface TaskAssignmentLite {
+  user_id: string;
+  unassigned_at: string | null;
+}
+
+type EditTaskForm = {
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  planned_end: string;
+  estimated_hours: string;
+  progress_pct: string;
+};
 
 const DASH = "-";
 
 export default function Tasks() {
+  const { user, roles } = useAuth();
   const { activeProject } = useProjects();
   const { unreadByTaskId } = useTaskUnread();
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingAction, setSavingAction] = useState(false);
+  const [editingTask, setEditingTask] = useState<TaskRow | null>(null);
+  const [deletingTask, setDeletingTask] = useState<TaskRow | null>(null);
+  const [editForm, setEditForm] = useState<EditTaskForm>({
+    title: "",
+    description: "",
+    priority: "medium",
+    planned_end: "",
+    estimated_hours: "0",
+    progress_pct: "0",
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">("all");
   const [deptFilter, setDeptFilter] = useState<Department | "all">("all");
+
+  const canPlan = roles.some((r) =>
+    ["admin", "project_manager", "engineer", "supervisor"].includes(r),
+  );
+  const canDeleteTasks = roles.some((r) => ["admin", "project_manager"].includes(r));
 
   const load = useCallback(async () => {
     if (!activeProject) {
@@ -72,7 +123,7 @@ export default function Tasks() {
     setLoading(true);
     const { data } = await supabase
       .from("tasks")
-      .select("id, title, status, priority, task_type, location_zone, planned_end, estimated_hours, progress_pct, department")
+      .select("id, title, description, status, priority, task_type, location_zone, planned_end, estimated_hours, progress_pct, department, task_assignments(user_id, unassigned_at)")
       .eq("project_id", activeProject.id)
       .order("created_at", { ascending: false });
     setTasks((data ?? []) as TaskRow[]);
@@ -112,6 +163,90 @@ export default function Tasks() {
     setStatusFilter("all");
     setPriorityFilter("all");
     setDeptFilter("all");
+  };
+
+  const isAssignedToMe = (task: TaskRow) =>
+    !!user && (task.task_assignments ?? []).some(
+      (assignment) => assignment.user_id === user.id && !assignment.unassigned_at,
+    );
+
+  const canEditTask = (task: TaskRow) => canPlan || isAssignedToMe(task);
+
+  const openEditTask = (task: TaskRow) => {
+    setEditingTask(task);
+    setEditForm({
+      title: task.title,
+      description: task.description ?? "",
+      priority: task.priority,
+      planned_end: task.planned_end ?? "",
+      estimated_hours: String(task.estimated_hours ?? 0),
+      progress_pct: String(task.progress_pct ?? 0),
+    });
+  };
+
+  const saveTaskEdit = async () => {
+    if (!editingTask) return;
+    const title = editForm.title.trim();
+    const estimatedHours = Number(editForm.estimated_hours || 0);
+    const progressPct = Number(editForm.progress_pct || 0);
+
+    if (title.length < 2) {
+      toast.error("Task title must be at least 2 characters");
+      return;
+    }
+    if (!Number.isFinite(estimatedHours) || estimatedHours < 0) {
+      toast.error("Estimated hours must be zero or greater");
+      return;
+    }
+    if (!Number.isInteger(progressPct) || progressPct < 0 || progressPct > 100) {
+      toast.error("Progress must be a whole number from 0 to 100");
+      return;
+    }
+
+    setSavingAction(true);
+    const patch = {
+      title,
+      description: editForm.description.trim() || null,
+      priority: editForm.priority,
+      planned_end: editForm.planned_end || null,
+      estimated_hours: estimatedHours,
+      progress_pct: progressPct,
+    };
+
+    const result = canPlan
+      ? await supabase.from("tasks").update(patch).eq("id", editingTask.id)
+      : await supabase.rpc("update_assigned_task_limited", {
+        _task_id: editingTask.id,
+        _title: patch.title,
+        _description: patch.description,
+        _priority: patch.priority,
+        _planned_end: patch.planned_end,
+        _estimated_hours: patch.estimated_hours,
+        _progress_pct: patch.progress_pct,
+      });
+
+    setSavingAction(false);
+    if (result.error) {
+      toast.error(result.error.message);
+      return;
+    }
+    toast.success("Task updated");
+    setEditingTask(null);
+    await load();
+  };
+
+  const deleteTask = async () => {
+    if (!deletingTask) return;
+    setSavingAction(true);
+    const { error } = await supabase.from("tasks").delete().eq("id", deletingTask.id);
+    setSavingAction(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Task deleted");
+    setDeletingTask(null);
+    await load();
   };
 
   if (!activeProject) {
@@ -237,6 +372,7 @@ export default function Tasks() {
                         <TableHead className="min-w-[160px]">Progress</TableHead>
                         <TableHead>Due</TableHead>
                         <TableHead className="text-right">Est. hrs</TableHead>
+                        <TableHead className="w-[72px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -280,6 +416,15 @@ export default function Tasks() {
                               ) : DASH}
                             </TableCell>
                             <TableCell className="text-right text-sm font-medium tabular-nums">{t.estimated_hours ?? 0}</TableCell>
+                            <TableCell className="text-right">
+                              <TaskActions
+                                task={t}
+                                canEdit={canEditTask(t)}
+                                canDelete={canDeleteTasks}
+                                onEdit={openEditTask}
+                                onDelete={setDeletingTask}
+                              />
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -368,7 +513,167 @@ export default function Tasks() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit task</DialogTitle>
+            <DialogDescription>
+              Update the core task fields allowed for your role.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                maxLength={200}
+                onChange={(event) => setEditForm((prev) => ({ ...prev, title: event.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editForm.description}
+                rows={3}
+                maxLength={4000}
+                onChange={(event) => setEditForm((prev) => ({ ...prev, description: event.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label>Priority</Label>
+                <Select
+                  value={editForm.priority}
+                  onValueChange={(value) => setEditForm((prev) => ({ ...prev, priority: value as TaskPriority }))}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TASK_PRIORITY_LABELS) as TaskPriority[]).map((priority) => (
+                      <SelectItem key={priority} value={priority}>{TASK_PRIORITY_LABELS[priority]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-planned-end">Planned end</Label>
+                <Input
+                  id="edit-planned-end"
+                  type="date"
+                  value={editForm.planned_end}
+                  onChange={(event) => setEditForm((prev) => ({ ...prev, planned_end: event.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-estimated-hours">Est. hours</Label>
+                <Input
+                  id="edit-estimated-hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={editForm.estimated_hours}
+                  onChange={(event) => setEditForm((prev) => ({ ...prev, estimated_hours: event.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-progress">Progress %</Label>
+                <Input
+                  id="edit-progress"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={editForm.progress_pct}
+                  onChange={(event) => setEditForm((prev) => ({ ...prev, progress_pct: event.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditingTask(null)} disabled={savingAction}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={saveTaskEdit} disabled={savingAction}>
+              {savingAction && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deletingTask} onOpenChange={(open) => !open && setDeletingTask(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{deletingTask?.title}". Related assignments and task updates are removed by the database cascade.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={savingAction}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={savingAction}
+              onClick={(event) => {
+                event.preventDefault();
+                deleteTask();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {savingAction && <Loader2 className="h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function TaskActions({
+  task,
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
+}: {
+  task: TaskRow;
+  canEdit: boolean;
+  canDelete: boolean;
+  onEdit: (task: TaskRow) => void;
+  onDelete: (task: TaskRow) => void;
+}) {
+  if (!canEdit && !canDelete) {
+    return <span className="text-muted-foreground">{DASH}</span>;
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open task actions</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-36">
+        {canEdit && (
+          <DropdownMenuItem onClick={() => onEdit(task)}>
+            <Edit3 className="mr-2 h-4 w-4" />
+            Edit
+          </DropdownMenuItem>
+        )}
+        {canDelete && (
+          <DropdownMenuItem
+            onClick={() => onDelete(task)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

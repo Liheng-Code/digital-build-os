@@ -2620,7 +2620,29 @@ export type Database = {
       }
       is_dsr_approver: { Args: { _uid: string }; Returns: boolean }
       is_dsr_editor: { Args: { _uid: string }; Returns: boolean }
+      post_task_progress_update: {
+        Args: {
+          _hours_worked: number
+          _is_blocker: boolean
+          _note: string
+          _progress_pct: number
+          _task_id: string
+        }
+        Returns: Database["public"]["Tables"]["tasks"]["Row"]
+      }
       seed_demo_run: { Args: never; Returns: Json }
+      update_assigned_task_limited: {
+        Args: {
+          _description: string | null
+          _estimated_hours: number
+          _planned_end: string | null
+          _priority: Database["public"]["Enums"]["task_priority"]
+          _progress_pct: number
+          _task_id: string
+          _title: string
+        }
+        Returns: Database["public"]["Tables"]["tasks"]["Row"]
+      }
       wbs_user_can: {
         Args: {
           _node_id: string

@@ -38,6 +38,7 @@ import { DepartmentBadge } from "@/components/DepartmentBadge";
 import { TaskQaQcTab } from "@/components/qaqc/TaskQaQcTab";
 import { TaskMaterialsTab } from "@/components/materials/TaskMaterialsTab";
 import { TaskFinancialsTab } from "@/components/financials/TaskFinancialsTab";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 interface Task {
   id: string;
@@ -67,7 +68,7 @@ interface Assignment {
   unassigned_at: string | null;
 }
 
-interface Update {
+interface TaskUpdate {
   id: string;
   user_id: string;
   progress_pct: number | null;
@@ -89,7 +90,7 @@ export default function TaskDetail() {
   const { markTaskRead } = useTaskUnread();
   const [task, setTask] = useState<Task | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [updates, setUpdates] = useState<Update[]>([]);
+  const [updates, setUpdates] = useState<TaskUpdate[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
@@ -113,9 +114,9 @@ export default function TaskDetail() {
     (a) => a.user_id === user.id && !a.unassigned_at,
   );
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (showLoading = true) => {
     if (!id) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     const [taskRes, asgRes, updRes] = await Promise.all([
       supabase.from("tasks").select("*").eq("id", id).maybeSingle(),
       supabase.from("task_assignments").select("*").eq("task_id", id),
@@ -128,12 +129,12 @@ export default function TaskDetail() {
     }
     setTask(taskRes.data as Task);
     setAssignments((asgRes.data ?? []) as Assignment[]);
-    setUpdates((updRes.data ?? []) as Update[]);
+    setUpdates((updRes.data ?? []) as TaskUpdate[]);
 
     // Load profiles for everyone involved
     const ids = new Set<string>();
-    (asgRes.data ?? []).forEach((a: any) => ids.add(a.user_id));
-    (updRes.data ?? []).forEach((u: any) => ids.add(u.user_id));
+    ((asgRes.data ?? []) as Assignment[]).forEach((a) => ids.add(a.user_id));
+    ((updRes.data ?? []) as TaskUpdate[]).forEach((u) => ids.add(u.user_id));
     if (ids.size > 0) {
       const { data: profs } = await supabase
         .from("profiles")
@@ -143,7 +144,7 @@ export default function TaskDetail() {
       (profs ?? []).forEach((p) => { map[p.id] = p as ProfileLite; });
       setProfiles(map);
     }
-    setLoading(false);
+    if (showLoading) setLoading(false);
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
@@ -151,7 +152,7 @@ export default function TaskDetail() {
   const transitionTo = async (next: TaskStatus, reason?: string) => {
     if (!task) return;
     setTransitioning(true);
-    const patch: any = { status: next };
+    const patch: TablesUpdate<"tasks"> = { status: next };
     if (next === "rejected" && reason) patch.rejection_reason = reason;
     if (next === "in_progress" && !task.actual_start) patch.actual_start = new Date().toISOString();
     if (next === "completed") {
@@ -183,31 +184,22 @@ export default function TaskDetail() {
     }
 
     setPosting(true);
-    const { error: updErr } = await supabase.from("task_updates").insert({
-      task_id: task.id,
-      user_id: user.id,
-      progress_pct: progress,
-      hours_worked: hours,
-      note: note || null,
-      is_blocker: blocker,
+    const { data: updatedTask, error } = await supabase.rpc("post_task_progress_update", {
+      _task_id: task.id,
+      _progress_pct: progress,
+      _hours_worked: hours,
+      _note: note,
+      _is_blocker: blocker,
     });
-
-    if (!updErr) {
-      // Update task progress + actual hours
-      const newActual = (task.actual_hours ?? 0) + hours;
-      await supabase
-        .from("tasks")
-        .update({ progress_pct: progress, actual_hours: newActual })
-        .eq("id", task.id);
-    }
     setPosting(false);
-    if (updErr) {
-      toast.error(updErr.message);
+    if (error) {
+      toast.error(error.message);
       return;
     }
+    setTask(updatedTask as Task);
     toast.success("Update posted");
     (e.currentTarget as HTMLFormElement).reset();
-    await load();
+    await load(false);
   };
 
   if (loading) {
@@ -360,6 +352,7 @@ export default function TaskDetail() {
                           <Label htmlFor="progress">Progress %</Label>
                           <Input
                             id="progress" name="progress" type="number" min={0} max={100}
+                            key={`progress-${task.progress_pct}`}
                             defaultValue={task.progress_pct}
                           />
                         </div>

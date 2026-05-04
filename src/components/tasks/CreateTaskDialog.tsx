@@ -46,12 +46,31 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
   const { activeProject } = useProjects();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [plannedStart, setPlannedStart] = useState("");
+  const [plannedEnd, setPlannedEnd] = useState("");
+  const [estimatedHours, setEstimatedHours] = useState("");
   const [wbsNodeId, setWbsNodeId] = useState<string | null>(null);
   const [wbsNode, setWbsNode] = useState<WbsTreeNode | null>(null);
   const [department, setDepartment] = useState<Department | "">("");
-  const [meta, setMeta] = useState<Record<string, any>>({});
+  const [meta, setMeta] = useState<Record<string, string>>({});
   const [workflowType, setWorkflowType] = useState<TaskWorkflowType | "">("");
   const [category, setCategory] = useState<TaskCategory | "">("");
+
+  const updatePlannedHours = (start: string, end: string) => {
+    setPlannedStart(start);
+    setPlannedEnd(end);
+
+    if (!start || !end) {
+      setEstimatedHours("");
+      return;
+    }
+
+    const startDate = new Date(`${start}T00:00:00Z`);
+    const endDate = new Date(`${end}T00:00:00Z`);
+    const diffDays = Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+
+    setEstimatedHours(diffDays > 0 ? String(diffDays * 8) : "");
+  };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -122,6 +141,9 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
     setMeta({});
     setWorkflowType("");
     setCategory("");
+    setPlannedStart("");
+    setPlannedEnd("");
+    setEstimatedHours("");
     onCreated?.();
   };
 
@@ -244,15 +266,36 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label htmlFor="planned_start">Planned start</Label>
-              <Input id="planned_start" name="planned_start" type="date" />
+              <Input
+                id="planned_start"
+                name="planned_start"
+                type="date"
+                value={plannedStart}
+                onChange={(e) => updatePlannedHours(e.target.value, plannedEnd)}
+              />
             </div>
             <div>
               <Label htmlFor="planned_end">Planned end</Label>
-              <Input id="planned_end" name="planned_end" type="date" />
+              <Input
+                id="planned_end"
+                name="planned_end"
+                type="date"
+                value={plannedEnd}
+                onChange={(e) => updatePlannedHours(plannedStart, e.target.value)}
+              />
             </div>
             <div>
               <Label htmlFor="estimated_hours">Est. hours</Label>
-              <Input id="estimated_hours" name="estimated_hours" type="number" step="0.5" min="0" />
+              <Input
+                id="estimated_hours"
+                name="estimated_hours"
+                type="number"
+                step="0.5"
+                min="0"
+                value={estimatedHours}
+                readOnly
+                className="bg-muted/60"
+              />
             </div>
           </div>
           <DialogFooter>

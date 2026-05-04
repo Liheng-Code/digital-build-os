@@ -8,8 +8,8 @@ export function DisciplineMetaFields({
   onChange,
 }: {
   department: Department | null;
-  value: Record<string, any>;
-  onChange: (next: Record<string, any>) => void;
+  value: Record<string, string>;
+  onChange: (next: Record<string, string>) => void;
 }) {
   if (!department) return null;
   const fields = DISCIPLINE_FIELDS[department];
