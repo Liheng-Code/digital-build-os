@@ -43,30 +43,49 @@ export function useWbsTree(projectId: string | null | undefined) {
       setTree(buildWbsTree(rows));
     }
 
-    if (!tasksRes.error) {
+    if (!tasksRes.error && !nodesRes.error) {
       const statsMap = new Map<string, WbsNodeStat>();
       const taskData = tasksRes.data ?? [];
+      const nodeRows = (nodesRes.data ?? []) as WbsNode[];
 
-      // Group tasks by wbs_node_id
-      const grouped = new Map<string, typeof taskData>();
+      // Tasks grouped by direct WBS node id
+      const directByNode = new Map<string, typeof taskData>();
       taskData.forEach((t) => {
         if (!t.wbs_node_id) return;
-        if (!grouped.has(t.wbs_node_id)) grouped.set(t.wbs_node_id, []);
-        grouped.get(t.wbs_node_id)!.push(t);
+        if (!directByNode.has(t.wbs_node_id)) directByNode.set(t.wbs_node_id, []);
+        directByNode.get(t.wbs_node_id)!.push(t);
       });
 
-      grouped.forEach((tasks, nodeId) => {
+      // Children map for descendant traversal
+      const childrenOf = new Map<string | null, string[]>();
+      for (const n of nodeRows) {
+        const arr = childrenOf.get(n.parent_id) ?? [];
+        arr.push(n.id);
+        childrenOf.set(n.parent_id, arr);
+      }
+
+      const gather = (nodeId: string): typeof taskData => {
+        const own = directByNode.get(nodeId) ?? [];
+        const kids = childrenOf.get(nodeId) ?? [];
+        const all = [...own];
+        for (const k of kids) all.push(...gather(k));
+        return all;
+      };
+
+      for (const n of nodeRows) {
+        const tasks = gather(n.id);
+        if (tasks.length === 0) continue;
         const avgProgress =
           tasks.reduce((sum, t) => sum + (t.progress_pct ?? 0), 0) / tasks.length;
         const starts = tasks.map((t) => t.planned_start).filter(Boolean) as string[];
         const ends = tasks.map((t) => t.planned_end).filter(Boolean) as string[];
-        statsMap.set(nodeId, {
+        statsMap.set(n.id, {
           avgProgress: Math.round(avgProgress),
           taskCount: tasks.length,
           minStart: starts.length ? [...starts].sort()[0] : null,
           maxEnd: ends.length ? [...ends].sort().at(-1)! : null,
         });
-      });
+      }
 
       setNodeStats(statsMap);
     }
