@@ -240,7 +240,6 @@ export default function WbsPage() {
           <h1 className="text-3xl font-bold">Work Breakdown Structure</h1>
           <p className="text-muted-foreground">
             {activeProject.code} · {activeProject.name}
-            <span className="ml-2 text-xs">{nodes.length} node{nodes.length === 1 ? "" : "s"}</span>
           </p>
         </div>
 

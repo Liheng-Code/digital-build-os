@@ -52,12 +52,22 @@ export function WbsGanttTree({
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
   const headerRef = useRef<HTMLDivElement>(null);
 
-  // Sync header padding to match body scrollbar
+  // Sync header padding to match body scrollbar, observe resize
   useLayoutEffect(() => {
     const body = bodyScrollRef?.current;
     if (!body) return;
-    const width = body.offsetWidth - body.clientWidth;
-    setScrollbarWidth(width);
+
+    const updateScrollbarWidth = () => {
+      const width = body.offsetWidth - body.clientWidth;
+      setScrollbarWidth(width);
+    };
+
+    updateScrollbarWidth();
+
+    const observer = new ResizeObserver(updateScrollbarWidth);
+    observer.observe(body);
+
+    return () => observer.disconnect();
   }, [bodyScrollRef]);
 
   return (
