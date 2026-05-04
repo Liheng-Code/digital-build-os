@@ -32,7 +32,7 @@ export function useWbsTree(projectId: string | null | undefined) {
         .order("sort_order", { ascending: true }),
       supabase
         .from("tasks")
-        .select("wbs_node_id, progress_pct, planned_start, planned_end")
+        .select("wbs_node_id, progress_pct, planned_start, planned_end, estimated_hours")
         .eq("project_id", projectId)
         .not("wbs_node_id", "is", null),
     ]);
