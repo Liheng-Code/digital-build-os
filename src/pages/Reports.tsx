@@ -410,28 +410,30 @@ export default function Reports() {
             Org-wide insights and per-member performance — {projectLabel}
           </p>
         </div>
-        <Filter label="Project">
-          <Select value={projectId} onValueChange={setProjectId}>
-            <SelectTrigger className="w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All projects</SelectItem>
-              {projects.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.code} - {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Filter>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          {canSeeWbs && <TabsTrigger value="wbs">WBS Locations</TabsTrigger>}
-        </TabsList>
+        <div className="flex flex-wrap items-end gap-3">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            {canSeeWbs && <TabsTrigger value="wbs">WBS Locations</TabsTrigger>}
+          </TabsList>
+          <Filter label="Project">
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All projects</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.code} - {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Filter>
+        </div>
 
         <TabsContent value="overview" className="flex flex-col gap-6 mt-4">
           <div className="flex flex-wrap items-end gap-3">
