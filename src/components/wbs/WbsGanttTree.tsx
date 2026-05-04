@@ -123,10 +123,10 @@ export function WbsGanttTree({
                 }
               }}
             >
-              {/* WBS CODE COLUMN */}
-              <div className="px-3 border-r h-full flex items-center font-mono text-[10px] text-muted-foreground truncate bg-muted/5 group-hover:bg-muted/20 transition-colors">
-                {r.kind === "project" ? "1.0" : r.kind === "node" ? r.node.code : r.task.code || "-"}
-              </div>
+               {/* WBS CODE COLUMN */}
+               <div className="px-3 border-r h-full flex items-center font-mono text-[10px] text-muted-foreground truncate bg-muted/5 group-hover:bg-muted/20 transition-colors">
+                 {r.kind === "project" ? (r.label || "PRJ") : r.kind === "node" ? r.node.code : r.task.code || "-"}
+               </div>
 
               {/* NAME COLUMN WITH INDENTATION */}
               <div
@@ -198,17 +198,9 @@ export function WbsGanttTree({
                 </span>
               </div>
 
-              <div className="px-3 flex items-center justify-end h-full tabular-nums text-xs font-medium">
-                <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-sky-500"
-                      style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                    />
-                  </div>
-                  <span>{Math.round(progress)}%</span>
-                </div>
-              </div>
+               <div className="px-3 flex items-center justify-end h-full tabular-nums text-xs font-medium">
+                 <span>{Math.round(progress)}%</span>
+               </div>
             </div>
           );
         })}

@@ -77,7 +77,7 @@ export default function WbsPage() {
   );
 
   const rows: GanttRow[] = React.useMemo(
-    () => buildGanttRows({ nodes, tasks, collapsed, projectLabel: activeProject?.name ?? null }),
+    () => buildGanttRows({ nodes, tasks, collapsed, projectLabel: activeProject?.name ?? null, projectCode: activeProject?.code ?? null }),
     [nodes, tasks, collapsed, activeProject],
   );
 

@@ -192,10 +192,9 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
         <div className="flex flex-col overflow-hidden flex-1">
           <div className="flex items-center justify-between gap-3 border-b bg-background/95 px-4 backdrop-blur-sm z-30" style={{ height: TITLE_H }}>
             <div className="flex items-center gap-4">
-              <div>
-                <div className="text-sm font-semibold text-foreground">Gantt Schedule</div>
-                <div className="text-[11px] text-muted-foreground">Timeline grid and dependency paths</div>
-              </div>
+                <div>
+                 <div className="text-sm font-semibold text-foreground">Gantt Schedule</div>
+               </div>
               
               <div className="h-8 w-px bg-border mx-2" />
               
