@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONSTRUCT — WBS Gantt</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #0B0D12;
+  --surface:   #111318;
+  --card:      #1A1F2B;
+  --card2:     #21273A;
+  --border:    #232840;
+  --border2:   #2D3456;
+  --accent:    #FFB300;
+  --accent2:   #E6A200;
+  --blue:      #4D9EF8;
+  --green:     #2CC787;
+  --red:       #F04A52;
+  --purple:    #9B59B6;
+  --teal:      #1ABC9C;
+  --orange:    #E67E22;
+  --text:      #E4E9F5;
+  --text2:     #8F9BB3;
+  --text3:     #47516A;
+  --row-h:     38px;
+  --header-h:  56px;
+  --today-col: #F04A52;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOP BAR ─────────────────────────── */
+.topbar {
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  color: var(--accent);
+  letter-spacing: 3px;
+}
+.logo-sep { color: var(--border2); font-size: 20px; }
+.topbar-proj {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.topbar-sub { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-left: 6px; }
+
+.tb-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+}
+.btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+.btn-primary { background: var(--accent); color: #000; font-weight: 700; }
+.btn-primary:hover { background: var(--accent2); }
+
+/* zoom buttons */
+.zoom-group { display:flex; background:var(--card); border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+.zoom-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  transition: all 0.15s;
+}
+.zoom-btn.active { background: var(--accent); color: #000; }
+.zoom-btn:hover:not(.active) { color: var(--text); }
+
+.today-btn {
+  background: rgba(240,74,82,0.15);
+  border: 1px solid rgba(240,74,82,0.4);
+  color: var(--red);
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  transition: all 0.15s;
+}
+.today-btn:hover { background: rgba(240,74,82,0.25); }
+
+/* ── TOOLBAR STRIP ───────────────────── */
+.toolbar {
+  height: 38px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 0 0 20px;
+  gap: 0;
+  flex-shrink: 0;
+}
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  height: 38px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-family: 'Outfit', sans-serif;
+  transition: all 0.15s;
+  border-bottom: 2px solid transparent;
+}
+.tool-btn:hover { color: var(--text); }
+.tool-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tool-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.legend-row { margin-left: auto; display: flex; gap: 14px; padding-right: 20px; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* ── MAIN SPLIT ──────────────────────── */
+.main-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── WBS LEFT PANE ───────────────────── */
+.wbs-pane {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid var(--border2);
+  background: var(--surface);
+  z-index: 10;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+}
+
+.wbs-col-header {
+  height: var(--header-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.wch-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+.wch-count {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace;
+}
+.wch-icons { margin-left: auto; display: flex; gap: 4px; }
+.icon-btn {
+  width: 26px; height: 26px;
+  border-radius: 5px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.wbs-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.wbs-scroll::-webkit-scrollbar { width: 4px; }
+.wbs-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* WBS ROWS */
+.wbs-row {
+  height: var(--row-h);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 6px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s, opacity 0.2s, transform 0.2s;
+  position: relative;
+  user-select: none;
+}
+.wbs-row:hover { background: var(--card2); }
+.wbs-row.selected { background: rgba(255,179,0,0.08); }
+.wbs-row.selected::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.wbs-row.lvl1 { background: var(--card); }
+.wbs-row.lvl1:hover { background: var(--card2); }
+
+.toggle-btn {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px;
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: all 0.12s;
+  cursor: pointer;
+}
+.toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+.toggle-spacer { width: 16px; flex-shrink: 0; }
+
+.wbs-code {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  min-width: 42px;
+  flex-shrink: 0;
+}
+.wbs-row.lvl1 .wbs-code { color: var(--accent); font-weight: 500; }
+
+.wbs-color-bar {
+  width: 3px;
+  height: 22px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.wbs-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wbs-row.lvl1 .wbs-name { font-weight: 700; font-size: 13px; color: var(--text); }
+.wbs-row.lvl2 .wbs-name { font-weight: 600; color: var(--text); }
+
+.wbs-pct {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── GANTT RIGHT PANE ────────────────── */
+.gantt-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Gantt header (months + weeks) */
+.gantt-header {
+  height: var(--header-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border2);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.gantt-months {
+  display: flex;
+  height: 28px;
+  border-bottom: 1px solid var(--border);
+}
+.gantt-month {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.gantt-month.current { color: var(--accent); background: rgba(255,179,0,0.05); }
+
+.gantt-weeks {
+  display: flex;
+  height: 27px;
+  align-items: center;
+}
+.gantt-week {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.gantt-week.today-week { background: rgba(240,74,82,0.12); color: var(--red); font-weight: 700; }
+.gantt-week.week-odd { background: rgba(255,255,255,0.02); }
+
+/* Gantt body */
+.gantt-body {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  transition: scroll 0.1s ease-out;
+}
+.gantt-body::-webkit-scrollbar { height: 6px; width: 4px; }
+.gantt-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.gantt-body::-webkit-scrollbar-track { background: transparent; }
+
+.gantt-grid {
+  position: relative;
+  min-height: 100%;
+}
+
+/* grid column lines */
+.gantt-col-lines {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.gantt-col-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.gantt-col-line.month-line { width: 2px; background: var(--border2); }
+
+/* today line */
+.today-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--red);
+  z-index: 50;
+  pointer-events: none;
+}
+.today-line::before {
+  content: '▼';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--red);
+  font-size: 10px;
+}
+
+/* row stripe */
+.gantt-row {
+  height: var(--row-h);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  transition: background 0.1s;
+}
+.gantt-row:hover { background: rgba(255,255,255,0.025); }
+.gantt-row.lvl1 { background: rgba(255,179,0,0.03); }
+.gantt-row.selected { background: rgba(255,179,0,0.06); }
+
+/* GANTT BAR */
+.gantt-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  color: rgba(0,0,0,0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.15s;
+  z-index: 5;
+  background: rgba(0,0,0,0.15);
+}
+.gantt-bar:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  z-index: 20;
+}
+.gantt-bar.lvl1 { height: 24px; border-radius: 6px; font-size: 11px; }
+.gantt-bar.lvl2 { height: 20px; }
+.gantt-bar.lvl3 { height: 16px; border-radius: 4px; }
+
+/* completed portion of bar */
+.bar-complete {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: inherit;
+  transition: width 0.5s ease;
+}
+
+/* critical path stripe pattern */
+.gantt-bar.critical {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(240,74,82,0.3) 4px,
+    rgba(240,74,82,0.3) 8px
+  );
+}
+
+.bar-label {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* milestone diamond */
+.milestone {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  z-index: 6;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.milestone:hover {
+  transform: translateY(-50%) rotate(45deg) scale(1.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+/* dependency arrow (SVG overlay) */
+.dep-svg {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* row highlight alternating */
+.gantt-row:nth-child(even) { background: rgba(255,255,255,0.01); }
+
+/* ── BOTTOM STATUS ────────────────────── */
+.statusbar {
+  height: 28px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 18px;
+  font-size: 10px;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  flex-shrink: 0;
+}
+.sb-live { display: flex; align-items: center; gap: 5px; }
+.sb-live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; }
+  50% { opacity:0.3; }
+}
+.sb-div { width:1px; height:14px; background:var(--border2); }
+
+/* ── TOOLTIP ─────────────────────────── */
+.tooltip {
+  position: fixed;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 11px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.tooltip.visible { opacity: 1; }
+.tt-title { font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 6px; }
+.tt-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 3px; }
+.tt-key { color: var(--text3); }
+.tt-val { color: var(--text); font-weight: 600; font-family: 'DM Mono', monospace; }
+.tt-progress {
+  margin-top: 8px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.tt-progress-fill { height: 100%; border-radius: 3px; }
+
+/* ── RESIZE HANDLE ───────────────────── */
+.resize-handle {
+  width: 4px;
+  background: var(--border2);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  z-index: 20;
+  position: relative;
+}
+.resize-handle:hover { background: var(--accent); }
+.resize-handle::before,
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--text3);
+}
+.resize-handle::before { top: 45%; }
+.resize-handle::after { top: 55%; }
+
+/* ── ANIMATIONS ──────────────────────── */
+@keyframes barIn {
+  from { transform: translateY(-50%) scaleX(0); transform-origin: left center; }
+  to   { transform: translateY(-50%) scaleX(1); }
+}
+.gantt-bar { animation: barIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* ── SCROLL SYNC ──────────────────────── */
+/* handled via JS */
+</style>
+</head>
+<body>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-title" id="tt-title">—</div>
+  <div class="tt-row"><span class="tt-key">Start</span><span class="tt-val" id="tt-start">—</span></div>
+  <div class="tt-row"><span class="tt-key">Finish</span><span class="tt-val" id="tt-finish">—</span></div>
+  <div class="tt-row"><span class="tt-key">Duration</span><span class="tt-val" id="tt-dur">—</span></div>
+  <div class="tt-row"><span class="tt-key">Responsible</span><span class="tt-val" id="tt-resp">—</span></div>
+  <div class="tt-row"><span class="tt-key">Status</span><span class="tt-val" id="tt-status">—</span></div>
+  <div class="tt-progress"><div class="tt-progress-fill" id="tt-prog" style="width:0%"></div></div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">CONSTRUCT</div>
+  <div class="logo-sep">|</div>
+  <div>
+    <span class="topbar-proj">Phnom Penh Plaza — Phase II</span>
+    <span class="topbar-sub">PPP-2025-002</span>
+  </div>
+  <div class="tb-actions">
+    <div class="zoom-group">
+      <button class="zoom-btn" onclick="setZoom('month')">MONTH</button>
+      <button class="zoom-btn active" onclick="setZoom('week')" id="zw">WEEK</button>
+      <button class="zoom-btn" onclick="setZoom('day')">DAY</button>
+    </div>
+    <button class="today-btn" onclick="scrollToToday()">⬤ TODAY</button>
+    <button class="btn btn-ghost">⬇ Export</button>
+    <button class="btn btn-ghost">🔗 Baseline</button>
+    <button class="btn btn-primary">+ Add Task</button>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="tool-btn active">⊞ WBS + Gantt</button>
+  <div class="tool-sep"></div>
+  <button class="tool-btn" onclick="expandAll()">⊞ Expand All</button>
+  <button class="tool-btn" onclick="collapseAll()">⊟ Collapse All</button>
+  <div class="tool-sep"></div>
+  <button class="tool-btn" id="critBtn" onclick="toggleCritical()">⚠ Critical Path</button>
+  <button class="tool-btn">📐 Baseline</button>
+  <button class="tool-btn">🔗 Dependencies</button>
+  <div class="legend-row">
+    <div class="legend-item"><div class="legend-dot" style="background:#2CC787"></div>Done</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FFB300"></div>Active</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4D9EF8"></div>In Review</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#9B59B6"></div>Planned</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#F04A52"></div>Blocked</div>
+    <div class="legend-item" style="margin-left:4px">
+      <svg width="12" height="12"><polygon points="6,0 12,12 0,12" fill="#FFB300"/></svg>Milestone
+    </div>
+  </div>
+</div>
+
+<!-- MAIN SPLIT -->
+<div class="main-area" id="mainArea">
+
+  <!-- WBS PANE -->
+  <div class="wbs-pane" id="wbsPane">
+    <div class="wbs-col-header">
+      <div class="wch-label">Work Breakdown Structure</div>
+      <div class="wch-count" id="nodeCount">—</div>
+      <div class="wch-icons">
+        <button class="icon-btn" title="Search">🔍</button>
+        <button class="icon-btn" title="Filter">⧖</button>
+      </div>
+    </div>
+    <div class="wbs-scroll" id="wbsScroll">
+      <div id="wbsRows"></div>
+    </div>
+  </div>
+
+  <!-- RESIZE HANDLE -->
+  <div class="resize-handle" id="resizeHandle"></div>
+
+  <!-- GANTT PANE -->
+  <div class="gantt-pane" id="ganttPane">
+    <div class="gantt-header" id="ganttHeader">
+      <div class="gantt-months" id="ganttMonths"></div>
+      <div class="gantt-weeks"  id="ganttWeeks"></div>
+    </div>
+    <div class="gantt-body" id="ganttBody">
+      <div class="gantt-grid" id="ganttGrid">
+        <div class="gantt-col-lines" id="colLines"></div>
+        <div class="today-line" id="todayLine"></div>
+        <svg class="dep-svg" id="depSvg" style="width:100%;height:100%;position:absolute;top:0;left:0;pointer-events:none;"></svg>
+        <div id="ganttRows"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="sb-live"><div class="sb-live-dot"></div>Live</div>
+  <div class="sb-div"></div>
+  <span id="sbNodes">—</span>
+  <div class="sb-div"></div>
+  <span id="sbRange">—</span>
+  <div class="sb-div"></div>
+  <span id="sbSelected">Click a row to select</span>
+  <div class="sb-div"></div>
+  <span style="margin-left:auto">CONSTRUCT v2.0 · WBS+Gantt</span>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  DATA MODEL
+// ══════════════════════════════════════════════════
+const PROJECT_START = new Date(2025, 0, 6);  // Jan 6 2025
+const PROJECT_END   = new Date(2026, 2, 31); // Mar 31 2026
+const TODAY         = new Date(2025, 5, 9);  // Jun 9 2025
+
+// Color palette per discipline
+const COLORS = {
+  civil:  '#FFB300',
+  arch:   '#4D9EF8',
+  mep:    '#1ABC9C',
+  site:   '#E67E22',
+  pm:     '#9B59B6',
+};
+
+// Status → color (matches updated CSS)
+const STATUS_COLOR = {
+  done:     '#2CC787',
+  active:   '#FFB300',
+  review:   '#4D9EF8',
+  planned:  '#9B59B6',
+  blocked:  '#F04A52',
+};
+
+// WBS Data: id, pid, code, name, lvl, color, pct, status, start(week offset), dur(weeks), resp, critical, milestone
+const WBS = [
+  // ── CIVIL & STRUCTURAL ──
+  { id:1,  pid:0,  code:'1.0', name:'CIVIL & STRUCTURAL',              lvl:1, color:COLORS.civil, pct:72, status:'active',  sw:0,  dw:40, resp:'Structural Dept',    crit:true  },
+  { id:2,  pid:1,  code:'1.1', name:'Foundation Works',                lvl:2, color:COLORS.civil, pct:100,status:'done',    sw:0,  dw:10, resp:'Virak Ros',           crit:true  },
+  { id:3,  pid:2,  code:'1.1.1',name:'Soil Investigation',             lvl:3, color:COLORS.civil, pct:100,status:'done',    sw:0,  dw:3,  resp:'Geo Lab',             crit:false },
+  { id:4,  pid:2,  code:'1.1.2',name:'Pile Driving & Testing',         lvl:3, color:COLORS.civil, pct:100,status:'done',    sw:2,  dw:5,  resp:'Pile Contractor',     crit:true  },
+  { id:5,  pid:2,  code:'1.1.3',name:'Pile Cap & Grade Beam',          lvl:3, color:COLORS.civil, pct:100,status:'done',    sw:6,  dw:4,  resp:'Virak Ros',           crit:true  },
+  { id:6,  pid:1,  code:'1.2', name:'Superstructure — Concrete',       lvl:2, color:COLORS.civil, pct:65, status:'active',  sw:8,  dw:34, resp:'Structural Team',     crit:true  },
+  { id:7,  pid:6,  code:'1.2.1',name:'Podium Slab (B2–L1)',           lvl:3, color:COLORS.civil, pct:100,status:'done',    sw:8,  dw:8,  resp:'Chan Makara',          crit:true  },
+  { id:8,  pid:6,  code:'1.2.2',name:'Tower Floors (L2–L18)',         lvl:3, color:COLORS.civil, pct:55, status:'active',  sw:14, dw:22, resp:'Chan Makara',          crit:true  },
+  { id:9,  pid:6,  code:'1.2.3',name:'Tower Floors (L19–RF)',         lvl:3, color:COLORS.civil, pct:0,  status:'planned', sw:32, dw:10, resp:'Chan Makara',          crit:true  },
+  { id:10, pid:1,  code:'1.3', name:'Retaining Walls & Basement',      lvl:2, color:COLORS.civil, pct:30, status:'blocked', sw:4,  dw:14, resp:'Sub-contractor A',    crit:false },
+  { id:11, pid:10, code:'1.3.1',name:'B2 Retaining Wall',              lvl:3, color:COLORS.civil, pct:60, status:'blocked', sw:4,  dw:6,  resp:'Sub-contractor A',    crit:false },
+  { id:12, pid:10, code:'1.3.2',name:'B1 Retaining Wall',              lvl:3, color:COLORS.civil, pct:20, status:'blocked', sw:8,  dw:6,  resp:'Sub-contractor A',    crit:false },
+
+  // ── ARCHITECTURAL ──
+  { id:13, pid:0,  code:'2.0', name:'ARCHITECTURAL',                   lvl:1, color:COLORS.arch,  pct:48, status:'active',  sw:10, dw:44, resp:'Architecture Dept',   crit:false },
+  { id:14, pid:13, code:'2.1', name:'Façade & Curtain Wall',           lvl:2, color:COLORS.arch,  pct:60, status:'review',  sw:10, dw:28, resp:'Facade Team',         crit:false },
+  { id:15, pid:14, code:'2.1.1',name:'Unitised Curtain Wall — Podium', lvl:3, color:COLORS.arch,  pct:90, status:'review',  sw:10, dw:12, resp:'CW Contractor',       crit:false },
+  { id:16, pid:14, code:'2.1.2',name:'Tower Glazing System',           lvl:3, color:COLORS.arch,  pct:35, status:'active',  sw:20, dw:16, resp:'CW Contractor',       crit:false },
+  { id:17, pid:13, code:'2.2', name:'Interior Fit-Out',                lvl:2, color:COLORS.arch,  pct:35, status:'active',  sw:18, dw:30, resp:'Interior Team',       crit:false },
+  { id:18, pid:17, code:'2.2.1',name:'Lobby & Common Areas',           lvl:3, color:COLORS.arch,  pct:50, status:'active',  sw:18, dw:14, resp:'ID Contractor',       crit:false },
+  { id:19, pid:17, code:'2.2.2',name:'Typical Floor Fit-Out',          lvl:3, color:COLORS.arch,  pct:20, status:'active',  sw:24, dw:20, resp:'ID Contractor',       crit:false },
+  { id:20, pid:13, code:'2.3', name:'Roofing & Waterproofing',         lvl:2, color:COLORS.arch,  pct:5,  status:'planned', sw:38, dw:8,  resp:'Roofing Sub',         crit:false },
+
+  // ── MEP ──
+  { id:21, pid:0,  code:'3.0', name:'MEP SYSTEMS',                     lvl:1, color:COLORS.mep,   pct:25, status:'active',  sw:12, dw:44, resp:'MEP Dept',            crit:false },
+  { id:22, pid:21, code:'3.1', name:'Electrical — HV/LV',              lvl:2, color:COLORS.mep,   pct:40, status:'active',  sw:12, dw:30, resp:'Elec Contractor',     crit:false },
+  { id:23, pid:22, code:'3.1.1',name:'Main Switchboard & HV Room',     lvl:3, color:COLORS.mep,   pct:80, status:'active',  sw:12, dw:10, resp:'Elec Team',           crit:false },
+  { id:24, pid:22, code:'3.1.2',name:'Riser & Distribution',           lvl:3, color:COLORS.mep,   pct:30, status:'active',  sw:20, dw:18, resp:'Elec Team',           crit:false },
+  { id:25, pid:21, code:'3.2', name:'HVAC & Ventilation',              lvl:2, color:COLORS.mep,   pct:15, status:'planned', sw:16, dw:32, resp:'HVAC Contractor',     crit:false },
+  { id:26, pid:21, code:'3.3', name:'Plumbing & Firefighting',         lvl:2, color:COLORS.mep,   pct:10, status:'planned', sw:18, dw:28, resp:'Plumbing Sub',        crit:false },
+  { id:27, pid:21, code:'3.4', name:'Elevator & Escalator',            lvl:2, color:COLORS.mep,   pct:0,  status:'planned', sw:30, dw:16, resp:'Elevator Co.',        crit:false },
+
+  // ── SITE WORKS ──
+  { id:28, pid:0,  code:'4.0', name:'SITE & EXTERNAL WORKS',           lvl:1, color:COLORS.site,  pct:5,  status:'planned', sw:38, dw:16, resp:'Site Team',           crit:false },
+  { id:29, pid:28, code:'4.1', name:'Hardscape & Paving',              lvl:2, color:COLORS.site,  pct:0,  status:'planned', sw:38, dw:8,  resp:'Civil Sub',           crit:false },
+  { id:30, pid:28, code:'4.2', name:'Landscaping',                     lvl:2, color:COLORS.site,  pct:0,  status:'planned', sw:44, dw:8,  resp:'Landscape Sub',       crit:false },
+
+  // ── PROJECT MANAGEMENT ──
+  { id:31, pid:0,  code:'5.0', name:'PROJECT MANAGEMENT',              lvl:1, color:COLORS.pm,    pct:60, status:'active',  sw:0,  dw:56, resp:'PM Office',           crit:false },
+  { id:32, pid:31, code:'5.1', name:'Design Management',               lvl:2, color:COLORS.pm,    pct:75, status:'active',  sw:0,  dw:30, resp:'Design Manager',      crit:false },
+  { id:33, pid:31, code:'5.2', name:'Contract Administration',         lvl:2, color:COLORS.pm,    pct:50, status:'active',  sw:0,  dw:56, resp:'Contract Manager',    crit:false },
+  { id:34, pid:31, code:'5.3', name:'HSE & Quality',                   lvl:2, color:COLORS.pm,    pct:60, status:'active',  sw:0,  dw:56, resp:'HSE Manager',         crit:false },
+];
+
+// Milestones: { label, weekOffset, row(nodeId) }
+const MILESTONES = [
+  { label:'Foundation Complete', sw:10, nodeId:2  },
+  { label:'Topping Out',          sw:42, nodeId:9  },
+  { label:'CW Complete',          sw:36, nodeId:14 },
+  { label:'MEP Commissioning',    sw:50, nodeId:21 },
+  { label:'Handover',             sw:54, nodeId:28 },
+];
+
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+let collapsed    = new Set(); // node ids that are collapsed
+let selectedId   = null;
+let showCritical = false;
+let ZOOM         = 'week';    // month | week | day
+let CELL_W       = 28;        // px per week cell
+
+const WEEK_COUNT = 60; // total weeks on chart
+
+// ══════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════
+function weekDate(w) {
+  const d = new Date(PROJECT_START);
+  d.setDate(d.getDate() + w * 7);
+  return d;
+}
+function dateStr(d) {
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' });
+}
+function todayWeek() {
+  return Math.floor((TODAY - PROJECT_START) / (7 * 86400000));
+}
+
+function visibleNodes() {
+  // BFS order, skip children of collapsed parents
+  const out = [];
+  const rootNodes = WBS.filter(n => n.pid === 0);
+  function walk(nodes) {
+    for (const n of nodes) {
+      out.push(n);
+      if (!collapsed.has(n.id)) {
+        walk(WBS.filter(c => c.pid === n.id));
+      }
+    }
+  }
+  walk(rootNodes);
+  return out;
+}
+
+// ══════════════════════════════════════════════════
+//  RENDER WBS ROWS
+// ══════════════════════════════════════════════════
+function renderWBS() {
+  const nodes = visibleNodes();
+  const container = document.getElementById('wbsRows');
+  container.innerHTML = '';
+
+  nodes.forEach((n, i) => {
+    const hasChildren = WBS.some(c => c.pid === n.id);
+    const isCollapsed  = collapsed.has(n.id);
+
+    const row = document.createElement('div');
+    row.className = `wbs-row lvl${n.lvl}${n.id === selectedId ? ' selected' : ''}`;
+    row.dataset.id = n.id;
+    row.style.animationDelay = (i * 0.012) + 's';
+
+    // indent
+    const indent = (n.lvl - 1) * 16;
+
+    // toggle
+    let toggleHtml = '';
+    if (hasChildren) {
+      toggleHtml = `<div class="toggle-btn" onclick="toggleNode(event,${n.id})">${isCollapsed ? '▸' : '▾'}</div>`;
+    } else {
+      toggleHtml = `<div class="toggle-spacer"></div>`;
+    }
+
+    const pctColor = n.pct === 100 ? '#2CC787' : n.pct > 50 ? '#FFB300' : n.pct > 0 ? '#4D9EF8' : '#47516A';
+
+    row.innerHTML = `
+      <div style="width:${indent}px;flex-shrink:0"></div>
+      ${toggleHtml}
+      <div class="wbs-code">${n.code}</div>
+      <div class="wbs-color-bar" style="background:${n.color}"></div>
+      <div class="wbs-name">${n.name}</div>
+      <div class="status-dot" style="background:${STATUS_COLOR[n.status]}"></div>
+      <div class="wbs-pct" style="color:${pctColor}">${n.pct}%</div>
+    `;
+
+    row.addEventListener('click', () => selectNode(n.id));
+    container.appendChild(row);
+  });
+
+  document.getElementById('nodeCount').textContent = nodes.length + ' nodes';
+  document.getElementById('sbNodes').textContent = WBS.length + ' total packages · ' + nodes.length + ' visible';
+  document.getElementById('sbRange').textContent = dateStr(PROJECT_START) + ' – ' + dateStr(PROJECT_END);
+}
+
+// ══════════════════════════════════════════════════
+//  RENDER GANTT HEADER
+// ══════════════════════════════════════════════════
+function renderGanttHeader() {
+  const months = document.getElementById('ganttMonths');
+  const weeks  = document.getElementById('ganttWeeks');
+  months.innerHTML = '';
+  weeks.innerHTML  = '';
+
+  // Build month groups
+  let monthMap = [];
+  for (let w = 0; w < WEEK_COUNT; w++) {
+    const d = weekDate(w);
+    const key = d.getFullYear() + '-' + d.getMonth();
+    if (!monthMap.length || monthMap[monthMap.length-1].key !== key) {
+      monthMap.push({ key, label: d.toLocaleDateString('en-US',{month:'short',year:'2-digit'}), count:1, date:d });
+    } else {
+      monthMap[monthMap.length-1].count++;
+    }
+  }
+
+  const tw = todayWeek();
+  monthMap.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'gantt-month' + (m.key === `${TODAY.getFullYear()}-${TODAY.getMonth()}` ? ' current':'');
+    el.style.width = (m.count * CELL_W) + 'px';
+    el.textContent = m.label;
+    months.appendChild(el);
+  });
+
+  for (let w = 0; w < WEEK_COUNT; w++) {
+    const d = weekDate(w);
+    const el = document.createElement('div');
+    el.className = 'gantt-week' + (w === tw ? ' today-week':'') + (w % 2 === 1 ? ' week-odd':'');
+
+    // Adaptive header based on zoom level
+    if (ZOOM === 'month') {
+      el.textContent = Math.floor(w / 4) + 1; // Quarter approximation
+    } else if (ZOOM === 'week') {
+      el.textContent = 'W' + (w + 1); // Week number
+    } else if (ZOOM === 'day') {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      el.textContent = dayNames[d.getDay()];
+      el.style.fontSize = '8px';
+    }
+
+    el.style.width = CELL_W + 'px';
+    weeks.appendChild(el);
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  RENDER GANTT BODY
+// ══════════════════════════════════════════════════
+function renderGantt() {
+  const nodes = visibleNodes();
+  const grid  = document.getElementById('ganttGrid');
+  const rowsDiv = document.getElementById('ganttRows');
+  const colLines = document.getElementById('colLines');
+  const depSvg   = document.getElementById('depSvg');
+  rowsDiv.innerHTML = '';
+  colLines.innerHTML = '';
+
+  const totalW = WEEK_COUNT * CELL_W;
+  const totalH = nodes.length * parseInt(getComputedStyle(document.documentElement).getPropertyValue('--row-h'));
+
+  grid.style.width  = totalW + 'px';
+  grid.style.height = Math.max(totalH, 400) + 'px';
+  depSvg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+  depSvg.setAttribute('width', totalW);
+  depSvg.setAttribute('height', Math.max(totalH, 400));
+
+  // Column lines
+  for (let w = 0; w <= WEEK_COUNT; w++) {
+    const d = weekDate(w);
+    const line = document.createElement('div');
+    line.className = 'gantt-col-line' + (d.getDate() <= 7 ? ' month-line':'');
+    line.style.left = (w * CELL_W) + 'px';
+    colLines.appendChild(line);
+  }
+
+  // Today line
+  const tw = todayWeek();
+  const todayFrac = (TODAY - weekDate(tw)) / (7 * 86400000);
+  const todayPx = tw * CELL_W + todayFrac * CELL_W;
+  document.getElementById('todayLine').style.left = todayPx + 'px';
+
+  // Rows + Bars
+  const rowH = 38;
+  const nodeRowMap = {}; // nodeId → rowIndex
+
+  nodes.forEach((n, i) => {
+    nodeRowMap[n.id] = i;
+
+    const row = document.createElement('div');
+    row.className = `gantt-row lvl${n.lvl}${n.id === selectedId ? ' selected':''}`;
+    row.dataset.id = n.id;
+    row.style.animationDelay = (i * 0.015) + 's';
+    row.addEventListener('click', () => selectNode(n.id));
+
+    // Bar
+    if (n.dw > 0) {
+      const bar = document.createElement('div');
+      const barLvlClass = n.lvl === 1 ? 'lvl1' : n.lvl === 2 ? 'lvl2' : 'lvl3';
+      bar.className = `gantt-bar ${barLvlClass}${(showCritical && n.crit) ? ' critical':''}`;
+      bar.style.left   = (n.sw * CELL_W + 2) + 'px';
+      bar.style.width  = (n.dw * CELL_W - 4) + 'px';
+      bar.style.background = STATUS_COLOR[n.status] + '26'; // 15% opacity of status color
+      bar.style.animationDelay = (i * 0.015 + 0.1) + 's';
+
+      // completed portion
+      const complete = document.createElement('div');
+      complete.className = 'bar-complete';
+      complete.style.width = n.pct + '%';
+      complete.style.background = STATUS_COLOR[n.status];
+      bar.appendChild(complete);
+
+      // label (only if wide enough)
+      if (n.dw * CELL_W > 60) {
+        const lbl = document.createElement('div');
+        lbl.className = 'bar-label';
+        lbl.textContent = n.dw * CELL_W > 120 ? n.name : n.pct + '%';
+        bar.appendChild(lbl);
+      }
+
+      // tooltip
+      bar.addEventListener('mouseenter', (e) => showTooltip(e, n));
+      bar.addEventListener('mousemove',  (e) => moveTooltip(e));
+      bar.addEventListener('mouseleave', hideTooltip);
+
+      row.appendChild(bar);
+    }
+
+    rowsDiv.appendChild(row);
+  });
+
+  // Milestones
+  MILESTONES.forEach(m => {
+    const rowIdx = nodeRowMap[m.nodeId];
+    if (rowIdx === undefined) return;
+    const milestoneNode = WBS.find(n => n.id === m.nodeId);
+    const el = document.createElement('div');
+    el.className = 'milestone';
+    el.style.left = (m.sw * CELL_W - 9) + 'px';
+    el.style.top  = (rowIdx * rowH + rowH / 2 - 9) + 'px';
+    el.style.background = milestoneNode ? milestoneNode.color : '#FFB300';
+    el.title = m.label;
+    rowsDiv.appendChild(el);
+  });
+
+  // Dependencies (simple FS arrows via SVG)
+  const deps = [
+    { from:5, to:7 },
+    { from:7, to:8 },
+    { from:8, to:9 },
+    { from:4, to:5 },
+  ];
+  let svgPaths = '';
+  deps.forEach(d => {
+    const fromIdx = nodeRowMap[d.from];
+    const toIdx   = nodeRowMap[d.to];
+    const fromNode = WBS.find(n => n.id === d.from);
+    const toNode   = WBS.find(n => n.id === d.to);
+    if (fromIdx === undefined || toIdx === undefined) return;
+    const x1 = (fromNode.sw + fromNode.dw) * CELL_W;
+    const y1 = fromIdx * rowH + rowH / 2;
+    const x2 = toNode.sw * CELL_W + 2;
+    const y2 = toIdx * rowH + rowH / 2;
+    const mx = (x1 + x2) / 2;
+    svgPaths += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke="${CELL_W > 20 ? 'rgba(255,179,0,0.25)':'transparent'}" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>`;
+  });
+  depSvg.innerHTML = `
+    <defs>
+      <marker id="arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,179,0,0.5)"/>
+      </marker>
+    </defs>
+    ${svgPaths}
+  `;
+}
+
+// ══════════════════════════════════════════════════
+//  TOOLTIP
+// ══════════════════════════════════════════════════
+function showTooltip(e, n) {
+  const tip = document.getElementById('tooltip');
+  document.getElementById('tt-title').textContent  = n.code + ' — ' + n.name;
+  document.getElementById('tt-start').textContent  = dateStr(weekDate(n.sw));
+  document.getElementById('tt-finish').textContent = dateStr(weekDate(n.sw + n.dw));
+  document.getElementById('tt-dur').textContent    = n.dw + ' weeks';
+  document.getElementById('tt-resp').textContent   = n.resp;
+  document.getElementById('tt-status').textContent = n.status.toUpperCase();
+  document.getElementById('tt-status').style.color = STATUS_COLOR[n.status];
+  document.getElementById('tt-prog').style.width   = n.pct + '%';
+  document.getElementById('tt-prog').style.background = STATUS_COLOR[n.status];
+  tip.style.borderLeftColor = STATUS_COLOR[n.status];
+  moveTooltip(e);
+  tip.classList.add('visible');
+}
+function moveTooltip(e) {
+  const tip = document.getElementById('tooltip');
+  let x = e.clientX + 14, y = e.clientY - 20;
+  if (x + 220 > window.innerWidth) x = e.clientX - 224;
+  if (y + 160 > window.innerHeight) y = e.clientY - 160;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+function hideTooltip() {
+  document.getElementById('tooltip').classList.remove('visible');
+}
+
+// ══════════════════════════════════════════════════
+//  INTERACTION
+// ══════════════════════════════════════════════════
+function toggleNode(e, id) {
+  e.stopPropagation();
+  if (collapsed.has(id)) collapsed.delete(id);
+  else collapsed.add(id);
+  renderAll();
+}
+
+function selectNode(id) {
+  selectedId = id;
+  const n = WBS.find(x => x.id === id);
+  if (n) document.getElementById('sbSelected').textContent =
+    n.code + ' · ' + n.name + ' · ' + n.pct + '% · ' + n.status.toUpperCase();
+  renderAll();
+}
+
+function expandAll() {
+  collapsed.clear();
+  renderAll();
+}
+function collapseAll() {
+  WBS.forEach(n => { if (WBS.some(c => c.pid === n.id)) collapsed.add(n.id); });
+  renderAll();
+}
+
+function toggleCritical() {
+  showCritical = !showCritical;
+  const btn = document.getElementById('critBtn');
+  btn.style.color = showCritical ? 'var(--red)' : '';
+  renderGantt();
+}
+
+function setZoom(z) {
+  ZOOM = z;
+  if (z === 'month') CELL_W = 56;
+  if (z === 'week')  CELL_W = 28;
+  if (z === 'day')   CELL_W = 14;
+  document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+  const map = { month:0, week:1, day:2 };
+  document.querySelectorAll('.zoom-btn')[map[z]].classList.add('active');
+  renderGanttHeader();
+  renderGantt();
+  scrollToToday();
+}
+
+function scrollToToday() {
+  const tw = todayWeek();
+  const ganttBody = document.getElementById('ganttBody');
+  const targetX = tw * CELL_W - ganttBody.clientWidth / 2;
+  ganttBody.scrollTo({ left: Math.max(0, targetX), behavior: 'smooth' });
+}
+
+// ══════════════════════════════════════════════════
+//  SCROLL SYNC (WBS ↔ Gantt rows)
+// ══════════════════════════════════════════════════
+const wbsScroll   = document.getElementById('wbsScroll');
+const ganttBody   = document.getElementById('ganttBody');
+let syncLock = false;
+
+wbsScroll.addEventListener('scroll', () => {
+  if (syncLock) return;
+  syncLock = true;
+  ganttBody.scrollTop = wbsScroll.scrollTop;
+  syncLock = false;
+});
+ganttBody.addEventListener('scroll', () => {
+  if (syncLock) return;
+  syncLock = true;
+  wbsScroll.scrollTop = ganttBody.scrollTop;
+  syncLock = false;
+});
+
+// ══════════════════════════════════════════════════
+//  RESIZE HANDLE
+// ══════════════════════════════════════════════════
+const handle  = document.getElementById('resizeHandle');
+const wbsPane = document.getElementById('wbsPane');
+let resizing = false;
+handle.addEventListener('mousedown', e => {
+  resizing = true;
+  document.body.style.cursor = 'col-resize';
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!resizing) return;
+  const mainRect = document.getElementById('mainArea').getBoundingClientRect();
+  const newW = Math.min(560, Math.max(200, e.clientX - mainRect.left));
+  wbsPane.style.width = newW + 'px';
+});
+document.addEventListener('mouseup', () => {
+  resizing = false;
+  document.body.style.cursor = '';
+});
+
+// ══════════════════════════════════════════════════
+//  FULL RENDER
+// ══════════════════════════════════════════════════
+function renderAll() {
+  renderWBS();
+  renderGantt();
+}
+
+// ── INIT ──
+renderGanttHeader();
+renderAll();
+// Start at today
+setTimeout(scrollToToday, 100);
+</script>
+</body>
+</html>
