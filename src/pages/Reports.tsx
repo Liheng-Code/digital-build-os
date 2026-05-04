@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProjects } from "@/contexts/ProjectContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -26,21 +20,15 @@ import type { Department } from "@/lib/departmentMeta";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WbsLocationsDashboard } from "@/components/reports/WbsLocationsDashboard";
 
-interface ProjectOpt {
-  id: string;
-  code: string;
-  name: string;
-}
-
 export default function Reports() {
   const { hasRole } = useAuth();
+  const { activeProject } = useProjects();
   const isAdmin = hasRole("admin");
   const isPM = hasRole("project_manager");
   const canSeeWbs = isAdmin || isPM;
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [projects, setProjects] = useState<ProjectOpt[]>([]);
-  const [projectId, setProjectId] = useState<string>("all");
+  const projectId = activeProject?.id ?? null;
   const [dateFrom, setDateFrom] = useState<string>(defaultFrom());
   const [dateTo, setDateTo] = useState<string>(defaultTo());
 
@@ -50,16 +38,15 @@ export default function Reports() {
   const [active, setActive] = useState<MemberRow | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("projects")
-      .select("id, code, name")
-      .order("code")
-      .then(({ data }) => setProjects((data ?? []) as ProjectOpt[]));
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!projectId) {
+        setKpi(null);
+        setMembers([]);
+        setDeptRows([]);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const today = new Date().toISOString().slice(0, 10);
 
@@ -68,12 +55,12 @@ export default function Reports() {
         .select(
           "id, status, planned_end, actual_end, project_id, created_by, department",
         );
-      if (projectId !== "all") tasksQ = tasksQ.eq("project_id", projectId);
+      tasksQ = tasksQ.eq("project_id", projectId);
 
       let tsQ = supabase
         .from("timesheet_entries")
         .select("user_id, project_id, regular_hours, overtime_hours, status, work_date");
-      if (projectId !== "all") tsQ = tsQ.eq("project_id", projectId);
+      tsQ = tsQ.eq("project_id", projectId);
       if (dateFrom) tsQ = tsQ.gte("work_date", dateFrom);
       if (dateTo) tsQ = tsQ.lte("work_date", dateTo);
 
@@ -142,9 +129,7 @@ export default function Reports() {
       const payrollTotal = pl.reduce((s, l) => s + Number(l.total_pay), 0);
       const payrollCurrency = pl[0]?.currency ?? "USD";
 
-      const projectIds = projectId !== "all"
-        ? new Set([projectId])
-        : new Set(projMembers.map((m) => m.project_id));
+      const projectIds = new Set([projectId]);
       const memberIds = new Set(
         projMembers
           .filter((m) => projectIds.has(m.project_id))
@@ -152,7 +137,7 @@ export default function Reports() {
       );
 
       setKpi({
-        totalProjects: projectId !== "all" ? 1 : new Set(projMembers.map((m) => m.project_id)).size,
+        totalProjects: 1,
         totalMembers: memberIds.size,
         totalTasks: tasks.length,
         completedTasks: completed,
@@ -380,6 +365,10 @@ export default function Reports() {
   }, [projectId, dateFrom, dateTo, isAdmin]);
 
   const exportReport = async () => {
+    if (!projectId) {
+      toast.error("Select a project first");
+      return;
+    }
     setExporting(true);
     try {
       await invokeXlsxDownload(
@@ -395,11 +384,10 @@ export default function Reports() {
     }
   };
 
-  const projectLabel = useMemo(() => {
-    if (projectId === "all") return "All projects";
-    const p = projects.find((x) => x.id === projectId);
-    return p ? `${p.code} · ${p.name}` : "—";
-  }, [projectId, projects]);
+  const projectLabel = useMemo(
+    () => (activeProject ? `${activeProject.code} - ${activeProject.name}` : "No project selected"),
+    [activeProject],
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -407,33 +395,16 @@ export default function Reports() {
         <div className="mr-auto">
           <h1 className="text-2xl font-bold">Reports</h1>
           <p className="text-sm text-muted-foreground">
-            Org-wide insights and per-member performance — {projectLabel}
+            Org-wide insights and per-member performance - {projectLabel}
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <div className="flex flex-wrap items-end gap-3">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            {canSeeWbs && <TabsTrigger value="wbs">WBS Locations</TabsTrigger>}
-          </TabsList>
-          <Filter label="Project">
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All projects</SelectItem>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.code} - {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Filter>
-        </div>
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          {canSeeWbs && <TabsTrigger value="wbs">WBS Locations</TabsTrigger>}
+        </TabsList>
 
         <TabsContent value="overview" className="flex flex-col gap-6 mt-4">
           <div className="flex flex-wrap items-end gap-3">
@@ -454,7 +425,7 @@ export default function Reports() {
               />
             </Filter>
             {isAdmin && (
-              <Button onClick={exportReport} disabled={exporting} variant="default">
+              <Button onClick={exportReport} disabled={exporting || !projectId} variant="default">
                 {exporting ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
@@ -495,7 +466,7 @@ export default function Reports() {
 
         {canSeeWbs && (
           <TabsContent value="wbs" className="mt-4">
-            <WbsLocationsDashboard projectId={projectId} projectLabel={projectLabel} />
+            <WbsLocationsDashboard projectId={projectId ?? ""} projectLabel={projectLabel} />
           </TabsContent>
         )}
       </Tabs>
