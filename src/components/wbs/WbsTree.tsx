@@ -1,9 +1,17 @@
 import { useState } from "react";
-import { ChevronRight, Folder, FolderOpen, Plus } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen, Plus, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { WbsTreeNode, WBS_NODE_TYPE_LABELS } from "@/lib/wbsMeta";
 import { WbsNodeStat } from "@/hooks/useWbsTree";
+
+interface ProjectRoot {
+  id: string;
+  code: string;
+  name: string;
+  progress: number;
+  taskCount: number;
+}
 
 interface Props {
   nodes: WbsTreeNode[];
@@ -14,6 +22,7 @@ interface Props {
   search: string;
   nodeStats: Map<string, WbsNodeStat>;
   onMove?: (id: string, direction: "up" | "down") => void;
+  projectRoot?: ProjectRoot | null;
 }
 
 export function WbsTree({
