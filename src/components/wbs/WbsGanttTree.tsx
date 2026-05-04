@@ -60,14 +60,15 @@ export function WbsGanttTree({
       </div>
       <div
         className="border-b bg-muted/70 grid items-center text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-        style={{ height: HEADER_H, gridTemplateColumns: "minmax(260px,1fr) 76px 86px 86px 108px 92px" }}
+        style={{ height: HEADER_H, gridTemplateColumns: "80px minmax(200px,1fr) 66px 76px 76px 100px 80px" }}
       >
-        <div className="px-4 border-r">WBS / Task</div>
-        <div className="px-2 text-right border-r">Dur</div>
-        <div className="px-2 text-right border-r">Start</div>
-        <div className="px-2 text-right border-r">Finish</div>
-        <div className="px-3 border-r">Status</div>
-        <div className="px-3 text-right">Progress</div>
+        <div className="px-3 border-r h-full flex items-center">WBS</div>
+        <div className="px-4 border-r h-full flex items-center">Task / Node Name</div>
+        <div className="px-2 text-right border-r h-full flex items-center justify-end">Dur</div>
+        <div className="px-2 text-right border-r h-full flex items-center justify-end">Start</div>
+        <div className="px-2 text-right border-r h-full flex items-center justify-end">Finish</div>
+        <div className="px-3 border-r h-full flex items-center">Status</div>
+        <div className="px-3 text-right h-full flex items-center justify-end">Progress</div>
       </div>
 
       <div ref={bodyScrollRef} onScroll={onBodyScroll} className="h-[calc(100%-108px)] overflow-auto">
@@ -106,7 +107,7 @@ export function WbsGanttTree({
             <div
               key={r.kind + r.id}
               className={cn(
-                "grid items-center text-sm border-b border-border/60",
+                "grid items-center text-sm border-b border-border/60 group",
                 index % 2 === 0 ? "bg-background/80" : "bg-muted/10",
                 r.kind === "project" && "bg-primary/8",
                 r.kind === "node" && "bg-muted/35",
@@ -114,7 +115,7 @@ export function WbsGanttTree({
               )}
               style={{
                 height: ROW_H,
-                gridTemplateColumns: "minmax(260px,1fr) 76px 86px 86px 108px 92px",
+                gridTemplateColumns: "80px minmax(200px,1fr) 66px 76px 76px 100px 80px",
               }}
               onClick={() => {
                 if (r.kind === "task" && onTaskSelect) {
@@ -122,25 +123,31 @@ export function WbsGanttTree({
                 }
               }}
             >
+              {/* WBS CODE COLUMN */}
+              <div className="px-3 border-r h-full flex items-center font-mono text-[10px] text-muted-foreground truncate bg-muted/5 group-hover:bg-muted/20 transition-colors">
+                {r.kind === "project" ? "1.0" : r.kind === "node" ? r.node.code : r.task.code || "-"}
+              </div>
+
+              {/* NAME COLUMN WITH INDENTATION */}
               <div
                 className="flex items-center gap-1.5 min-w-0 pr-2 border-r h-full"
-                style={{ paddingLeft: r.depth * 16 + 12 }}
+                style={{ paddingLeft: r.depth * 16 + 8 }}
               >
                 {r.kind === "project" ? (
                   <>
                     <span className="h-5 w-5 shrink-0" />
-                    <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary shrink-0">
-                      Project
-                    </span>
-                    <span className="truncate font-semibold">{r.label}</span>
+                    <span className="truncate font-bold text-primary">{r.label}</span>
                   </>
                 ) : r.kind === "node" ? (
                   <>
                     {r.hasChildren ? (
                       <button
                         type="button"
-                        onClick={() => onToggle(r.id)}
-                        className="h-5 w-5 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-background hover:text-foreground shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggle(r.id);
+                        }}
+                        className="h-5 w-5 rounded-md inline-flex items-center justify-center text-muted-foreground hover:bg-background hover:text-foreground shrink-0 transition-colors"
                       >
                         <ChevronRight
                           className={cn(
@@ -153,16 +160,7 @@ export function WbsGanttTree({
                       <span className="h-5 w-5 shrink-0" />
                     )}
                     <span className={cn(
-                      "rounded px-1.5 py-0.5 font-mono text-[10px] shrink-0",
-                      r.node.node_type === "building" && "bg-primary/10 text-primary",
-                      r.node.node_type === "level" && "bg-success-soft text-success",
-                      r.node.node_type === "zone" && "bg-warning-soft text-warning",
-                      !["building", "level", "zone"].includes(r.node.node_type) && "bg-background/80 text-muted-foreground",
-                    )}>
-                      {r.node.code}
-                    </span>
-                    <span className={cn(
-                      "truncate font-medium",
+                      "truncate font-semibold",
                       r.node.node_type === "building" && "text-foreground",
                       r.node.node_type === "level" && "text-foreground/95",
                       r.node.node_type === "zone" && "text-foreground/90",
@@ -173,13 +171,9 @@ export function WbsGanttTree({
                 ) : (
                   <Link
                     to={`/tasks/${r.task.id}`}
-                    className="ml-6 truncate hover:text-primary inline-flex items-center gap-2 min-w-0"
+                    className="ml-6 truncate hover:text-primary transition-colors flex items-center h-full min-w-0"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {r.task.code && (
-                      <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground shrink-0">
-                        {r.task.code}
-                      </span>
-                    )}
                     <span className="truncate">{r.task.title}</span>
                   </Link>
                 )}
@@ -198,21 +192,21 @@ export function WbsGanttTree({
               </div>
 
               <div className="px-3 border-r h-full flex items-center">
-                <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px]", SCHEDULE_STATUS_TONE[statusKey])}>
-                  <span className={cn("h-2 w-2 rounded-full shrink-0", SCHEDULE_STATUS_DOT[statusKey])} />
+                <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium", SCHEDULE_STATUS_TONE[statusKey])}>
+                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", SCHEDULE_STATUS_DOT[statusKey])} />
                   <span className="truncate">{SCHEDULE_STATUS_LABEL[statusKey]}</span>
                 </span>
               </div>
 
-              <div className="px-3 flex items-center justify-center h-full">
-                <div className="relative h-6 w-[64px] rounded-full bg-muted/80 ring-1 ring-border/60 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-sky-500"
-                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                  />
-                  <span className="absolute inset-0 flex items-center justify-center tabular-nums text-[11px] font-semibold text-foreground">
-                    {Math.round(progress)}%
-                  </span>
+              <div className="px-3 flex items-center justify-end h-full tabular-nums text-xs font-medium">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-sky-500"
+                      style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                    />
+                  </div>
+                  <span>{Math.round(progress)}%</span>
                 </div>
               </div>
             </div>
