@@ -293,13 +293,13 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                       const left = differenceInCalendarDays(start, range.start) * dayWidth;
                       const width = Math.max(dayWidth, (differenceInCalendarDays(end, start) + 1) * dayWidth);
                       const topOffset =
-                        row.kind === "project" ? 6
+                        row.kind === "project" ? 7
                         : row.node.node_type === "building" ? 7
                         : row.node.node_type === "level" ? 8
                         : row.node.node_type === "zone" ? 9
                         : 9;
                       const barHeight =
-                        row.kind === "project" ? 22
+                        row.kind === "project" ? 20
                         : row.node.node_type === "building" ? 20
                         : row.node.node_type === "level" ? 18
                         : row.node.node_type === "zone" ? 16
