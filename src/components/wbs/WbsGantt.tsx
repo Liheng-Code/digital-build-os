@@ -67,6 +67,7 @@ function safeDate(s: string | null) {
 export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false }: Props) {
   const [zoom, setZoom] = React.useState<Zoom>("week");
   const [showCritical, setShowCritical] = React.useState(initialShowCritical);
+  const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null);
 
   const range = React.useMemo(() => {
     // ... same logic
@@ -498,7 +499,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                           const progressWidth = Math.max(10, Math.min(width, (width * Math.min(100, rollup.progressPct)) / 100));
 
                           return (
-                            <Tooltip key={row.kind + row.id}>
+                            <Tooltip key={row.kind + row.id} open={activeTooltip === (row.kind + row.id)} onOpenChange={(open) => setActiveTooltip(open ? (row.kind + row.id) : null)}>
                               <TooltipTrigger asChild>
                                 <div
                                   className={cn(
