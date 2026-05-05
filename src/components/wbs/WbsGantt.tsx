@@ -480,7 +480,6 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                           const progressWidth = Math.max(10, Math.min(width, (width * Math.min(100, rollup.progressPct)) / 100));
 
                           return (
-                            setActiveTooltip(open ? (row.kind + row.id) : null)}>
                               <div
                                   className={cn(
                                     "absolute shadow-sm overflow-visible border cursor-default",
@@ -670,7 +669,10 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
              </div>
            </div>
        </div>
+      </div>
     </>
+
+
   );
  }
  function LegendItem({ color, label }: { color: string; label: string }) {

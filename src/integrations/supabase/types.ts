@@ -2628,22 +2628,152 @@ export type Database = {
           _progress_pct: number
           _task_id: string
         }
-        Returns: Database["public"]["Tables"]["tasks"]["Row"]
+        Returns: {
+          actual_end: string | null
+          actual_hours: number | null
+          actual_start: string | null
+          approved_at: string | null
+          approved_by: string | null
+          baseline_end: string | null
+          baseline_start: string | null
+          category: Database["public"]["Enums"]["task_category"] | null
+          code: string | null
+          created_at: string
+          created_by: string | null
+          department: Database["public"]["Enums"]["department"] | null
+          dept_status: Database["public"]["Enums"]["dept_status"] | null
+          description: string | null
+          discipline_meta: Json
+          estimated_hours: number | null
+          id: string
+          location_zone: string | null
+          planned_end: string | null
+          planned_start: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          progress_pct: number
+          project_id: string
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          task_type: Database["public"]["Enums"]["task_type"]
+          title: string
+          updated_at: string
+          wbs_node_id: string | null
+          workflow_type:
+            | Database["public"]["Enums"]["task_workflow_type"]
+            | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       seed_demo_run: { Args: never; Returns: Json }
-      update_assigned_task_limited: {
-        Args: {
-          _description: string | null
-          _estimated_hours: number
-          _planned_end: string | null
-          _planned_start: string | null
-          _priority: Database["public"]["Enums"]["task_priority"]
-          _progress_pct: number
-          _task_id: string
-          _title: string
-        }
-        Returns: Database["public"]["Tables"]["tasks"]["Row"]
-      }
+      update_assigned_task_limited:
+        | {
+            Args: {
+              _description: string
+              _estimated_hours: number
+              _planned_end: string
+              _priority: Database["public"]["Enums"]["task_priority"]
+              _progress_pct: number
+              _task_id: string
+              _title: string
+            }
+            Returns: {
+              actual_end: string | null
+              actual_hours: number | null
+              actual_start: string | null
+              approved_at: string | null
+              approved_by: string | null
+              baseline_end: string | null
+              baseline_start: string | null
+              category: Database["public"]["Enums"]["task_category"] | null
+              code: string | null
+              created_at: string
+              created_by: string | null
+              department: Database["public"]["Enums"]["department"] | null
+              dept_status: Database["public"]["Enums"]["dept_status"] | null
+              description: string | null
+              discipline_meta: Json
+              estimated_hours: number | null
+              id: string
+              location_zone: string | null
+              planned_end: string | null
+              planned_start: string | null
+              priority: Database["public"]["Enums"]["task_priority"]
+              progress_pct: number
+              project_id: string
+              rejection_reason: string | null
+              status: Database["public"]["Enums"]["task_status"]
+              task_type: Database["public"]["Enums"]["task_type"]
+              title: string
+              updated_at: string
+              wbs_node_id: string | null
+              workflow_type:
+                | Database["public"]["Enums"]["task_workflow_type"]
+                | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "tasks"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _description: string
+              _estimated_hours: number
+              _planned_end: string
+              _planned_start: string
+              _priority: Database["public"]["Enums"]["task_priority"]
+              _progress_pct: number
+              _task_id: string
+              _title: string
+            }
+            Returns: {
+              actual_end: string | null
+              actual_hours: number | null
+              actual_start: string | null
+              approved_at: string | null
+              approved_by: string | null
+              baseline_end: string | null
+              baseline_start: string | null
+              category: Database["public"]["Enums"]["task_category"] | null
+              code: string | null
+              created_at: string
+              created_by: string | null
+              department: Database["public"]["Enums"]["department"] | null
+              dept_status: Database["public"]["Enums"]["dept_status"] | null
+              description: string | null
+              discipline_meta: Json
+              estimated_hours: number | null
+              id: string
+              location_zone: string | null
+              planned_end: string | null
+              planned_start: string | null
+              priority: Database["public"]["Enums"]["task_priority"]
+              progress_pct: number
+              project_id: string
+              rejection_reason: string | null
+              status: Database["public"]["Enums"]["task_status"]
+              task_type: Database["public"]["Enums"]["task_type"]
+              title: string
+              updated_at: string
+              wbs_node_id: string | null
+              workflow_type:
+                | Database["public"]["Enums"]["task_workflow_type"]
+                | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "tasks"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       wbs_user_can: {
         Args: {
           _node_id: string
