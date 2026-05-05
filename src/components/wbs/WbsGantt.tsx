@@ -669,8 +669,8 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
              </div>
            </div>
        </div>
-      </div>
     </>
+
 
   );
  }
