@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,14 @@ import { ProjectHolidaysTab } from "@/components/settings/ProjectHolidaysTab";
 
 export default function Settings() {
   const { user, profile, refreshProfile, hasRole } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [fullName, setFullName] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [jobTitle, setJobTitle] = React.useState("");
+  const [employeeId, setEmployeeId] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
   const isAdmin = hasRole("admin");
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (profile) {
       setFullName(profile.full_name ?? "");
       setPhone(profile.phone ?? "");

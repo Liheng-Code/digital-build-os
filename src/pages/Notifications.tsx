@@ -1,4 +1,4 @@
-import { useState } from "react";
+import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ type Tab = "all" | "unread" | "tasks" | "timesheets";
 export default function Notifications() {
   const navigate = useNavigate();
   const { notifications, unreadCount, markRead, markAllRead, remove } = useNotifications(50);
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = React.useState<Tab>("all");
 
   const filtered = notifications.filter((n) => {
     if (tab === "unread") return !n.read_at;

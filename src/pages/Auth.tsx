@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import * as React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,10 +40,10 @@ const DEMO_ACCOUNTS = [
 export default function Auth() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [loading, setLoading] = React.useState(false);
+  const [tab, setTab] = React.useState<"signin" | "signup">("signin");
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!authLoading && user) navigate("/", { replace: true });
   }, [user, authLoading, navigate]);
 

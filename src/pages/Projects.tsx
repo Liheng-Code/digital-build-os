@@ -1,4 +1,4 @@
-import { useState } from "react";
+import * as React from "react";
 import { Link } from "react-router-dom";
 import { useProjects, PROJECT_STATUS_LABELS, Project } from "@/contexts/ProjectContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,8 +47,8 @@ const STATUS_TONE: Record<Project["status"], string> = {
 export default function Projects() {
   const { projects, loading, refresh, setActiveProjectId } = useProjects();
   const { roles, user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   const canCreate = roles.includes("admin") || roles.includes("project_manager");
 
   const onCreate = async (e: React.FormEvent<HTMLFormElement>) => {

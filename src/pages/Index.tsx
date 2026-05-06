@@ -27,13 +27,13 @@ interface TaskCount {
 const Index = () => {
   const { activeProject, projects } = useProjects();
   const { profile, user, roles } = useAuth();
-  const [counts, setCounts] = useState<TaskCount[]>([]);
-  const [myTaskCount, setMyTaskCount] = useState(0);
-  const [pendingApprovals, setPendingApprovals] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = React.useState<TaskCount[]>([]);
+  const [myTaskCount, setMyTaskCount] = React.useState(0);
+  const [pendingApprovals, setPendingApprovals] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
   const { data: summaries } = useProjectCostSummaries(activeProject?.id || "");
 
-  useEffect(() => {
+  React.useEffect(() => {
     const load = async () => {
       if (!activeProject || !user) {
         setLoading(false);
@@ -81,7 +81,7 @@ const Index = () => {
   const completion = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
   
   // Safe calculation in case view is missing or query fails
-  const totalSpend = useMemo(() => {
+  const totalSpend = React.useMemo(() => {
     if (!summaries) return 0;
     try {
       return summaries.reduce((acc, s) => acc + (s.ac_total || 0), 0);

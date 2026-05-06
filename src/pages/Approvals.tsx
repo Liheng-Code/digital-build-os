@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import * as React from "react";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,30 +52,30 @@ interface PendingTimesheet {
 export default function Approvals() {
   const { activeProject, projects } = useProjects();
   const { roles } = useAuth();
-  const [tab, setTab] = useState("tasks");
+  const [tab, setTab] = React.useState("tasks");
   const {
     taskApprovalCount,
     timesheetApprovalCount,
   } = useApprovalUnread();
 
   // Tasks
-  const [items, setItems] = useState<Pending[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [items, setItems] = React.useState<Pending[]>([]);
+  const [loadingTasks, setLoadingTasks] = React.useState(true);
+  const [busy, setBusy] = React.useState<string | null>(null);
 
   // Timesheets
-  const [tsItems, setTsItems] = useState<PendingTimesheet[]>([]);
-  const [loadingTs, setLoadingTs] = useState(true);
-  const [tsBusy, setTsBusy] = useState<string | null>(null);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
+  const [tsItems, setTsItems] = React.useState<PendingTimesheet[]>([]);
+  const [loadingTs, setLoadingTs] = React.useState(true);
+  const [tsBusy, setTsBusy] = React.useState<string | null>(null);
+  const [rejectingId, setRejectingId] = React.useState<string | null>(null);
+  const [rejectReason, setRejectReason] = React.useState("");
 
   const canApprove = roles.some((r) =>
     ["admin", "project_manager", "supervisor", "qaqc_inspector"].includes(r),
   );
   const canApproveTs = roles.some((r) => ["admin", "project_manager", "supervisor"].includes(r));
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = React.useCallback(async () => {
     if (!activeProject) { setItems([]); setLoadingTasks(false); return; }
     setLoadingTasks(true);
     const { data } = await supabase
@@ -88,7 +88,7 @@ export default function Approvals() {
     setLoadingTasks(false);
   }, [activeProject]);
 
-  const loadTimesheets = useCallback(async () => {
+  const loadTimesheets = React.useCallback(async () => {
     setLoadingTs(true);
     const { data } = await supabase
       .from("timesheet_entries")
@@ -109,8 +109,8 @@ export default function Approvals() {
     setLoadingTs(false);
   }, [projects]);
 
-  useEffect(() => { loadTasks(); }, [loadTasks]);
-  useEffect(() => { loadTimesheets(); }, [loadTimesheets]);
+  React.useEffect(() => { loadTasks(); }, [loadTasks]);
+  React.useEffect(() => { loadTimesheets(); }, [loadTimesheets]);
 
   // NOTE: We intentionally do NOT auto-mark approval notifications as read
   // when a tab is opened — the sidebar "Approvals" badge and tab badges

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import * as React from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -88,18 +88,18 @@ export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, roles } = useAuth();
   const { markTaskRead } = useTaskUnread();
-  const [task, setTask] = useState<Task | null>(null);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [updates, setUpdates] = useState<TaskUpdate[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
-  const [loading, setLoading] = useState(true);
-  const [transitioning, setTransitioning] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [posting, setPosting] = useState(false);
+  const [task, setTask] = React.useState<Task | null>(null);
+  const [assignments, setAssignments] = React.useState<Assignment[]>([]);
+  const [updates, setUpdates] = React.useState<TaskUpdate[]>([]);
+  const [profiles, setProfiles] = React.useState<Record<string, ProfileLite>>({});
+  const [loading, setLoading] = React.useState(true);
+  const [transitioning, setTransitioning] = React.useState(false);
+  const [rejecting, setRejecting] = React.useState(false);
+  const [rejectReason, setRejectReason] = React.useState("");
+  const [posting, setPosting] = React.useState(false);
 
   // Auto-clear unread task notifications when this detail page opens
-  useEffect(() => {
+  React.useEffect(() => {
     if (id) markTaskRead(id);
   }, [id, markTaskRead]);
 
@@ -114,7 +114,7 @@ export default function TaskDetail() {
     (a) => a.user_id === user.id && !a.unassigned_at,
   );
 
-  const load = useCallback(async (showLoading = true) => {
+  const load = React.useCallback(async (showLoading = true) => {
     if (!id) return;
     if (showLoading) setLoading(true);
     const [taskRes, asgRes, updRes] = await Promise.all([
@@ -147,7 +147,7 @@ export default function TaskDetail() {
     if (showLoading) setLoading(false);
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { load(); }, [load]);
 
   const transitionTo = async (next: TaskStatus, reason?: string) => {
     if (!task) return;
@@ -506,12 +506,12 @@ function AssignmentsCard({
   onChange: () => void;
 }) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [allUsers, setAllUsers] = useState<ProfileLite[]>([]);
-  const [picked, setPicked] = useState<string>("");
-  const [saving, setSaving] = useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [allUsers, setAllUsers] = React.useState<ProfileLite[]>([]);
+  const [picked, setPicked] = React.useState<string>("");
+  const [saving, setSaving] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!open) return;
     supabase.from("profiles").select("id, full_name, job_title").order("full_name").then(({ data }) => {
       setAllUsers((data ?? []) as ProfileLite[]);

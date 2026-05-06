@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -43,10 +43,10 @@ const ALL_ROLES: AppRole[] = [
 export default function Team() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [addingFor, setAddingFor] = useState<string | null>(null);
-  const [newRole, setNewRole] = useState<AppRole>("worker");
+  const [members, setMembers] = React.useState<Member[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [addingFor, setAddingFor] = React.useState<string | null>(null);
+  const [newRole, setNewRole] = React.useState<AppRole>("worker");
 
   const load = async () => {
     setLoading(true);
@@ -66,7 +66,7 @@ export default function Team() {
     setLoading(false);
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isAdmin) load();
     else setLoading(false);
   }, [isAdmin]);

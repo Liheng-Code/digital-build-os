@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, type ComponentType } from "react";
+import * as React from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -112,12 +112,12 @@ export default function Tasks() {
   const { user, roles } = useAuth();
   const { activeProject } = useProjects();
   const { unreadByTaskId } = useTaskUnread();
-  const [tasks, setTasks] = useState<TaskRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [savingAction, setSavingAction] = useState(false);
-  const [editingTask, setEditingTask] = useState<TaskRow | null>(null);
-  const [deletingTask, setDeletingTask] = useState<TaskRow | null>(null);
-  const [editForm, setEditForm] = useState<EditTaskForm>({
+  const [tasks, setTasks] = React.useState<TaskRow[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [savingAction, setSavingAction] = React.useState(false);
+  const [editingTask, setEditingTask] = React.useState<TaskRow | null>(null);
+  const [deletingTask, setDeletingTask] = React.useState<TaskRow | null>(null);
+  const [editForm, setEditForm] = React.useState<EditTaskForm>({
     title: "",
     description: "",
     task_type: "other",
@@ -133,17 +133,17 @@ export default function Tasks() {
     estimated_hours: "0",
     progress_pct: "0",
   });
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
-  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">("all");
-  const [deptFilter, setDeptFilter] = useState<Department | "all">("all");
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<TaskStatus | "all">("all");
+  const [priorityFilter, setPriorityFilter] = React.useState<TaskPriority | "all">("all");
+  const [deptFilter, setDeptFilter] = React.useState<Department | "all">("all");
 
   const canPlan = roles.some((r) =>
     ["admin", "project_manager", "engineer", "supervisor"].includes(r),
   );
   const canDeleteTasks = roles.some((r) => ["admin", "project_manager"].includes(r));
 
-  const load = useCallback(async () => {
+  const load = React.useCallback(async () => {
     if (!activeProject) {
       setTasks([]);
       setLoading(false);
@@ -159,9 +159,9 @@ export default function Tasks() {
     setLoading(false);
   }, [activeProject]);
 
-  useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => tasks.filter((t) => {
+  const filtered = React.useMemo(() => tasks.filter((t) => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
@@ -169,7 +169,7 @@ export default function Tasks() {
     return true;
   }), [deptFilter, priorityFilter, search, statusFilter, tasks]);
 
-  const summary = useMemo(() => {
+  const summary = React.useMemo(() => {
     const unreadTotal = tasks.reduce((sum, task) => sum + (unreadByTaskId.get(task.id) ?? 0), 0);
     return {
       total: tasks.length,
