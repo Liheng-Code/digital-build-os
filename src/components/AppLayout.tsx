@@ -114,6 +114,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Disciplines",
     items: [
       { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
+      { to: "/structural", label: "Structural Engineering", icon: HardHat, module: "structural" },
     ],
   },
   {

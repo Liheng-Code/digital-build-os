@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const MODULES = [
   'projects', 'wbs', 'tasks', 'daily_reports', 'timesheets', 
   'approvals', 'rfis', 'architecture', 'analytics', 
-  'financials', 'stakeholders', 'procurement', 'hse', 'subcontractors'
+  'financials', 'stakeholders', 'procurement', 'hse', 'subcontractors', 'structural'
 ];
 
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'approve'];

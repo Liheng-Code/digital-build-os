@@ -15,6 +15,7 @@ import Architecture from "./pages/Architecture";
 import Procurement from "./pages/Procurement";
 import HSE from "./pages/HSE";
 import Subcontractors from "./pages/Subcontractors";
+import Structural from "./pages/Structural";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -354,6 +355,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Architecture />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/structural" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Structural />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
