@@ -36,6 +36,7 @@ import {
   Info,
   Mail,
   Layout,
+  BarChart2,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -97,6 +98,8 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Insights",
     items: [
+      { to: "/analytics", label: "Progress & Analytics", icon: BarChart2,
+        roles: ["admin", "project_manager", "accountant"] },
       { to: "/reports", label: "Reports", icon: BarChart3,
         roles: ["admin", "project_manager", "accountant"] },
       { to: "/documents", label: "Document Register", icon: FileText },

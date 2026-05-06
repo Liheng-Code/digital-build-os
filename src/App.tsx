@@ -35,6 +35,8 @@ import FinancialControl from "./pages/FinancialControl";
 import ProgressClaims from "./pages/ProgressClaims";
 import Stakeholders from "./pages/Stakeholders";
 import Transmittals from "./pages/Transmittals";
+import Architecture from "./pages/Architecture";
+import ProgressAnalytics from "./pages/ProgressAnalytics";
 import ProjectDetail from "./pages/ProjectDetail";
 import NotFound from "./pages/NotFound";
 
@@ -278,6 +280,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <ProjectDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/analytics" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProgressAnalytics />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
