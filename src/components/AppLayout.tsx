@@ -35,6 +35,7 @@ import {
   Building2,
   Info,
   Mail,
+  Layout,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
