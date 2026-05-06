@@ -312,7 +312,7 @@ function MtoDetailView({ room, rds, catalog }: any) {
         return;
       }
 
-      const { error } = await supabase.from("material_requests").insert({
+      const { error } = await supabase.from("rds_material_takeoffs").insert({
         project_id: room.project_id,
         wbs_node_id: room.id,
         material_id: material.id,

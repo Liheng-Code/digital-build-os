@@ -52,8 +52,8 @@ CREATE TABLE public.pr_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 4. Material Requests (From RDS or Site to PR)
-CREATE TABLE public.material_requests (
+-- 4. Material Take-offs (From RDS or Site to PR)
+CREATE TABLE public.rds_material_takeoffs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   wbs_node_id UUID NOT NULL REFERENCES public.wbs_nodes(id) ON DELETE CASCADE,
@@ -69,7 +69,7 @@ CREATE TABLE public.material_requests (
 ALTER TABLE public.material_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchase_requisitions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pr_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.material_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rds_material_takeoffs ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Authenticated users can view material catalog" ON public.material_catalog FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Admins can manage material catalog" ON public.material_catalog FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin'));
@@ -80,6 +80,9 @@ CREATE POLICY "Authorized users can manage PRs" ON public.purchase_requisitions 
 
 CREATE POLICY "Authenticated users can view PR items" ON public.pr_items FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Authorized users can manage PR items" ON public.pr_items FOR ALL TO authenticated USING (true);
+
+CREATE POLICY "Authenticated users can view MTOs" ON public.rds_material_takeoffs FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authorized users can manage MTOs" ON public.rds_material_takeoffs FOR ALL TO authenticated USING (true);
 
 -- 6. Audit Triggers
 CREATE TRIGGER trg_audit_material_catalog AFTER INSERT OR UPDATE OR DELETE ON public.material_catalog FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
