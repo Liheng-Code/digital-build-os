@@ -41,7 +41,7 @@ import {
 import { Loader2, Upload, FileText, Download, Plus, History, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useWbsTree } from "@/hooks/useWbsTree";
-import { flattenTree } from "@/lib/wbsMeta";
+import { flattenTree, buildWbsTree } from "@/lib/wbsMeta";
 import { DOCUMENT_DISCIPLINES } from "@/lib/documentMeta";
 
 interface DocRow {
