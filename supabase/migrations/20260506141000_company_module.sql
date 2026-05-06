@@ -22,13 +22,13 @@ CREATE TABLE IF NOT EXISTS public.companies (
 
 -- Add company_id to existing tables
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM medical_columns WHERE table_name = 'profiles' AND column_name = 'company_id') THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'company_id') THEN
     ALTER TABLE public.profiles ADD COLUMN company_id UUID REFERENCES public.companies(id) ON DELETE SET NULL;
   END IF;
 END $$;
 
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM medical_columns WHERE table_name = 'projects' AND column_name = 'company_id') THEN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'company_id') THEN
     ALTER TABLE public.projects ADD COLUMN company_id UUID REFERENCES public.companies(id) ON DELETE SET NULL;
   END IF;
 END $$;
