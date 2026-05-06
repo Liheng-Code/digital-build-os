@@ -1,4 +1,5 @@
-
+import * as React from "react";
+import { useStakeholders } from "@/hooks/useStakeholders";
 import { StakeholderList } from "@/components/stakeholders/StakeholderList";
 import { StakeholderDialog } from "@/components/stakeholders/StakeholderDialog";
 import { StakeholderDetails } from "@/components/stakeholders/StakeholderDetails";
