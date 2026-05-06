@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Structural() {
   const { activeProject } = useProjects();
@@ -45,7 +46,15 @@ export default function Structural() {
   const [drawings, setDrawings] = React.useState<any[]>([]);
   const [bbs, setBbs] = React.useState<any[]>([]);
   const [inspections, setInspections] = React.useState<any[]>([]);
+  const [wbsNodes, setWbsNodes] = React.useState<any[]>([]);
   const [activeTab, setActiveTab] = React.useState("dashboard");
+
+  // Form states
+  const [isDrawingOpen, setIsDrawingOpen] = React.useState(false);
+  const [isBbsOpen, setIsBbsOpen] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [newDrawing, setNewDrawing] = React.useState({ wbs_node_id: "", drawing_number: "", title: "", revision: "0", status: "issued_for_construction" });
+  const [newBbs, setNewBbs] = React.useState({ wbs_node_id: "", drawing_id: "", member_mark: "", bar_mark: "", diameter_mm: "", shape_code: "", total_length_mm: "", quantity: "" });
 
   const loadData = async () => {
     if (!activeProject) return;
@@ -66,16 +75,75 @@ export default function Structural() {
           .from("structural_inspections")
           .select("*, wbs_nodes(name)")
           .eq("project_id", activeProject.id)
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("wbs_nodes")
+          .select("*")
+          .eq("project_id", activeProject.id)
+          .order("name", { ascending: true })
       ]);
 
       setDrawings(drawingsRes.data || []);
       setBbs(bbsRes.data || []);
       setInspections(inspectionsRes.data || []);
+      setWbsNodes(wbsRes.data || []);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddDrawing = async () => {
+    if (!newDrawing.drawing_number || !newDrawing.title) return toast.error("Please fill required fields");
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("structural_drawings").insert({
+        project_id: activeProject.id,
+        wbs_node_id: newDrawing.wbs_node_id || null,
+        drawing_number: newDrawing.drawing_number,
+        title: newDrawing.title,
+        revision: newDrawing.revision,
+        status: newDrawing.status
+      });
+      if (error) throw error;
+      toast.success("Drawing added successfully");
+      setIsDrawingOpen(false);
+      setNewDrawing({ wbs_node_id: "", drawing_number: "", title: "", revision: "0", status: "issued_for_construction" });
+      loadData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAddBbs = async () => {
+    if (!newBbs.wbs_node_id || !newBbs.member_mark || !newBbs.bar_mark || !newBbs.diameter_mm || !newBbs.shape_code || !newBbs.total_length_mm || !newBbs.quantity) {
+      return toast.error("Please fill all required fields");
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("structural_rebar_schedules").insert({
+        project_id: activeProject.id,
+        wbs_node_id: newBbs.wbs_node_id,
+        drawing_id: newBbs.drawing_id || null,
+        member_mark: newBbs.member_mark,
+        bar_mark: newBbs.bar_mark,
+        diameter_mm: parseInt(newBbs.diameter_mm),
+        shape_code: newBbs.shape_code,
+        total_length_mm: parseFloat(newBbs.total_length_mm),
+        quantity: parseInt(newBbs.quantity)
+      });
+      if (error) throw error;
+      toast.success("BBS Entry added successfully");
+      setIsBbsOpen(false);
+      setNewBbs({ wbs_node_id: "", drawing_id: "", member_mark: "", bar_mark: "", diameter_mm: "", shape_code: "", total_length_mm: "", quantity: "" });
+      loadData();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -98,12 +166,136 @@ export default function Structural() {
           <p className="text-muted-foreground">Design control, Bar Bending Schedules, and site inspections.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <Plus className="h-4 w-4" /> Add Drawing
-          </Button>
-          <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="h-4 w-4" /> New BBS Entry
-          </Button>
+          <Dialog open={isDrawingOpen} onOpenChange={setIsDrawingOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" /> Add Drawing
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Structural Drawing</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>WBS Location</Label>
+                  <Select value={newDrawing.wbs_node_id} onValueChange={(val) => setNewDrawing({ ...newDrawing, wbs_node_id: val })}>
+                    <SelectTrigger><SelectValue placeholder="Select WBS Node" /></SelectTrigger>
+                    <SelectContent>
+                      {wbsNodes.map(node => (
+                        <SelectItem key={node.id} value={node.id}>{node.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Drawing Number</Label>
+                  <Input placeholder="e.g. STR-GA-L01-001" value={newDrawing.drawing_number} onChange={e => setNewDrawing({ ...newDrawing, drawing_number: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Title</Label>
+                  <Input placeholder="Drawing Title" value={newDrawing.title} onChange={e => setNewDrawing({ ...newDrawing, title: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Revision</Label>
+                    <Input placeholder="0" value={newDrawing.revision} onChange={e => setNewDrawing({ ...newDrawing, revision: e.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Status</Label>
+                    <Select value={newDrawing.status} onValueChange={(val) => setNewDrawing({ ...newDrawing, status: val })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="issued_for_construction">IFC</SelectItem>
+                        <SelectItem value="preliminary">Preliminary</SelectItem>
+                        <SelectItem value="superseded">Superseded</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button disabled={submitting} onClick={handleAddDrawing}>
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Drawing
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isBbsOpen} onOpenChange={setIsBbsOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+                <Plus className="h-4 w-4" /> New BBS Entry
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Bar Bending Schedule Entry</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>WBS Location (Required)</Label>
+                  <Select value={newBbs.wbs_node_id} onValueChange={(val) => setNewBbs({ ...newBbs, wbs_node_id: val })}>
+                    <SelectTrigger><SelectValue placeholder="Select WBS Node" /></SelectTrigger>
+                    <SelectContent>
+                      {wbsNodes.map(node => (
+                        <SelectItem key={node.id} value={node.id}>{node.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Reference Drawing</Label>
+                  <Select value={newBbs.drawing_id} onValueChange={(val) => setNewBbs({ ...newBbs, drawing_id: val })}>
+                    <SelectTrigger><SelectValue placeholder="Select Drawing (Optional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {drawings.map(d => (
+                        <SelectItem key={d.id} value={d.id}>{d.drawing_number} - {d.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Member Mark</Label>
+                    <Input placeholder="e.g. C1" value={newBbs.member_mark} onChange={e => setNewBbs({ ...newBbs, member_mark: e.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Bar Mark</Label>
+                    <Input placeholder="e.g. 01" value={newBbs.bar_mark} onChange={e => setNewBbs({ ...newBbs, bar_mark: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Diameter (mm)</Label>
+                    <Input type="number" placeholder="16" value={newBbs.diameter_mm} onChange={e => setNewBbs({ ...newBbs, diameter_mm: e.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Shape Code</Label>
+                    <Input placeholder="21" value={newBbs.shape_code} onChange={e => setNewBbs({ ...newBbs, shape_code: e.target.value })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Cut Length (mm)</Label>
+                    <Input type="number" placeholder="3500" value={newBbs.total_length_mm} onChange={e => setNewBbs({ ...newBbs, total_length_mm: e.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Quantity</Label>
+                    <Input type="number" placeholder="10" value={newBbs.quantity} onChange={e => setNewBbs({ ...newBbs, quantity: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button disabled={submitting} onClick={handleAddBbs}>
+                  {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save BBS Entry
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

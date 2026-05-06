@@ -70,7 +70,7 @@ actual_costs AS (
   SELECT 
     t.id as task_id,
     -- Labor Actuals from Timesheet Entries
-    COALESCE((SELECT SUM(hours_worked * 50) FROM public.timesheet_entries WHERE task_id = t.id AND status = 'approved'), 0) as ac_labor,
+    COALESCE((SELECT SUM((COALESCE(regular_hours, 0) + COALESCE(overtime_hours, 0)) * 50) FROM public.timesheet_entries WHERE task_id = t.id AND status = 'approved'), 0) as ac_labor,
     -- Material Actuals from Procurement
     COALESCE((SELECT SUM(quantity_received * unit_price) FROM public.procurement_items pi 
               JOIN public.procurement_orders po ON pi.order_id = po.id 
