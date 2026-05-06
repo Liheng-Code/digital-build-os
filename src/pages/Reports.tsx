@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectContext";
@@ -26,18 +26,18 @@ export default function Reports() {
   const isAdmin = hasRole("admin");
   const isPM = hasRole("project_manager");
   const canSeeWbs = isAdmin || isPM;
-  const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [exporting, setExporting] = React.useState(false);
   const projectId = activeProject?.id ?? null;
-  const [dateFrom, setDateFrom] = useState<string>(defaultFrom());
-  const [dateTo, setDateTo] = useState<string>(defaultTo());
+  const [dateFrom, setDateFrom] = React.useState<string>(defaultFrom());
+  const [dateTo, setDateTo] = React.useState<string>(defaultTo());
 
-  const [kpi, setKpi] = useState<OrgKpiData | null>(null);
-  const [members, setMembers] = useState<MemberRow[]>([]);
-  const [deptRows, setDeptRows] = useState<DeptRow[]>([]);
-  const [active, setActive] = useState<MemberRow | null>(null);
+  const [kpi, setKpi] = React.useState<OrgKpiData | null>(null);
+  const [members, setMembers] = React.useState<MemberRow[]>([]);
+  const [deptRows, setDeptRows] = React.useState<DeptRow[]>([]);
+  const [active, setActive] = React.useState<MemberRow | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!projectId) {
@@ -384,7 +384,7 @@ export default function Reports() {
     }
   };
 
-  const projectLabel = useMemo(
+  const projectLabel = React.useMemo(
     () => (activeProject ? `${activeProject.code} - ${activeProject.name}` : "No project selected"),
     [activeProject],
   );

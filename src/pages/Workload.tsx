@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects } from "@/contexts/ProjectContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,10 +24,10 @@ const CAPACITY_HOURS = 40; // weekly threshold
 
 export default function Workload() {
   const { activeProject } = useProjects();
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = React.useState<Row[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const load = async () => {
       if (!activeProject) { setRows([]); setLoading(false); return; }
       setLoading(true);
@@ -81,7 +81,7 @@ export default function Workload() {
     load();
   }, [activeProject]);
 
-  const max = useMemo(() => Math.max(CAPACITY_HOURS, ...rows.map((r) => r.estimated_hours)), [rows]);
+  const max = React.useMemo(() => Math.max(CAPACITY_HOURS, ...rows.map((r) => r.estimated_hours)), [rows]);
 
   if (!activeProject) {
     return (

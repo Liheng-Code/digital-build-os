@@ -31,6 +31,7 @@ import MaterialsProcurement from "./pages/MaterialsProcurement";
 import QualityControl from "./pages/QualityControl";
 import FinancialControl from "./pages/FinancialControl";
 import ProgressClaims from "./pages/ProgressClaims";
+import Stakeholders from "./pages/Stakeholders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -253,6 +254,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <ProgressClaims />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/stakeholders" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Stakeholders />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

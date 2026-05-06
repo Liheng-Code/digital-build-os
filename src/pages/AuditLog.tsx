@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -62,26 +62,26 @@ export default function AuditLog() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
 
-  const [rows, setRows] = useState<AuditRow[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, string>>({});
-  const [allActors, setAllActors] = useState<ProfileLite[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [rows, setRows] = React.useState<AuditRow[]>([]);
+  const [profiles, setProfiles] = React.useState<Record<string, string>>({});
+  const [allActors, setAllActors] = React.useState<ProfileLite[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(true);
 
-  const [entityFilter, setEntityFilter] = useState<string>("all");
-  const [actionFilter, setActionFilter] = useState<string>("all");
-  const [actorFilter, setActorFilter] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [active, setActive] = useState<AuditRow | null>(null);
+  const [entityFilter, setEntityFilter] = React.useState<string>("all");
+  const [actionFilter, setActionFilter] = React.useState<string>("all");
+  const [actorFilter, setActorFilter] = React.useState<string>("all");
+  const [dateFrom, setDateFrom] = React.useState<string>("");
+  const [dateTo, setDateTo] = React.useState<string>("");
+  const [search, setSearch] = React.useState("");
+  const [sortKey, setSortKey] = React.useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [active, setActive] = React.useState<AuditRow | null>(null);
 
   // Load actor list once
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isAdmin) return;
     supabase
       .from("profiles")
@@ -128,7 +128,7 @@ export default function AuditLog() {
   };
 
   // Load (or reload on filter change)
-  useEffect(() => {
+  React.useEffect(() => {
     if (!isAdmin) {
       setLoading(false);
       return;
@@ -194,12 +194,12 @@ export default function AuditLog() {
     }
   };
 
-  const entityTypes = useMemo(
+  const entityTypes = React.useMemo(
     () => Array.from(new Set(rows.map((r) => r.entity_type))).sort(),
     [rows],
   );
 
-  const filtered = useMemo(() => {
+  const filtered = React.useMemo(() => {
     if (!search) return rows;
     const s = search.toLowerCase();
     return rows.filter((r) => {
@@ -210,7 +210,7 @@ export default function AuditLog() {
     });
   }, [rows, search, profiles]);
 
-  const sorted = useMemo(() => {
+  const sorted = React.useMemo(() => {
     const copy = [...filtered];
     copy.sort((a, b) => {
       const av = a[sortKey] ?? "";
