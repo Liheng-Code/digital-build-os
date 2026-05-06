@@ -115,7 +115,71 @@ export function useStakeholderContacts(stakeholderId?: string) {
     },
   });
 
-  return { contactsQuery, createContact };
+  const deleteContact = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("stakeholder_contacts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stakeholder-contacts", stakeholderId] });
+      toast.success("Contact deleted");
+    },
+  });
+
+  return { contactsQuery, createContact, deleteContact };
+}
+
+export function useStakeholderProjects(stakeholderId?: string) {
+  const queryClient = useQueryClient();
+
+  const stakeholderProjectsQuery = useQuery({
+    queryKey: ["stakeholder-projects", stakeholderId],
+    queryFn: async () => {
+      if (!stakeholderId) return [];
+      const { data, error } = await supabase
+        .from("project_stakeholders")
+        .select(`
+          *,
+          project:projects(id, name, code)
+        `)
+        .eq("stakeholder_id", stakeholderId);
+      if (error) throw error;
+      return data as (ProjectStakeholder & { project: { id: string; name: string; code: string } })[];
+    },
+    enabled: !!stakeholderId,
+  });
+
+  const linkProject = useMutation({
+    mutationFn: async (link: Partial<ProjectStakeholder>) => {
+      const { data, error } = await supabase
+        .from("project_stakeholders")
+        .insert(link)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stakeholder-projects", stakeholderId] });
+      toast.success("Project linked successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error linking project: ${error.message}`);
+    },
+  });
+
+  const unlinkProject = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("project_stakeholders").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stakeholder-projects", stakeholderId] });
+      toast.success("Project unlinked");
+    },
+  });
+
+  return { stakeholderProjectsQuery, linkProject, unlinkProject };
 }
 
 export function useProjectStakeholders(projectId?: string) {
