@@ -8,6 +8,10 @@ export interface Project {
   name: string;
   status: "planning" | "active" | "on_hold" | "completed" | "cancelled";
   client_name: string | null;
+  client_id: string | null;
+  client?: {
+    organization_name: string;
+  } | null;
   location: string | null;
   start_date: string | null;
   end_date: string | null;
@@ -43,7 +47,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const { data } = await supabase
       .from("projects")
-      .select("*")
+      .select(`
+        *,
+        client:stakeholders(organization_name)
+      `)
       .order("created_at", { ascending: false });
     setProjects((data ?? []) as Project[]);
     setLoading(false);

@@ -33,6 +33,7 @@ import QualityControl from "./pages/QualityControl";
 import FinancialControl from "./pages/FinancialControl";
 import ProgressClaims from "./pages/ProgressClaims";
 import Stakeholders from "./pages/Stakeholders";
+import ProjectDetail from "./pages/ProjectDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -265,6 +266,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Stakeholders />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/project-details" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProjectDetail />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

@@ -23,11 +23,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, MapPin, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useStakeholders } from "@/hooks/useStakeholders";
 
 const projectSchema = z.object({
   code: z.string().trim().min(2).max(20),
   name: z.string().trim().min(2).max(120),
   client_name: z.string().trim().max(120).optional().or(z.literal("")),
+  client_id: z.string().optional().or(z.literal("")),
   location: z.string().trim().max(200).optional().or(z.literal("")),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]),
@@ -46,9 +48,17 @@ const STATUS_TONE: Record<Project["status"], string> = {
 
 export default function Projects() {
   const { projects, loading, refresh, setActiveProjectId } = useProjects();
+  const { stakeholdersQuery } = useStakeholders();
   const { roles, user } = useAuth();
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [selectedClientId, setSelectedClientId] = React.useState<string | undefined>(undefined);
+  
+  const clients = React.useMemo(() => 
+    stakeholdersQuery.data?.filter(s => s.type === "client") || [],
+    [stakeholdersQuery.data]
+  );
+
   const canCreate = roles.includes("admin") || roles.includes("project_manager");
 
   const onCreate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -58,6 +68,7 @@ export default function Projects() {
       code: fd.get("code"),
       name: fd.get("name"),
       client_name: fd.get("client_name") || "",
+      client_id: selectedClientId || "",
       location: fd.get("location") || "",
       description: fd.get("description") || "",
       status: fd.get("status"),
@@ -76,6 +87,7 @@ export default function Projects() {
         code: parsed.data.code,
         name: parsed.data.name,
         client_name: parsed.data.client_name || null,
+        client_id: parsed.data.client_id || null,
         location: parsed.data.location || null,
         description: parsed.data.description || null,
         status: parsed.data.status,
@@ -131,8 +143,20 @@ export default function Projects() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="client_name">Client</Label>
-                    <Input id="client_name" name="client_name" maxLength={120} />
+                    <Label htmlFor="client_id">Client</Label>
+                    <Select 
+                      name="client_id" 
+                      onValueChange={(val) => setSelectedClientId(val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select client organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.organization_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="status">Status *</Label>
@@ -217,7 +241,9 @@ export default function Projects() {
                   >
                     <TableCell className="font-mono text-sm font-medium">{p.code}</TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{p.client_name || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {p.client?.organization_name || p.client_name || "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge className={STATUS_TONE[p.status]} variant="secondary">
                         {PROJECT_STATUS_LABELS[p.status]}

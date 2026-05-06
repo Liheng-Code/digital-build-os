@@ -33,6 +33,7 @@ import {
   ClipboardCheck,
   Package,
   Building2,
+  Info,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -63,6 +64,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Overview",
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/project-details", label: "Project Info", icon: Info },
       { to: "/projects", label: "Projects", icon: FolderKanban },
       { to: "/wbs", label: "WBS", icon: Network },
     ],
