@@ -44,18 +44,21 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange }: Stakehol
   const [isEditingNotes, setIsEditingNotes] = React.useState(false);
   const [notes, setNotes] = React.useState("");
 
-  if (!stakeholder) return null;
-
-  const { contactsQuery, createContact, deleteContact } = useStakeholderContacts(stakeholder.id);
-  const { stakeholderProjectsQuery, linkProject, unlinkProject } = useStakeholderProjects(stakeholder.id);
+  const stakeholderId = stakeholder?.id;
+  const { contactsQuery, createContact, deleteContact } = useStakeholderContacts(stakeholderId);
+  const { stakeholderProjectsQuery, linkProject, unlinkProject } = useStakeholderProjects(stakeholderId);
   const { updateStakeholder } = useStakeholders();
   const { projects } = useProjects();
 
   // Reset notes when stakeholder changes
   React.useEffect(() => {
-    setNotes(stakeholder.notes || "");
-    setIsEditingNotes(false);
-  }, [stakeholder.id]);
+    if (stakeholder) {
+      setNotes(stakeholder.notes || "");
+      setIsEditingNotes(false);
+    }
+  }, [stakeholderId]);
+
+  if (!stakeholder) return null;
 
   const handleSaveNotes = async () => {
     try {
