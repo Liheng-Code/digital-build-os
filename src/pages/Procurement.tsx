@@ -41,6 +41,8 @@ export default function Procurement() {
   const [prs, setPrs] = React.useState<any[]>([]);
   const [catalog, setCatalog] = React.useState<any[]>([]);
   const [activeTab, setActiveTab] = React.useState("dashboard");
+  const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
+  const [isCreatePrOpen, setIsCreatePrOpen] = React.useState(false);
 
   const loadData = async () => {
     if (!activeProject) return;
@@ -83,12 +85,34 @@ export default function Procurement() {
           <p className="text-muted-foreground">Manage material catalog, requisitions, and take-offs.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <ClipboardList className="h-4 w-4" /> Material Catalog
-          </Button>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> New PR
-          </Button>
+          <Dialog open={isCatalogOpen} onOpenChange={setIsCatalogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <ClipboardList className="h-4 w-4" /> Material Catalog
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <MaterialCatalogManager catalog={catalog} onRefresh={loadData} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isCreatePrOpen} onOpenChange={setIsCreatePrOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" /> New PR
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <CreatePrForm 
+                projectId={activeProject.id} 
+                catalog={catalog} 
+                onSuccess={() => {
+                  setIsCreatePrOpen(false);
+                  loadData();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -375,6 +399,282 @@ function MtoDetailView({ room, rds, catalog }: any) {
         </div>
       </CardContent>
     </>
+  );
+}
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+function MaterialCatalogManager({ catalog, onRefresh }: any) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [newItem, setNewItem] = React.useState({
+    code: "",
+    name: "",
+    category: "Finishing",
+    unit: "sqm",
+    default_price: 0
+  });
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("material_catalog").insert(newItem);
+      if (error) throw error;
+      toast.success("Material added to catalog");
+      setNewItem({ code: "", name: "", category: "Finishing", unit: "sqm", default_price: 0 });
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <DialogHeader>
+        <DialogTitle>Material Catalog</DialogTitle>
+        <CardDescription>Master list of materials available for project procurement.</CardDescription>
+      </DialogHeader>
+
+      <form onSubmit={handleAdd} className="grid grid-cols-5 gap-3 items-end bg-muted/30 p-4 rounded-lg border">
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase">Code</Label>
+          <Input required placeholder="MAT-001" value={newItem.code} onChange={e => setNewItem(p => ({...p, code: e.target.value}))} />
+        </div>
+        <div className="space-y-2 col-span-2">
+          <Label className="text-[10px] uppercase">Material Name</Label>
+          <Input required placeholder="e.g. Ceramic Tile" value={newItem.name} onChange={e => setNewItem(p => ({...p, name: e.target.value}))} />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[10px] uppercase">Unit</Label>
+          <Input required placeholder="sqm" value={newItem.unit} onChange={e => setNewItem(p => ({...p, unit: e.target.value}))} />
+        </div>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />} Add
+        </Button>
+      </form>
+
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[120px]">Code</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Unit</TableHead>
+              <TableHead className="text-right">Est. Price</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {catalog.map((item: any) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-mono text-[10px] font-bold">{item.code}</TableCell>
+                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell>{item.category}</TableCell>
+                <TableCell>{item.unit}</TableCell>
+                <TableCell className="text-right">${(item.default_price || 0).toLocaleString()}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+function CreatePrForm({ projectId, catalog, onSuccess }: any) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    subject: "",
+    description: "",
+    required_date: "",
+  });
+  
+  const [items, setItems] = React.useState<any[]>([
+    { material_id: "", quantity: 1, unit_price: 0 }
+  ]);
+
+  const addItem = () => {
+    setItems([...items, { material_id: "", quantity: 1, unit_price: 0 }]);
+  };
+
+  const removeItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const next = [...items];
+    next[index][field] = value;
+    
+    // Auto-populate price if material selected
+    if (field === 'material_id') {
+      const mat = catalog.find((m: any) => m.id === value);
+      if (mat) next[index].unit_price = mat.default_price || 0;
+    }
+    
+    setItems(next);
+  };
+
+  const totalEstimate = items.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (items.some(i => !i.material_id)) {
+      toast.error("Please select a material for all items");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // 1. Get next PR number
+      const { count } = await supabase
+        .from("purchase_requisitions")
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", projectId);
+      
+      const prNum = `PR-${(count || 0 + 1).toString().padStart(3, '0')}`;
+
+      // 2. Create PR
+      const { data: pr, error: prErr } = await supabase
+        .from("purchase_requisitions")
+        .insert({
+          project_id: projectId,
+          pr_number: prNum,
+          subject: formData.subject,
+          description: formData.description,
+          required_date: formData.required_date || null,
+          total_estimate: totalEstimate,
+          status: "draft"
+        })
+        .select()
+        .single();
+
+      if (prErr) throw prErr;
+
+      // 3. Create Items
+      const prItems = items.map(item => ({
+        pr_id: pr.id,
+        material_id: item.material_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price
+      }));
+
+      const { error: itemsErr } = await supabase.from("pr_items").insert(prItems);
+      if (itemsErr) throw itemsErr;
+
+      toast.success(`PR ${prNum} created successfully`);
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <DialogHeader>
+        <DialogTitle>New Purchase Requisition</DialogTitle>
+        <CardDescription>Request materials for the project site.</CardDescription>
+      </DialogHeader>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2 space-y-2">
+          <Label>Subject / Purpose</Label>
+          <Input required placeholder="e.g. Ground Floor Tiling Materials" value={formData.subject} onChange={e => setFormData(p => ({...p, subject: e.target.value}))} />
+        </div>
+        <div className="space-y-2">
+          <Label>Required Date</Label>
+          <Input type="date" value={formData.required_date} onChange={e => setFormData(p => ({...p, required_date: e.target.value}))} />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-bold uppercase text-muted-foreground">Requisition Items</Label>
+          <Button type="button" variant="outline" size="sm" onClick={addItem} className="h-7 text-[10px] gap-1">
+            <Plus className="h-3 w-3" /> Add Item
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          {items.map((item, index) => (
+            <div key={index} className="grid grid-cols-12 gap-2 items-end border p-3 rounded-md bg-muted/10">
+              <div className="col-span-5 space-y-1">
+                <Label className="text-[10px]">Material</Label>
+                <Select value={item.material_id} onValueChange={v => updateItem(index, 'material_id', v)}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select material" /></SelectTrigger>
+                  <SelectContent>
+                    {catalog.map((m: any) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="text-[10px]">Qty</Label>
+                <Input type="number" className="h-8 text-xs" value={item.quantity} onChange={e => updateItem(index, 'quantity', parseFloat(e.target.value))} />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="text-[10px]">Est. Price</Label>
+                <Input type="number" className="h-8 text-xs" value={item.unit_price} onChange={e => updateItem(index, 'unit_price', parseFloat(e.target.value))} />
+              </div>
+              <div className="col-span-2 text-right py-2">
+                <div className="text-[10px] font-bold text-muted-foreground">Total</div>
+                <div className="text-xs font-bold">${(item.quantity * item.unit_price).toLocaleString()}</div>
+              </div>
+              <div className="col-span-1">
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(index)}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border-2 border-dashed">
+        <div className="text-sm font-medium text-muted-foreground uppercase">Estimated Total</div>
+        <div className="text-2xl font-bold text-primary">${totalEstimate.toLocaleString()}</div>
+      </div>
+
+      <DialogFooter>
+        <Button type="submit" disabled={submitting} className="w-full h-11 text-base">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Raise Requisition"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+function Trash2(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <line x1="10" x2="10" y1="11" y2="17" />
+      <line x1="14" x2="14" y1="11" y2="17" />
+    </svg>
   );
 }
 
