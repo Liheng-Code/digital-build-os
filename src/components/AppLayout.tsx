@@ -38,6 +38,7 @@ import {
   Info,
   Mail,
   Building2,
+  Zap,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -115,6 +116,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
       { to: "/structural", label: "Structural Engineering", icon: HardHat, module: "structural" },
+      { to: "/mep", label: "MEP Engineering", icon: Zap, module: "mep" },
     ],
   },
   {

@@ -16,6 +16,7 @@ import Procurement from "./pages/Procurement";
 import HSE from "./pages/HSE";
 import Subcontractors from "./pages/Subcontractors";
 import Structural from "./pages/Structural";
+import MEP from "./pages/MEP";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -365,6 +366,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Structural />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/mep" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <MEP />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
