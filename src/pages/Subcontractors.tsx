@@ -46,6 +46,9 @@ export default function Subcontractors() {
   const [claims, setClaims] = React.useState<any[]>([]);
   const [activeTab, setActiveTab] = React.useState("register");
 
+  const [isSubconOpen, setIsSubconOpen] = React.useState(false);
+  const [isContractOpen, setIsContractOpen] = React.useState(false);
+
   const loadData = async () => {
     if (!activeProject) return;
     setLoading(true);
@@ -95,12 +98,39 @@ export default function Subcontractors() {
           <p className="text-muted-foreground">Manage project partners, contracts, and progress claims.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <Plus className="h-4 w-4" /> Add Subcontractor
-          </Button>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> New Contract
-          </Button>
+          <Dialog open={isSubconOpen} onOpenChange={setIsSubconOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" /> Add Subcontractor
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <SubcontractorForm 
+                onSuccess={() => {
+                  setIsSubconOpen(false);
+                  loadData();
+                }} 
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-primary">
+                <Plus className="h-4 w-4" /> New Contract
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <ContractForm 
+                projectId={activeProject.id} 
+                subcontractors={subcontractors}
+                onSuccess={() => {
+                  setIsContractOpen(false);
+                  loadData();
+                }} 
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -256,5 +286,187 @@ export default function Subcontractors() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
+function SubcontractorForm({ onSuccess }: any) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    company_name: "",
+    specialization: "",
+    contact_person: "",
+    email: "",
+    phone: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("subcontractors").insert(formData);
+      if (error) throw error;
+      toast.success("Subcontractor registered successfully");
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogHeader>
+        <DialogTitle>Add Subcontractor</DialogTitle>
+        <CardDescription>Register a new project partner.</CardDescription>
+      </DialogHeader>
+
+      <div className="space-y-2">
+        <Label>Company Name</Label>
+        <Input required value={formData.company_name} onChange={e => setFormData(p => ({...p, company_name: e.target.value}))} />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Specialization</Label>
+        <Select value={formData.specialization} onValueChange={v => setFormData(p => ({...p, specialization: v}))}>
+          <SelectTrigger><SelectValue placeholder="Select trade" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Structural">Structural (Civil)</SelectItem>
+            <SelectItem value="Architectural">Architectural / Finishes</SelectItem>
+            <SelectItem value="Electrical">Electrical (MEP)</SelectItem>
+            <SelectItem value="Plumbing">Plumbing / HVAC</SelectItem>
+            <SelectItem value="Landscaping">Landscaping</SelectItem>
+            <SelectItem value="Other">Other Specialist</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Contact Person</Label>
+          <Input value={formData.contact_person} onChange={e => setFormData(p => ({...p, contact_person: e.target.value}))} />
+        </div>
+        <div className="space-y-2">
+          <Label>Phone</Label>
+          <Input value={formData.phone} onChange={e => setFormData(p => ({...p, phone: e.target.value}))} />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Email</Label>
+        <Input type="email" value={formData.email} onChange={e => setFormData(p => ({...p, email: e.target.value}))} />
+      </div>
+
+      <DialogFooter>
+        <Button type="submit" disabled={submitting} className="w-full">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Register Partner"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+function ContractForm({ projectId, subcontractors, onSuccess }: any) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    subcontractor_id: "",
+    subject: "",
+    total_value: "",
+    retention_percentage: "5.0",
+    start_date: "",
+    end_date: "",
+    status: "draft",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { count } = await supabase
+        .from("subcontract_contracts")
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", projectId);
+      
+      const scNum = `SC-2026-${(count || 0 + 1).toString().padStart(3, '0')}`;
+
+      const { error } = await supabase.from("subcontract_contracts").insert({
+        project_id: projectId,
+        contract_number: scNum,
+        ...formData,
+        total_value: parseFloat(formData.total_value),
+        retention_percentage: parseFloat(formData.retention_percentage),
+      });
+
+      if (error) throw error;
+      toast.success(`Contract ${scNum} created successfully`);
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogHeader>
+        <DialogTitle>New Subcontract Contract</DialogTitle>
+        <CardDescription>Issue a formal work order to a partner.</CardDescription>
+      </DialogHeader>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2 space-y-2">
+          <Label>Subcontractor</Label>
+          <Select value={formData.subcontractor_id} onValueChange={v => setFormData(p => ({...p, subcontractor_id: v}))}>
+            <SelectTrigger><SelectValue placeholder="Select partner" /></SelectTrigger>
+            <SelectContent>
+              {subcontractors.map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>{s.company_name} ({s.specialization})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="col-span-2 space-y-2">
+          <Label>Contract Subject</Label>
+          <Input required placeholder="e.g. Structural Steel Installation Phase 1" value={formData.subject} onChange={e => setFormData(p => ({...p, subject: e.target.value}))} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Total Value ($)</Label>
+          <Input required type="number" placeholder="0.00" value={formData.total_value} onChange={e => setFormData(p => ({...p, total_value: e.target.value}))} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Retention (%)</Label>
+          <Input type="number" value={formData.retention_percentage} onChange={e => setFormData(p => ({...p, retention_percentage: e.target.value}))} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Start Date</Label>
+          <Input type="date" value={formData.start_date} onChange={e => setFormData(p => ({...p, start_date: e.target.value}))} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Estimated End Date</Label>
+          <Input type="date" value={formData.end_date} onChange={e => setFormData(p => ({...p, end_date: e.target.value}))} />
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button type="submit" disabled={submitting} className="w-full h-11 bg-primary">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Generate Contract"}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
