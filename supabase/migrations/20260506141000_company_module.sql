@@ -37,16 +37,19 @@ END $$;
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 
 -- updated_at Trigger
+DROP TRIGGER IF EXISTS update_companies_updated_at ON public.companies;
 CREATE TRIGGER update_companies_updated_at
   BEFORE UPDATE ON public.companies
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Authenticated users can view their own company" ON public.companies;
 CREATE POLICY "Authenticated users can view their own company"
   ON public.companies FOR SELECT
   TO authenticated
   USING (true); -- Simplified for MVP, in multi-tenant this would check membership
 
+DROP POLICY IF EXISTS "Only admins can update company profile" ON public.companies;
 CREATE POLICY "Only admins can update company profile"
   ON public.companies FOR UPDATE
   TO authenticated
