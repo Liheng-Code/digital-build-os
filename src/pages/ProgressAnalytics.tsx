@@ -35,7 +35,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function ProgressAnalytics() {
   const { activeProject } = useProjects();
-  const { nodes: wbsNodes, loading: wbsLoading } = useWbsTree(activeProject?.id);
+  const { nodes: wbsNodes, loading: wbsLoading, refresh: refreshWbs } = useWbsTree(activeProject?.id);
   
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -58,7 +58,7 @@ export default function ProgressAnalytics() {
       const { error } = await supabase.rpc('sync_all_wbs_progress', { v_project_id: activeProject.id });
       if (error) throw error;
       toast.success("Progress synchronized successfully");
-      await loadTasks();
+      await Promise.all([loadTasks(), refreshWbs()]);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
