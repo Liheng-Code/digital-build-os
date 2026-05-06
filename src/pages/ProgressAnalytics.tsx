@@ -45,7 +45,7 @@ export default function ProgressAnalytics() {
     if (!activeProject) return;
     const { data } = await supabase
       .from("tasks")
-      .select("id, title, planned_start_date, planned_end_date, actual_start_date, actual_end_date, progress_pct, wbs_node_id")
+      .select("id, title, planned_start, planned_end, actual_start, actual_end, progress_pct, wbs_node_id")
       .eq("project_id", activeProject.id);
     setTasks(data || []);
     setLoading(false);
@@ -83,16 +83,16 @@ export default function ProgressAnalytics() {
       const monthStr = format(date, "MMM yy");
       
       // Actual: Average progress of tasks at this point (Simplified)
-      // In a real system, we'd query history. Here we simulate based on actual_end_date
+      // In a real system, we'd query history. Here we simulate based on actual_end
       const actualProgress = tasks.reduce((acc, t) => {
-        if (t.actual_end_date && isBefore(new Date(t.actual_end_date), date)) return acc + 100;
-        if (t.actual_start_date && isBefore(new Date(t.actual_start_date), date)) return acc + (t.progress_pct || 0);
+        if (t.actual_end && isBefore(new Date(t.actual_end), date)) return acc + 100;
+        if (t.actual_start && isBefore(new Date(t.actual_start), date)) return acc + (t.progress_pct || 0);
         return acc;
       }, 0) / tasks.length;
 
-      // Planned: Based on planned_end_date
+      // Planned: Based on planned_end
       const plannedProgress = tasks.reduce((acc, t) => {
-        if (t.planned_end_date && isBefore(new Date(t.planned_end_date), date)) return acc + 100;
+        if (t.planned_end && isBefore(new Date(t.planned_end), date)) return acc + 100;
         return acc;
       }, 0) / tasks.length;
 
@@ -196,7 +196,7 @@ export default function ProgressAnalytics() {
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Critical Alerts</p>
                 <div className="text-2xl font-bold text-destructive">
-                  {tasks.filter(t => isAfter(new Date(), new Date(t.planned_end_date)) && t.progress_pct < 100).length}
+                  {tasks.filter(t => t.planned_end && isAfter(new Date(), new Date(t.planned_end)) && t.progress_pct < 100).length}
                 </div>
               </div>
               <AlertCircle className="h-8 w-8 text-destructive opacity-20" />
