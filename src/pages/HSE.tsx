@@ -44,6 +44,9 @@ export default function HSE() {
   const [tbt, setTbt] = React.useState<any[]>([]);
   const [activeTab, setActiveTab] = React.useState("dashboard");
 
+  const [isPermitOpen, setIsPermitOpen] = React.useState(false);
+  const [isIncidentOpen, setIsIncidentOpen] = React.useState(false);
+
   const loadData = async () => {
     if (!activeProject) return;
     setLoading(true);
@@ -100,12 +103,39 @@ export default function HSE() {
           <p className="text-muted-foreground">Health, Safety, and Environment management system.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2 border-red-200 text-red-700 hover:bg-red-50">
-            <AlertTriangle className="h-4 w-4" /> Report Incident
-          </Button>
-          <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-            <Plus className="h-4 w-4" /> New PTW Permit
-          </Button>
+          <Dialog open={isIncidentOpen} onOpenChange={setIsIncidentOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 border-red-200 text-red-700 hover:bg-red-50">
+                <AlertTriangle className="h-4 w-4" /> Report Incident
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <HseIncidentForm 
+                projectId={activeProject.id} 
+                onSuccess={() => {
+                  setIsIncidentOpen(false);
+                  loadData();
+                }} 
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isPermitOpen} onOpenChange={setIsPermitOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="h-4 w-4" /> New PTW Permit
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <HsePermitForm 
+                projectId={activeProject.id} 
+                onSuccess={() => {
+                  setIsPermitOpen(false);
+                  loadData();
+                }} 
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -290,5 +320,238 @@ export default function HSE() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useWbsTree } from "@/hooks/useWbsTree";
+
+function HsePermitForm({ projectId, onSuccess }: any) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const { nodes: wbsNodes } = useWbsTree(projectId);
+  const [formData, setFormData] = React.useState({
+    subject: "",
+    type: "general",
+    description: "",
+    wbs_node_id: "",
+    valid_from: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+    valid_until: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { count } = await supabase
+        .from("safety_permits")
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", projectId);
+      
+      const pNum = `PTW-${formData.type.slice(0,2).toUpperCase()}-${(count || 0 + 1).toString().padStart(3, '0')}`;
+
+      const { error } = await supabase.from("safety_permits").insert({
+        project_id: projectId,
+        permit_number: pNum,
+        ...formData
+      });
+
+      if (error) throw error;
+      toast.success(`Permit ${pNum} submitted for approval`);
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogHeader>
+        <DialogTitle>New Permit to Work (PTW)</DialogTitle>
+        <CardDescription>Request authorization for high-risk activities.</CardDescription>
+      </DialogHeader>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2 space-y-2">
+          <Label>Permit Subject</Label>
+          <Input required placeholder="e.g. Welding in Zone A" value={formData.subject} onChange={e => setFormData(p => ({...p, subject: e.target.value}))} />
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Permit Type</Label>
+          <Select value={formData.type} onValueChange={v => setFormData(p => ({...p, type: v}))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">General Work</SelectItem>
+              <SelectItem value="hot_work">Hot Work</SelectItem>
+              <SelectItem value="working_at_height">Working at Height</SelectItem>
+              <SelectItem value="excavation">Excavation</SelectItem>
+              <SelectItem value="confined_space">Confined Space</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Location (WBS)</Label>
+          <Select value={formData.wbs_node_id} onValueChange={v => setFormData(p => ({...p, wbs_node_id: v}))}>
+            <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+            <SelectContent>
+              {wbsNodes.filter(n => n.type === 'location' || n.type === 'building').map(n => (
+                <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Valid From</Label>
+          <Input type="datetime-local" value={formData.valid_from} onChange={e => setFormData(p => ({...p, valid_from: e.target.value}))} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Valid Until</Label>
+          <Input type="datetime-local" value={formData.valid_until} onChange={e => setFormData(p => ({...p, valid_until: e.target.value}))} />
+        </div>
+
+        <div className="col-span-2 space-y-2">
+          <Label>Scope of Work & Precautions</Label>
+          <Textarea placeholder="Describe the work and safety measures in place..." value={formData.description} onChange={e => setFormData(p => ({...p, description: e.target.value}))} />
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button type="submit" disabled={submitting} className="w-full bg-emerald-600 hover:bg-emerald-700 h-11">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Submit Permit Request"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+function HseIncidentForm({ projectId, onSuccess }: any) {
+  const [submitting, setSubmitting] = React.useState(false);
+  const { nodes: wbsNodes } = useWbsTree(projectId);
+  const [formData, setFormData] = React.useState({
+    subject: "",
+    type: "near_miss",
+    severity: "low",
+    description: "",
+    immediate_action_taken: "",
+    wbs_node_id: "",
+    incident_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { count } = await supabase
+        .from("safety_incidents")
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", projectId);
+      
+      const incNum = `INC-${(count || 0 + 1).toString().padStart(3, '0')}`;
+
+      const { error } = await supabase.from("safety_incidents").insert({
+        project_id: projectId,
+        incident_number: incNum,
+        ...formData
+      });
+
+      if (error) throw error;
+      toast.success(`Incident ${incNum} reported successfully`);
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogHeader>
+        <div className="flex items-center gap-2 text-red-600">
+          <AlertTriangle className="h-5 w-5" />
+          <DialogTitle>Incident Report</DialogTitle>
+        </div>
+        <CardDescription>Report a safety occurrence or near-miss.</CardDescription>
+      </DialogHeader>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2 space-y-2">
+          <Label>Incident Subject</Label>
+          <Input required placeholder="Brief title of the occurrence" value={formData.subject} onChange={e => setFormData(p => ({...p, subject: e.target.value}))} />
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Incident Type</Label>
+          <Select value={formData.type} onValueChange={v => setFormData(p => ({...p, type: v}))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="near_miss">Near Miss</SelectItem>
+              <SelectItem value="first_aid">First Aid Case</SelectItem>
+              <SelectItem value="lost_time_injury">Lost Time Injury (LTI)</SelectItem>
+              <SelectItem value="property_damage">Property Damage</SelectItem>
+              <SelectItem value="environmental">Environmental Issue</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Severity</Label>
+          <Select value={formData.severity} onValueChange={v => setFormData(p => ({...p, severity: v}))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low (Minor)</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="critical">Critical (Stop Work)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Location (WBS)</Label>
+          <Select value={formData.wbs_node_id} onValueChange={v => setFormData(p => ({...p, wbs_node_id: v}))}>
+            <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+            <SelectContent>
+              {wbsNodes.filter(n => n.type === 'location' || n.type === 'building').map(n => (
+                <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Date & Time</Label>
+          <Input type="datetime-local" value={formData.incident_date} onChange={e => setFormData(p => ({...p, incident_date: e.target.value}))} />
+        </div>
+
+        <div className="col-span-2 space-y-2">
+          <Label>Detailed Description</Label>
+          <Textarea required placeholder="What happened?" value={formData.description} onChange={e => setFormData(p => ({...p, description: e.target.value}))} />
+        </div>
+
+        <div className="col-span-2 space-y-2">
+          <Label>Immediate Action Taken</Label>
+          <Textarea placeholder="What was done immediately to ensure safety?" value={formData.immediate_action_taken} onChange={e => setFormData(p => ({...p, immediate_action_taken: e.target.value}))} />
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button type="submit" disabled={submitting} variant="destructive" className="w-full h-11">
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Submit Incident Report"}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
