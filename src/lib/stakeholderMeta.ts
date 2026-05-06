@@ -65,3 +65,18 @@ export const STAKEHOLDER_STATUS_COLORS: Record<StakeholderStatus, string> = {
   inactive: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
   blacklisted: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
+
+export const PROJECT_ROLE_OPTIONS = [
+  "Project Owner / Client",
+  "Project Manager",
+  "Contractor / Main Contractor",
+  "Architects and Designers",
+  "Subcontractors",
+  "Suppliers / Vendors",
+  "Regulatory Authorities",
+  "Consultants",
+  "Testing Agencies",
+  "Utility Authorities",
+  "Insurance / Bonding Parties",
+  "Internal Company Departments",
+] as const;

@@ -3,7 +3,12 @@ import * as React from "react";
 import { 
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription 
 } from "@/components/ui/sheet";
-import { Stakeholder, STAKEHOLDER_TYPE_LABELS, STAKEHOLDER_STATUS_COLORS } from "@/lib/stakeholderMeta";
+import { 
+  Stakeholder, 
+  STAKEHOLDER_TYPE_LABELS, 
+  STAKEHOLDER_STATUS_COLORS,
+  PROJECT_ROLE_OPTIONS
+} from "@/lib/stakeholderMeta";
 import { 
   useStakeholderContacts, 
   useStakeholderProjects,
@@ -390,7 +395,16 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange }: Stakehol
             </div>
             <div className="space-y-2">
               <Label>Stakeholder Role in Project</Label>
-              <Input name="project_role" placeholder="e.g. Lead Consultant" />
+              <Select name="project_role" defaultValue={PROJECT_ROLE_OPTIONS[0]}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROJECT_ROLE_OPTIONS.map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2 pt-2">
               <input type="checkbox" name="approval_authority" id="approval_authority" className="h-4 w-4 rounded" />
