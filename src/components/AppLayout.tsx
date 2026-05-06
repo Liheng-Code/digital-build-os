@@ -35,6 +35,9 @@ import {
   Layout,
   BarChart2,
   HelpCircle,
+  Info,
+  Mail,
+  Building2,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
