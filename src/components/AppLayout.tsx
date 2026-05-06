@@ -88,6 +88,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/procurement", label: "Procurement & MTO", icon: ShoppingCart, module: "procurement" },
       { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
+      { to: "/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
       { to: "/financials", label: "Financials", icon: DollarSign, module: "financials" },
       { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
