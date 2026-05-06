@@ -38,14 +38,20 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Loader2, Upload, FileText, Download, Plus, History } from "lucide-react";
+import { Loader2, Upload, FileText, Download, Plus, History, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { useWbsTree } from "@/hooks/useWbsTree";
+import { flattenTree } from "@/lib/wbsMeta";
+import { DOCUMENT_DISCIPLINES } from "@/lib/documentMeta";
 
 interface DocRow {
   id: string;
   title: string;
   description: string | null;
   category: string;
+  discipline: string | null;
+  document_number: string | null;
+  wbs_node_id: string | null;
   current_version: number;
   created_at: string;
   updated_at: string;
@@ -79,7 +85,13 @@ export default function Documents() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("general");
+  const [discipline, setDiscipline] = useState("GEN");
+  const [wbsNodeId, setWbsNodeId] = useState<string | null>(null);
+  const [docNumber, setDocNumber] = useState("");
   const [file, setFile] = useState<File | null>(null);
+
+  const { nodes: wbsNodes } = useWbsTree(activeProject?.id);
+  const flatWbs = flattenTree(buildWbsTree(wbsNodes));
 
   // versions sheet
   const [activeDoc, setActiveDoc] = useState<DocRow | null>(null);
@@ -137,6 +149,9 @@ export default function Documents() {
           title: title.trim(),
           description: description.trim() || null,
           category,
+          discipline,
+          wbs_node_id: wbsNodeId,
+          document_number: docNumber.trim() || null,
           current_version: 1,
           created_by: uid,
         })
@@ -166,6 +181,9 @@ export default function Documents() {
       setTitle("");
       setDescription("");
       setCategory("general");
+      setDiscipline("GEN");
+      setWbsNodeId(null);
+      setDocNumber("");
       setFile(null);
       await loadDocs();
     } catch (e: any) {
@@ -300,6 +318,37 @@ export default function Documents() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Discipline</Label>
+                    <Select value={discipline} onValueChange={setDiscipline}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DOCUMENT_DISCIPLINES.map((d) => (
+                          <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Doc Number</Label>
+                    <Input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} placeholder="e.g. A-101" />
+                  </div>
+                </div>
+                <div>
+                  <Label>WBS Location</Label>
+                  <Select value={wbsNodeId ?? "none"} onValueChange={(v) => setWbsNodeId(v === "none" ? null : v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Project Level (No WBS)</SelectItem>
+                      {flatWbs.map((n) => (
+                        <SelectItem key={n.id} value={n.id}>
+                          {new Array(n.depth).fill("  ").join("")} {n.name} ({n.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label>File</Label>
                   <Input
@@ -357,13 +406,33 @@ export default function Documents() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {d.category}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="secondary" className="capitalize w-fit">
+                          {d.category}
+                        </Badge>
+                        {d.discipline && (
+                          <span className="text-[10px] font-bold text-muted-foreground">{d.discipline}</span>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell>v{d.current_version}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(d.updated_at).toLocaleDateString()}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span>v{d.current_version}</span>
+                        {d.document_number && <span className="text-xs font-mono text-muted-foreground">{d.document_number}</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-sm">{new Date(d.updated_at).toLocaleDateString()}</span>
+                        {d.wbs_node_id && (
+                          <div className="flex items-center gap-1 text-[10px] text-primary mt-1">
+                            <MapPin className="h-2.5 w-2.5" />
+                            <span className="truncate max-w-[120px]">
+                              {wbsNodes.find(n => n.id === d.wbs_node_id)?.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

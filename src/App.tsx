@@ -33,6 +33,7 @@ import QualityControl from "./pages/QualityControl";
 import FinancialControl from "./pages/FinancialControl";
 import ProgressClaims from "./pages/ProgressClaims";
 import Stakeholders from "./pages/Stakeholders";
+import Transmittals from "./pages/Transmittals";
 import ProjectDetail from "./pages/ProjectDetail";
 import NotFound from "./pages/NotFound";
 
@@ -276,6 +277,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <ProjectDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/transmittals" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Transmittals />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
