@@ -37,6 +37,7 @@ import Stakeholders from "./pages/Stakeholders";
 import Transmittals from "./pages/Transmittals";
 import Architecture from "./pages/Architecture";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
+import RFIs from "./pages/RFIs";
 import ProjectDetail from "./pages/ProjectDetail";
 import NotFound from "./pages/NotFound";
 
@@ -280,6 +281,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <ProjectDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/rfis" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <RFIs />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

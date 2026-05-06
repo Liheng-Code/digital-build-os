@@ -37,6 +37,7 @@ import {
   Mail,
   Layout,
   BarChart2,
+  HelpCircle,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -84,6 +85,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/materials", label: "Materials", icon: Package },
+      { to: "/rfis", label: "RFIs", icon: HelpCircle },
       { to: "/financials", label: "Financials", icon: DollarSign },
       { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
     ],
