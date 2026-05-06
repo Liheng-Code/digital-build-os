@@ -215,6 +215,9 @@ export default function Structural() {
                 </div>
               </div>
               <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDrawingOpen(false)} disabled={submitting}>
+                  Cancel
+                </Button>
                 <Button disabled={submitting} onClick={handleAddDrawing}>
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Drawing
@@ -289,6 +292,9 @@ export default function Structural() {
                 </div>
               </div>
               <DialogFooter>
+                <Button variant="outline" onClick={() => setIsBbsOpen(false)} disabled={submitting}>
+                  Cancel
+                </Button>
                 <Button disabled={submitting} onClick={handleAddBbs}>
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save BBS Entry
