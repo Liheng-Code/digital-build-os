@@ -23,6 +23,7 @@ interface Props {
   node: WbsNode | null;            // null when creating
   parentId: string | null;          // for create mode
   parentPath: string | null;
+  parentType?: WbsNodeType | null;
   canEdit: boolean;
   onSaved: () => void;
   onDeleted: () => void;
@@ -30,7 +31,7 @@ interface Props {
 }
 
 export function WbsNodeEditor({
-  projectId, node, parentId, parentPath, canEdit, onSaved, onDeleted, onCancel,
+  projectId, node, parentId, parentPath, parentType, canEdit, onSaved, onDeleted, onCancel,
 }: Props) {
   const { user } = useAuth();
   const isCreate = !node;
@@ -44,9 +45,20 @@ export function WbsNodeEditor({
   useEffect(() => {
     setCode(node?.code ?? "");
     setName(node?.name ?? "");
-    setType(node?.node_type ?? "zone");
     setDescription(node?.description ?? "");
-  }, [node?.id]);
+    
+    if (node) {
+      setType(node.node_type);
+    } else {
+      // Suggest next type in hierarchy
+      if (parentType === "building") setType("level");
+      else if (parentType === "level") setType("zone");
+      else if (parentType === "zone") setType("room");
+      else if (parentType === "room") setType("element");
+      else if (!parentType) setType("building"); // Root default
+      else setType("other");
+    }
+  }, [node?.id, parentType]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

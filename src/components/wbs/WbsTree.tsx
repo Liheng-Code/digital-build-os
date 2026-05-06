@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { ChevronRight, Folder, FolderOpen, Plus, FolderKanban } from "lucide-react";
+import { 
+  ChevronRight, Folder, FolderOpen, Plus, FolderKanban,
+  Building2, Layers, Box, DoorOpen, Compass, Briefcase
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { WbsTreeNode, WBS_NODE_TYPE_LABELS } from "@/lib/wbsMeta";
@@ -151,6 +154,18 @@ export function WbsTree({
   );
 }
 
+const NODE_ICONS: Record<string, any> = {
+  building: Building2,
+  level: Layers,
+  zone: Box,
+  room: DoorOpen,
+  element: Compass,
+  package: Briefcase,
+  system: Folder,
+  area: Folder,
+  other: Folder,
+};
+
 function TreeRow({
   node,
   depth,
@@ -225,12 +240,11 @@ function TreeRow({
           <span className="mt-0.5 h-4 w-4 inline-block shrink-0" />
         )}
 
-        {/* Folder icon */}
-        {open && hasChildren ? (
-          <FolderOpen className="mt-0.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        ) : (
-          <Folder className="mt-0.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        )}
+        {/* Level-specific icon */}
+        {(() => {
+          const Icon = NODE_ICONS[node.node_type] || Folder;
+          return <Icon className="mt-0.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />;
+        })()}
 
         {/* Content */}
         <div className="flex-1 min-w-0 flex items-center gap-3 pr-2">

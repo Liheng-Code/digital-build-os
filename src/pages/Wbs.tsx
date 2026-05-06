@@ -505,6 +505,7 @@ export default function WbsPage() {
                     node={null}
                     parentId={mode.parentId}
                     parentPath={mode.parentId ? nodes.find((n) => n.id === mode.parentId)?.path_text ?? null : null}
+                    parentType={mode.parentId ? nodes.find((n) => n.id === mode.parentId)?.node_type ?? null : null}
                     canEdit={canEdit}
                     onSaved={async () => {
                       await refresh();
@@ -598,6 +599,7 @@ export default function WbsPage() {
                           node={selectedNode}
                           parentId={selectedNode.parent_id}
                           parentPath={null}
+                          parentType={selectedNode.parent_id ? nodes.find((n) => n.id === selectedNode.parent_id)?.node_type ?? null : null}
                           canEdit={canEdit}
                           onSaved={refresh}
                           onDeleted={async () => {

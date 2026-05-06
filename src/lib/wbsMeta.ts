@@ -2,22 +2,24 @@ export type WbsNodeType =
   | "building"
   | "level"
   | "zone"
-  | "sub_zone"
-  | "area"
-  | "system"
+  | "room"
+  | "element"
   | "package"
+  | "system"
+  | "area"
   | "other";
 
 export type WbsPermission = "view" | "edit" | "manage";
 
 export const WBS_NODE_TYPE_LABELS: Record<WbsNodeType, string> = {
-  building: "Building",
+  building: "Building / Area",
   level: "Level",
   zone: "Zone",
-  sub_zone: "Sub-zone",
-  area: "Area",
+  room: "Room / Space",
+  element: "Structural Element",
+  package: "Work Package",
   system: "System",
-  package: "Package",
+  area: "Area",
   other: "Other",
 };
 
