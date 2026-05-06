@@ -103,6 +103,12 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: "Disciplines",
+    items: [
+      { to: "/architecture", label: "Architecture", icon: Layout },
+    ],
+  },
+  {
     label: "Administration",
     items: [
       { to: "/stakeholders", label: "Stakeholders", icon: Building2, roles: ["admin", "project_manager"] },

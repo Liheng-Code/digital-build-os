@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Architecture from "./pages/Architecture";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -277,6 +278,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <ProjectDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/architecture" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Architecture />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
