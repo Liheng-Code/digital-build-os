@@ -1,23 +1,13 @@
 
 -- ============================================================
--- WBS HIERARCHY STANDARDIZATION
+-- WBS HIERARCHY STANDARDIZATION (ENUM FIX)
 -- ============================================================
 
--- 1. Update the check constraint for wbs_node_type
-ALTER TABLE public.wbs_nodes DROP CONSTRAINT IF EXISTS wbs_nodes_node_type_check;
-
-ALTER TABLE public.wbs_nodes ADD CONSTRAINT wbs_nodes_node_type_check 
-CHECK (node_type IN (
-  'building',
-  'level',
-  'zone',
-  'room',
-  'element',
-  'package',
-  'system',
-  'area',
-  'other'
-));
+-- 1. Add new values to the existing Enum type
+-- Note: ALTER TYPE ... ADD VALUE cannot be rolled back easily in some environments,
+-- but is the standard way to extend Enums in Postgres.
+ALTER TYPE public.wbs_node_type ADD VALUE IF NOT EXISTS 'room';
+ALTER TYPE public.wbs_node_type ADD VALUE IF NOT EXISTS 'element';
 
 -- 2. Migrate existing data (Legacy mapping)
 -- Map 'sub_zone' to 'zone'
