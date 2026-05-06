@@ -87,6 +87,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/procurement", label: "Procurement & MTO", icon: ShoppingCart, module: "procurement" },
+      { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
       { to: "/financials", label: "Financials", icon: DollarSign, module: "financials" },
       { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
