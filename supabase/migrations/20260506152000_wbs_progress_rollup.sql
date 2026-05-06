@@ -103,4 +103,20 @@ FOR EACH ROW EXECUTE FUNCTION public.trg_fn_wbs_progress_rollup();
 -- 6. Initial Roll-up (Optional: run this to sync existing data)
 -- SELECT public.wbs_roll_up_node_progress(id) FROM public.wbs_nodes WHERE parent_id IS NULL;
 
-COMMENT ON COLUMN public.wbs_nodes.progress_pct IS 'Automated completion percentage rolled up from tasks and child nodes.';
+-- 7. Manual Sync Function (can be called via RPC)
+CREATE OR REPLACE FUNCTION public.sync_all_wbs_progress(v_project_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  root_node RECORD;
+BEGIN
+  FOR root_node IN SELECT id FROM public.wbs_nodes WHERE project_id = v_project_id AND parent_id IS NULL LOOP
+    PERFORM public.wbs_roll_up_node_progress(root_node.id);
+  END LOOP;
+END;
+$$;
+
+COMMENT ON FUNCTION public.sync_all_wbs_progress IS 'Manually triggers a full progress roll-up for all WBS nodes in a specific project.';

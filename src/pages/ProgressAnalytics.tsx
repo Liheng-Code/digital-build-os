@@ -25,7 +25,8 @@ import {
   Loader2, 
   Calendar,
   Layers,
-  Building
+  Building,
+  RefreshCw
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isBefore, isAfter } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -36,17 +37,34 @@ export default function ProgressAnalytics() {
   
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [syncing, setSyncing] = React.useState(false);
+
+  const loadTasks = async () => {
+    if (!activeProject) return;
+    const { data } = await supabase
+      .from("tasks")
+      .select("id, title, planned_start_date, planned_end_date, actual_start_date, actual_end_date, progress_pct, wbs_node_id")
+      .eq("project_id", activeProject.id);
+    setTasks(data || []);
+    setLoading(false);
+  };
+
+  const handleSync = async () => {
+    if (!activeProject) return;
+    setSyncing(true);
+    try {
+      const { error } = await supabase.rpc('sync_all_wbs_progress', { v_project_id: activeProject.id });
+      if (error) throw error;
+      toast.success("Progress synchronized successfully");
+      await loadTasks();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   React.useEffect(() => {
-    if (!activeProject) return;
-    const loadTasks = async () => {
-      const { data } = await supabase
-        .from("tasks")
-        .select("id, title, planned_start_date, planned_end_date, actual_start_date, actual_end_date, progress_pct, wbs_node_id")
-        .eq("project_id", activeProject.id);
-      setTasks(data || []);
-      setLoading(false);
-    };
     loadTasks();
   }, [activeProject]);
 
@@ -113,9 +131,21 @@ export default function ProgressAnalytics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">Progress & Analytics</h1>
-        <p className="text-muted-foreground">Real-time performance roll-up from WBS hierarchy.</p>
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight">Progress & Analytics</h1>
+          <p className="text-muted-foreground">Real-time performance roll-up from WBS hierarchy.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleSync} 
+          disabled={syncing}
+          className="gap-2"
+        >
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Sync Progress
+        </Button>
       </div>
 
       {/* KPI Overviews */}
