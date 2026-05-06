@@ -12,6 +12,7 @@ import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Architecture from "./pages/Architecture";
+import Procurement from "./pages/Procurement";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -36,7 +37,6 @@ import FinancialControl from "./pages/FinancialControl";
 import ProgressClaims from "./pages/ProgressClaims";
 import Stakeholders from "./pages/Stakeholders";
 import Transmittals from "./pages/Transmittals";
-import Architecture from "./pages/Architecture";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
 import RFIs from "./pages/RFIs";
 import ProjectDetail from "./pages/ProjectDetail";
@@ -112,6 +112,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Workload />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Procurement />
                       </AppLayout>
                     </ProtectedRoute>
                   }

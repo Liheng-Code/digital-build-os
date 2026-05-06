@@ -22,7 +22,7 @@ DECLARE
   r public.app_role;
   m TEXT;
   a TEXT;
-  modules TEXT[] := ARRAY['projects', 'wbs', 'tasks', 'daily_reports', 'timesheets', 'approvals', 'rfis', 'architecture', 'analytics', 'financials', 'stakeholders'];
+  modules TEXT[] := ARRAY['projects', 'wbs', 'tasks', 'daily_reports', 'timesheets', 'approvals', 'rfis', 'architecture', 'analytics', 'financials', 'stakeholders', 'procurement'];
   actions TEXT[] := ARRAY['view', 'create', 'edit', 'delete', 'approve'];
 BEGIN
   -- Give Admin full access to everything
