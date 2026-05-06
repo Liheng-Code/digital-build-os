@@ -4,7 +4,7 @@
 -- ============================================================
 
 -- 1. Create the Permission Matrix table
-CREATE TABLE public.role_permissions (
+CREATE TABLE IF NOT EXISTS public.role_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role public.app_role NOT NULL,
   module TEXT NOT NULL, -- e.g. 'rfis', 'architecture', 'analytics', 'tasks'
@@ -61,12 +61,38 @@ BEGIN
 END;
 $$;
 
--- 4. Enable RLS and Audit
-ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins can manage permissions" ON public.role_permissions FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin'));
-CREATE POLICY "Everyone can view permissions" ON public.role_permissions FOR SELECT TO authenticated USING (true);
+-- 4. Security
+DO $$
+BEGIN
+  ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
-CREATE TRIGGER trg_role_permissions_updated_at BEFORE UPDATE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER trg_audit_role_permissions AFTER INSERT OR UPDATE OR DELETE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+DO $$
+BEGIN
+  CREATE POLICY "Admins can manage permissions" ON public.role_permissions FOR ALL TO authenticated 
+    USING (public.has_role(auth.uid(), 'admin'));
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  CREATE POLICY "Authenticated users can view permissions" ON public.role_permissions FOR SELECT TO authenticated 
+    USING (true);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+-- 4. Audit
+DO $$
+BEGIN
+  CREATE TRIGGER trg_role_permissions_updated_at BEFORE UPDATE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  CREATE TRIGGER trg_audit_role_permissions AFTER INSERT OR UPDATE OR DELETE ON public.role_permissions FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 COMMENT ON TABLE public.role_permissions IS 'Centralized matrix controlling role-based access to every module and action in DCOS.';
