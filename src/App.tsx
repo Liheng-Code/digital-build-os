@@ -18,6 +18,7 @@ import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
 import Approvals from "./pages/Approvals";
 import Workload from "./pages/Workload";
+import Permissions from "./pages/Permissions";
 import Timesheets from "./pages/Timesheets";
 import Payroll from "./pages/Payroll";
 import Documents from "./pages/Documents";
@@ -174,6 +175,16 @@ const App = () => (
                       </AppLayout>
                     </ProtectedRoute>
                   }
+                />
+                <Route 
+                  path="/permissions" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Permissions />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
                 />
                 <Route
                   path="/settings"

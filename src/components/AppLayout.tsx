@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -60,7 +61,8 @@ interface NavItem {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles?: AppRole[]; // if omitted, available to everyone signed in
+  roles?: AppRole[]; // legacy role-based
+  module?: string; // dynamic permission-based
 }
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -69,24 +71,24 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard },
       { to: "/project-details", label: "Project Info", icon: Info },
-      { to: "/projects", label: "Projects", icon: FolderKanban },
-      { to: "/wbs", label: "WBS", icon: Network },
+      { to: "/projects", label: "Projects", icon: FolderKanban, module: "projects" },
+      { to: "/wbs", label: "WBS", icon: Network, module: "wbs" },
     ],
   },
   {
     label: "Work",
     items: [
-      { to: "/tasks", label: "Tasks", icon: ClipboardList },
-      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck,
+      { to: "/tasks", label: "Tasks", icon: ClipboardList, module: "tasks" },
+      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
         roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
-      { to: "/timesheets", label: "Timesheets", icon: Clock },
-      { to: "/approvals", label: "Approvals", icon: CheckSquare,
+      { to: "/timesheets", label: "Timesheets", icon: Clock, module: "timesheets" },
+      { to: "/approvals", label: "Approvals", icon: CheckSquare, module: "approvals",
         roles: ["admin", "project_manager", "supervisor", "accountant", "qaqc_inspector"] },
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/materials", label: "Materials", icon: Package },
-      { to: "/rfis", label: "RFIs", icon: HelpCircle },
-      { to: "/financials", label: "Financials", icon: DollarSign },
+      { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
+      { to: "/financials", label: "Financials", icon: DollarSign, module: "financials" },
       { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
     ],
   },
@@ -100,7 +102,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Insights",
     items: [
-      { to: "/analytics", label: "Progress & Analytics", icon: BarChart2 },
+      { to: "/analytics", label: "Progress & Analytics", icon: BarChart2, module: "analytics" },
       { to: "/reports", label: "Reports", icon: BarChart3 },
       { to: "/documents", label: "Document Register", icon: FileText },
       { to: "/transmittals", label: "Transmittals", icon: Mail },
@@ -109,26 +111,35 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Disciplines",
     items: [
-      { to: "/architecture", label: "Architecture", icon: Layout },
+      { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
     ],
   },
   {
     label: "Administration",
     items: [
-      { to: "/stakeholders", label: "Stakeholders", icon: Building2, roles: ["admin", "project_manager"] },
+      { to: "/stakeholders", label: "Stakeholders", icon: Building2, module: "stakeholders", roles: ["admin", "project_manager"] },
       { to: "/team", label: "Team & Roles", icon: Users, roles: ["admin"] },
+      { to: "/permissions", label: "Permissions", icon: ShieldCheck, roles: ["admin"] },
       { to: "/audit", label: "Audit Log", icon: ShieldCheck, roles: ["admin"] },
-      { to: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
+      { to: "/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
 
 function AppSidebar() {
   const { roles } = useAuth();
+  const { can } = usePermissions();
   const { totalTaskUnread } = useTaskUnread();
   const { totalApprovalUnread } = useApprovalUnread();
-  const canSee = (item: NavItem) =>
-    !item.roles || item.roles.some((r) => roles.includes(r));
+  
+  const canSee = (item: NavItem) => {
+    // If it has a module, check dynamic permissions
+    if (item.module) {
+      return can("view", item.module);
+    }
+    // Fallback to legacy roles check
+    return !item.roles || item.roles.some((r) => roles.includes(r));
+  };
 
   const badgeFor = (to: string): number => {
     if (to === "/tasks") return totalTaskUnread;
