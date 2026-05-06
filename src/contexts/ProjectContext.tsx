@@ -16,6 +16,7 @@ export interface Project {
   start_date: string | null;
   end_date: string | null;
   budget: number | null;
+  description: string | null;
 }
 
 interface ProjectContextValue {

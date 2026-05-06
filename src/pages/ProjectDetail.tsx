@@ -11,6 +11,20 @@ import {
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ProjectStakeholdersTab } from "@/components/projects/ProjectStakeholdersTab";
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, 
+  DialogDescription, DialogFooter 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+} from "@/components/ui/select";
+import { useStakeholders } from "@/hooks/useStakeholders";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2, Save } from "lucide-react";
 
 const STATUS_TONE: Record<string, string> = {
   planning: "bg-neutral-status-soft text-neutral-status",
@@ -21,7 +35,54 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export default function ProjectDetails() {
-  const { activeProject } = useProjects();
+  const { activeProject, refresh } = useProjects();
+  const { stakeholdersQuery } = useStakeholders();
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [selectedClientId, setSelectedClientId] = React.useState<string | undefined>(undefined);
+
+  const clients = React.useMemo(() => 
+    stakeholdersQuery.data?.filter(s => s.type === "client") || [],
+    [stakeholdersQuery.data]
+  );
+
+  React.useEffect(() => {
+    if (activeProject) {
+      setSelectedClientId(activeProject.client_id || undefined);
+    }
+  }, [activeProject, isEditDialogOpen]);
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!activeProject) return;
+
+    const fd = new FormData(e.currentTarget);
+    const updates = {
+      name: fd.get("name") as string,
+      client_id: selectedClientId || null,
+      status: fd.get("status") as any,
+      location: fd.get("location") as string || null,
+      start_date: fd.get("start_date") as string || null,
+      end_date: fd.get("end_date") as string || null,
+      budget: fd.get("budget") ? Number(fd.get("budget")) : null,
+      description: fd.get("description") as string || null,
+    };
+
+    setIsSaving(true);
+    const { error } = await supabase
+      .from("projects")
+      .update(updates)
+      .eq("id", activeProject.id);
+    
+    setIsSaving(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Project updated successfully");
+      setIsEditDialogOpen(false);
+      await refresh();
+    }
+  };
 
   if (!activeProject) {
     return (
@@ -57,7 +118,9 @@ export default function ProjectDetails() {
             <h1 className="text-3xl font-bold tracking-tight">{activeProject.name}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">Edit Project</Button>
+            <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
+              Edit Project
+            </Button>
           </div>
         </div>
       </div>
@@ -141,6 +204,95 @@ export default function ProjectDetails() {
           <ProjectStakeholdersTab projectId={activeProject.id} />
         </TabsContent>
       </Tabs>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Project Details</DialogTitle>
+            <DialogDescription>
+              Update the core information for {activeProject.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSave} className="space-y-4 pt-2">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-1">
+                <Label>Code</Label>
+                <Input value={activeProject.code} disabled className="bg-muted" />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input id="name" name="name" defaultValue={activeProject.name} required />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="client_id">Client Organization</Label>
+                <Select 
+                  name="client_id" 
+                  defaultValue={activeProject.client_id || "none"}
+                  onValueChange={(val) => setSelectedClientId(val === "none" ? undefined : val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Internal / None</SelectItem>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.organization_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="status">Status *</Label>
+                <Select name="status" defaultValue={activeProject.status}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(PROJECT_STATUS_LABELS) as any[]).map((s) => (
+                      <SelectItem key={s} value={s}>{PROJECT_STATUS_LABELS[s]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="location">Site Location</Label>
+              <Input id="location" name="location" defaultValue={activeProject.location || ""} />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="start_date">Start Date</Label>
+                <Input id="start_date" name="start_date" type="date" defaultValue={activeProject.start_date || ""} />
+              </div>
+              <div>
+                <Label htmlFor="end_date">End Date</Label>
+                <Input id="end_date" name="end_date" type="date" defaultValue={activeProject.end_date || ""} />
+              </div>
+              <div>
+                <Label htmlFor="budget">Budget</Label>
+                <Input id="budget" name="budget" type="number" step="0.01" defaultValue={activeProject.budget || ""} />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" name="description" defaultValue={activeProject.description || ""} rows={3} />
+            </div>
+
+            <DialogFooter className="pt-4 border-t">
+              <Button type="button" variant="ghost" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
