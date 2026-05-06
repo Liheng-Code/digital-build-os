@@ -10,6 +10,7 @@ import { Loader2, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DepartmentMembersTab } from "@/components/settings/DepartmentMembersTab";
 import { ProjectHolidaysTab } from "@/components/settings/ProjectHolidaysTab";
+import { CompanyProfileTab } from "@/components/settings/CompanyProfileTab";
 
 export default function Settings() {
   const { user, profile, refreshProfile, hasRole } = useAuth();
@@ -64,6 +65,7 @@ export default function Settings() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="holidays">Project holidays</TabsTrigger>
           {isAdmin && <TabsTrigger value="departments">Departments</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="company">Company Profile</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="holidays" className="mt-4">
@@ -112,6 +114,12 @@ export default function Settings() {
         {isAdmin && (
           <TabsContent value="departments" className="mt-4">
             <DepartmentMembersTab />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="company" className="mt-4">
+            <CompanyProfileTab />
           </TabsContent>
         )}
       </Tabs>
