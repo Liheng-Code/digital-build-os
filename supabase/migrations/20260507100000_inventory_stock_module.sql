@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS stock_receipts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   receipt_number VARCHAR(50) NOT NULL UNIQUE,
   po_id UUID REFERENCES purchase_orders(id) ON DELETE SET NULL,
-  grn_id UUID REFERENCES goods_received_notes(id) ON DELETE SET NULL,
+  grn_id UUID REFERENCES grns(id) ON DELETE SET NULL,
   receipt_date DATE NOT NULL,
   status stock_receipt_status DEFAULT 'pending_inspection',
   supplier_name VARCHAR(255),
@@ -172,36 +172,83 @@ CREATE TABLE IF NOT EXISTS stock_adjustment_items (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Stock Balance Materialized View
-CREATE MATERIALIZED VIEW IF NOT EXISTS stock_balances AS
+-- Stock Balance Materialized View (fixed to avoid cartesian product)
+CREATE OR REPLACE VIEW stock_balances AS
+WITH receipt_totals AS (
+  SELECT 
+    sri.inventory_item_id,
+    COALESCE(SUM(CASE WHEN sr.status = 'accepted' THEN sri.accepted_quantity ELSE 0 END), 0) AS total_receipts
+  FROM stock_receipt_items sri
+  LEFT JOIN stock_receipts sr ON sri.stock_receipt_id = sr.id
+  GROUP BY sri.inventory_item_id
+),
+issue_totals AS (
+  SELECT 
+    sii.inventory_item_id,
+    COALESCE(SUM(CASE WHEN si.status = 'issued' THEN sii.quantity_issued ELSE 0 END), 0) AS total_issues
+  FROM stock_issue_items sii
+  LEFT JOIN stock_issues si ON sii.stock_issue_id = si.id
+  GROUP BY sii.inventory_item_id
+),
+transfer_in_totals AS (
+  SELECT 
+    sti.inventory_item_id,
+    COALESCE(SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END), 0) AS total_transfers_in
+  FROM stock_transfer_items sti
+  LEFT JOIN stock_transfers st ON sti.stock_transfer_id = st.id
+  WHERE st.to_wbs_node_id IS NOT NULL
+  GROUP BY sti.inventory_item_id
+),
+transfer_out_totals AS (
+  SELECT 
+    sti.inventory_item_id,
+    COALESCE(SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END), 0) AS total_transfers_out
+  FROM stock_transfer_items sti
+  LEFT JOIN stock_transfers st ON sti.stock_transfer_id = st.id
+  WHERE st.from_wbs_node_id IS NOT NULL
+  GROUP BY sti.inventory_item_id
+),
+adjustment_add_totals AS (
+  SELECT 
+    sai.inventory_item_id,
+    COALESCE(SUM(CASE WHEN sa.adjustment_type = 'add' THEN sai.quantity_adjusted ELSE 0 END), 0) AS total_adjustments_add
+  FROM stock_adjustment_items sai
+  LEFT JOIN stock_adjustments sa ON sai.stock_adjustment_id = sa.id
+  GROUP BY sai.inventory_item_id
+),
+adjustment_subtract_totals AS (
+  SELECT 
+    sai.inventory_item_id,
+    COALESCE(SUM(CASE WHEN sa.adjustment_type = 'subtract' THEN sai.quantity_adjusted ELSE 0 END), 0) AS total_adjustments_subtract
+  FROM stock_adjustment_items sai
+  LEFT JOIN stock_adjustments sa ON sai.stock_adjustment_id = sa.id
+  GROUP BY sai.inventory_item_id
+)
 SELECT 
   i.id AS inventory_item_id,
   i.code AS item_code,
   i.name AS item_name,
   i.unit_of_measure,
-  COALESCE(SUM(CASE WHEN sr.status = 'accepted' THEN sri.accepted_quantity ELSE 0 END), 0) AS total_receipts,
-  COALESCE(SUM(CASE WHEN si.status = 'issued' THEN sii.quantity_issued ELSE 0 END), 0) AS total_issues,
-  COALESCE(SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END), 0) AS total_transfers_in,
-  COALESCE(SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END), 0) AS total_transfers_out,
-  COALESCE(SUM(CASE WHEN sa.adjustment_type = 'add' THEN sai.quantity_adjusted ELSE 0 END), 0) AS total_adjustments_add,
-  COALESCE(SUM(CASE WHEN sa.adjustment_type = 'subtract' THEN sai.quantity_adjusted ELSE 0 END), 0) AS total_adjustments_subtract,
-  (COALESCE(SUM(CASE WHEN sr.status = 'accepted' THEN sri.accepted_quantity ELSE 0 END), 0) 
-   + COALESCE(SUM(CASE WHEN st.status = 'completed' AND st.to_wbs_node_id IS NOT NULL THEN sti.quantity_transferred ELSE 0 END), 0)
-   + COALESCE(SUM(CASE WHEN sa.adjustment_type = 'add' THEN sai.quantity_adjusted ELSE 0 END), 0)
-   - COALESCE(SUM(CASE WHEN si.status = 'issued' THEN sii.quantity_issued ELSE 0 END), 0)
-   - COALESCE(SUM(CASE WHEN st.status = 'completed' AND st.from_wbs_node_id IS NOT NULL THEN sti.quantity_transferred ELSE 0 END), 0)
-   - COALESCE(SUM(CASE WHEN sa.adjustment_type = 'subtract' THEN sai.quantity_adjusted ELSE 0 END), 0)
+  COALESCE(rt.total_receipts, 0) AS total_receipts,
+  COALESCE(it.total_issues, 0) AS total_issues,
+  COALESCE(tin.total_transfers_in, 0) AS total_transfers_in,
+  COALESCE(tout.total_transfers_out, 0) AS total_transfers_out,
+  COALESCE(aa.total_adjustments_add, 0) AS total_adjustments_add,
+  COALESCE(asub.total_adjustments_subtract, 0) AS total_adjustments_subtract,
+  (COALESCE(rt.total_receipts, 0) 
+   + COALESCE(tin.total_transfers_in, 0)
+   + COALESCE(aa.total_adjustments_add, 0)
+   - COALESCE(it.total_issues, 0)
+   - COALESCE(tout.total_transfers_out, 0)
+   - COALESCE(asub.total_adjustments_subtract, 0)
   ) AS current_balance
 FROM inventory_items i
-LEFT JOIN stock_receipt_items sri ON i.id = sri.inventory_item_id
-LEFT JOIN stock_receipts sr ON sri.stock_receipt_id = sr.id
-LEFT JOIN stock_issue_items sii ON i.id = sii.inventory_item_id
-LEFT JOIN stock_issues si ON sii.stock_issue_id = si.id
-LEFT JOIN stock_transfer_items sti ON i.id = sti.inventory_item_id
-LEFT JOIN stock_transfers st ON sti.stock_transfer_id = st.id
-LEFT JOIN stock_adjustment_items sai ON i.id = sai.inventory_item_id
-LEFT JOIN stock_adjustments sa ON sai.stock_adjustment_id = sa.id
-GROUP BY i.id, i.code, i.name, i.unit_of_measure;
+LEFT JOIN receipt_totals rt ON i.id = rt.inventory_item_id
+LEFT JOIN issue_totals it ON i.id = it.inventory_item_id
+LEFT JOIN transfer_in_totals tin ON i.id = tin.inventory_item_id
+LEFT JOIN transfer_out_totals tout ON i.id = tout.inventory_item_id
+LEFT JOIN adjustment_add_totals aa ON i.id = aa.inventory_item_id
+LEFT JOIN adjustment_subtract_totals asub ON i.id = asub.inventory_item_id;
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_inventory_items_wbs_node_id ON inventory_items(wbs_node_id);
@@ -281,14 +328,14 @@ CREATE POLICY "Allow authenticated insert stock_adjustment_items" ON stock_adjus
 CREATE POLICY "Allow authenticated update stock_adjustment_items" ON stock_adjustment_items FOR UPDATE USING (auth.role() = 'authenticated');
 
 -- Updated_at Triggers (reuse existing function from construction module)
-CREATE TRIGGER update_inventory_items_updated_at BEFORE UPDATE ON inventory_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_receipts_updated_at BEFORE UPDATE ON stock_receipts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_receipt_items_updated_at BEFORE UPDATE ON stock_receipt_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_material_requests_updated_at BEFORE UPDATE ON material_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_material_request_items_updated_at BEFORE UPDATE ON material_request_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_issues_updated_at BEFORE UPDATE ON stock_issues FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_issue_items_updated_at BEFORE UPDATE ON stock_issue_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_transfers_updated_at BEFORE UPDATE ON stock_transfers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_transfer_items_updated_at BEFORE UPDATE ON stock_transfer_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_adjustments_updated_at BEFORE UPDATE ON stock_adjustments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_stock_adjustment_items_updated_at BEFORE UPDATE ON stock_adjustment_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_inventory_items_updated_at BEFORE UPDATE ON inventory_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_receipts_updated_at BEFORE UPDATE ON stock_receipts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_receipt_items_updated_at BEFORE UPDATE ON stock_receipt_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_material_requests_updated_at BEFORE UPDATE ON material_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_material_request_items_updated_at BEFORE UPDATE ON material_request_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_issues_updated_at BEFORE UPDATE ON stock_issues FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_issue_items_updated_at BEFORE UPDATE ON stock_issue_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_transfers_updated_at BEFORE UPDATE ON stock_transfers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_transfer_items_updated_at BEFORE UPDATE ON stock_transfer_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_adjustments_updated_at BEFORE UPDATE ON stock_adjustments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER update_stock_adjustment_items_updated_at BEFORE UPDATE ON stock_adjustment_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
