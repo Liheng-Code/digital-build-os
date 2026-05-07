@@ -43,6 +43,16 @@ import Stakeholders from "./pages/Stakeholders";
 import Transmittals from "./pages/Transmittals";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
 import RFIs from "./pages/RFIs";
+import RFQs from "./pages/RFQs";
+import RFQDetail from "./pages/RFQDetail";
+import POs from "./pages/POs";
+import PODetail from "./pages/PODetail";
+import Invoices from "./pages/Invoices";
+import InvoiceDetail from "./pages/InvoiceDetail";
+import GRNs from "./pages/GRNs";
+import GRNDetail from "./pages/GRNDetail";
+import Budgets from "./pages/Budgets";
+import BudgetDetail from "./pages/BudgetDetail";
 import ProjectDetail from "./pages/ProjectDetail";
 import NotFound from "./pages/NotFound";
 
@@ -126,6 +136,106 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <Procurement />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/rfqs"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <RFQs />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/rfq/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <RFQDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/pos"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <POs />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/po/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <PODetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/invoices"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Invoices />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/invoice/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <InvoiceDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/grns"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <GRNs />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/grn/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <GRNDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/budgets"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Budgets />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/budget/:id"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <BudgetDetail />
                       </AppLayout>
                     </ProtectedRoute>
                   }

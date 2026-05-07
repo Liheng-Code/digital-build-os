@@ -7,21 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Package, 
-  ShoppingCart, 
-  Plus, 
-  Search, 
-  Filter, 
-  ArrowRight, 
-  ClipboardList, 
-  CheckCircle2, 
-  Clock,
-  Building,
-  Layers,
-  ArrowUpRight,
-  Loader2
-} from "lucide-react";
+import { Package, ShoppingCart, Plus, Search, Filter, ArrowRight, ClipboardList, CheckCircle2, Clock, Building, Layers, ArrowUpRight, Loader2, FileText } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { 
@@ -41,6 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function Procurement() {
   const { activeProject } = useProjects();
@@ -123,62 +118,63 @@ export default function Procurement() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="mto">MTO from RDS</TabsTrigger>
-          <TabsTrigger value="prs">Purchase Requisitions</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard" className="space-y-4">
-          <div className="grid md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase">Pending PRs</p>
-                    <div className="text-2xl font-bold">{prs.filter(p => p.status === 'submitted').length}</div>
-                  </div>
-                  <Clock className="h-8 w-8 text-amber-500 opacity-20" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase">Total Approved</p>
-                    <div className="text-2xl font-bold">{prs.filter(p => p.status === 'approved').length}</div>
-                  </div>
-                  <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-20" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase">Catalogue Items</p>
-                    <div className="text-2xl font-bold">{catalog.length}</div>
-                  </div>
-                  <Package className="h-8 w-8 text-blue-500 opacity-20" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase">Budget Utilized</p>
-                    <div className="text-2xl font-bold text-emerald-600">
-                      ${prs.filter(p => p.status === 'approved').reduce((acc, p) => acc + (p.total_estimate || 0), 0).toLocaleString()}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="mto">MTO from RDS</TabsTrigger>
+            <TabsTrigger value="prs">Purchase Requisitions</TabsTrigger>
+            <TabsTrigger value="rfqs">RFQs</TabsTrigger>
+          </TabsList>
+           
+          <TabsContent value="dashboard" className="space-y-4">
+            <div className="grid md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase">Pending PRs</p>
+                      <div className="text-2xl font-bold">{prs.filter(p => p.status === 'submitted').length}</div>
                     </div>
+                    <Clock className="h-8 w-8 text-amber-500 opacity-20" />
                   </div>
-                  <ArrowUpRight className="h-8 w-8 text-emerald-500 opacity-20" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase">Total Approved</p>
+                      <div className="text-2xl font-bold">{prs.filter(p => p.status === 'approved').length}</div>
+                    </div>
+                    <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-20" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase">Catalogue Items</p>
+                      <div className="text-2xl font-bold">{catalog.length}</div>
+                    </div>
+                    <Package className="h-8 w-8 text-blue-500 opacity-20" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase">Budget Utilized</p>
+                      <div className="text-2xl font-bold text-emerald-600">
+                        ${prs.filter(p => p.status === 'approved').reduce((acc, p) => acc + (p.total_estimate || 0), 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <ArrowUpRight className="h-8 w-8 text-emerald-500 opacity-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
           <Card>
             <CardHeader>
@@ -242,8 +238,32 @@ export default function Procurement() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          <TabsContent value="rfqs" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Request for Quotation (RFQ)</CardTitle>
+                    <CardDescription>Manage supplier bidding and quotation process</CardDescription>
+                  </div>
+                  <Button asChild className="gap-2">
+                    <Link to="/procurement/rfqs">
+                      <FileText className="h-4 w-4" /> View All RFQs
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                  Click "View All RFQs" to manage your Request for Quotations, invite suppliers, and compare quotations.
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
     </div>
   );
 }
@@ -408,15 +428,6 @@ function MtoDetailView({ room, rds, catalog }: any) {
     </>
   );
 }
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 function MaterialCatalogManager({ catalog, onRefresh }: any) {
   const [submitting, setSubmitting] = React.useState(false);
