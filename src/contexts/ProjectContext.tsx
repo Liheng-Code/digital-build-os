@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
+// Trigger Lovable rebuild: v1.0.1
+
 export interface Project {
   id: string;
   code: string;
