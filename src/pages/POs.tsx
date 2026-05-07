@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useProjects } from "@/contexts/ProjectContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchPOById, fetchApprovedQuotations, createPO, PurchaseOrder } from "@/services/poService";
