@@ -8,29 +8,39 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
--- 2. Create Purchase Orders table
+-- 2. Create Purchase Orders table (if not exists with minimal columns)
 CREATE TABLE IF NOT EXISTS public.purchase_orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
-  rfq_id uuid REFERENCES public.rfq(id) ON DELETE SET NULL,
-  quotation_id uuid REFERENCES public.supplier_quotations(id) ON DELETE SET NULL,
   po_number text NOT NULL UNIQUE DEFAULT 'PO-' || to_char(now(), 'YYYYMMDD-') || nextval('po_number_seq'),
-  supplier_id uuid NOT NULL REFERENCES public.suppliers(id) ON DELETE RESTRICT,
   status public.po_status NOT NULL DEFAULT 'draft',
   po_date date NOT NULL DEFAULT CURRENT_DATE,
-  delivery_terms text DEFAULT 'Standard',
-  payment_terms text DEFAULT 'Net 30',
   total_amount numeric(15,2) NOT NULL DEFAULT 0,
-  currency text DEFAULT 'USD',
-  expected_delivery date,
-  actual_delivery date,
-  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  approved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  approved_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  notes text
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- 3. Add missing columns to existing purchase_orders table
+ALTER TABLE public.purchase_orders 
+  ADD COLUMN IF NOT EXISTS rfq_id uuid REFERENCES public.rfq(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS quotation_id uuid REFERENCES public.supplier_quotations(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS supplier_id uuid REFERENCES public.suppliers(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS delivery_terms text DEFAULT 'Standard',
+  ADD COLUMN IF NOT EXISTS payment_terms text DEFAULT 'Net 30',
+  ADD COLUMN IF NOT EXISTS currency text DEFAULT 'USD',
+  ADD COLUMN IF NOT EXISTS expected_delivery date,
+  ADD COLUMN IF NOT EXISTS actual_delivery date,
+  ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS approved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS approved_at timestamptz,
+  ADD COLUMN IF NOT EXISTS notes text;
+
+-- Make supplier_id NOT NULL after adding it (only if data allows)
+DO $$
+BEGIN
+  ALTER TABLE public.purchase_orders ALTER COLUMN supplier_id SET NOT NULL;
+EXCEPTION WHEN others THEN null;
+END $$;
 
 -- Create sequence for PO number generation (safe)
 DO $$
@@ -39,7 +49,7 @@ BEGIN
 EXCEPTION WHEN duplicate_table THEN null;
 END $$;
 
--- 3. Create PO Items table
+-- 4. Create PO Items table
 CREATE TABLE IF NOT EXISTS public.po_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   po_id uuid NOT NULL REFERENCES public.purchase_orders(id) ON DELETE CASCADE,
@@ -53,66 +63,54 @@ CREATE TABLE IF NOT EXISTS public.po_items (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- 4. Enable Row Level Security
+-- 5. Enable Row Level Security
 ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_items ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS Policies for Purchase Orders (safe creation)
-DO $$
-BEGIN
-  CREATE POLICY "Project members can view POs"
-    ON public.purchase_orders FOR SELECT
-    USING (EXISTS (
-        SELECT 1 FROM public.project_members
-        WHERE project_members.project_id = purchase_orders.project_id
-        AND project_members.user_id = auth.uid()
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+-- 6. Drop and recreate policies (safe)
+DROP POLICY IF EXISTS "Project members can view POs" ON public.purchase_orders;
+DROP POLICY IF EXISTS "Procurement staff can manage POs" ON public.purchase_orders;
+DROP POLICY IF EXISTS "Project members can view PO items" ON public.po_items;
+DROP POLICY IF EXISTS "Procurement staff can manage PO items" ON public.po_items;
 
-DO $$
-BEGIN
-  CREATE POLICY "Procurement staff can manage POs"
-    ON public.purchase_orders FOR ALL
-    USING (EXISTS (
-        SELECT 1 FROM public.role_permissions rp
-        JOIN public.user_roles ur ON rp.role = ur.role
-        WHERE ur.user_id = auth.uid()
-        AND rp.module = 'procurement'
-        AND rp.action = 'create'
-        AND rp.is_allowed = true
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+CREATE POLICY "Project members can view POs"
+  ON public.purchase_orders FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.project_members
+    WHERE project_members.project_id = purchase_orders.project_id
+    AND project_members.user_id = auth.uid()
+  ));
 
--- 6. RLS Policies for PO Items (safe creation)
-DO $$
-BEGIN
-  CREATE POLICY "Project members can view PO items"
-    ON public.po_items FOR SELECT
-    USING (EXISTS (
-        SELECT 1 FROM public.purchase_orders po
-        JOIN public.project_members pm ON pm.project_id = po.project_id
-        WHERE po.id = po_items.po_id
-        AND pm.user_id = auth.uid()
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+CREATE POLICY "Procurement staff can manage POs"
+  ON public.purchase_orders FOR ALL
+  USING (EXISTS (
+    SELECT 1 FROM public.role_permissions rp
+    JOIN public.user_roles ur ON rp.role = ur.role
+    WHERE ur.user_id = auth.uid()
+    AND rp.module = 'procurement'
+    AND rp.action = 'create'
+    AND rp.is_allowed = true
+  ));
 
-DO $$
-BEGIN
-  CREATE POLICY "Procurement staff can manage PO items"
-    ON public.po_items FOR ALL
-    USING (EXISTS (
-        SELECT 1 FROM public.role_permissions rp
-        JOIN public.user_roles ur ON rp.role = ur.role
-        WHERE ur.user_id = auth.uid()
-        AND rp.module = 'procurement'
-        AND rp.action = 'create'
-        AND rp.is_allowed = true
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+CREATE POLICY "Project members can view PO items"
+  ON public.po_items FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.purchase_orders po
+    JOIN public.project_members pm ON pm.project_id = po.project_id
+    WHERE po.id = po_items.po_id
+    AND pm.user_id = auth.uid()
+  ));
+
+CREATE POLICY "Procurement staff can manage PO items"
+  ON public.po_items FOR ALL
+  USING (EXISTS (
+    SELECT 1 FROM public.role_permissions rp
+    JOIN public.user_roles ur ON rp.role = ur.role
+    WHERE ur.user_id = auth.uid()
+    AND rp.module = 'procurement'
+    AND rp.action = 'create'
+    AND rp.is_allowed = true
+  ));
 
 -- 7. Updated_at trigger for PO
 CREATE OR REPLACE FUNCTION public.handle_po_updated_at()
@@ -123,13 +121,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-  CREATE TRIGGER handle_po_updated_at
-    BEFORE UPDATE ON public.purchase_orders
-    FOR EACH ROW EXECUTE FUNCTION public.handle_po_updated_at();
-EXCEPTION WHEN others THEN null;
-END $$;
+DROP TRIGGER IF EXISTS handle_po_updated_at ON public.purchase_orders;
+CREATE TRIGGER handle_po_updated_at
+  BEFORE UPDATE ON public.purchase_orders
+  FOR EACH ROW EXECUTE FUNCTION public.handle_po_updated_at();
 
 -- 8. Performance indexes
 CREATE INDEX IF NOT EXISTS idx_purchase_orders_project_id ON public.purchase_orders(project_id);
