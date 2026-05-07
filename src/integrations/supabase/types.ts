@@ -14,6 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
+      architecture_door_schedule: {
+        Row: {
+          created_at: string
+          door_type: string | null
+          fire_rating: string | null
+          hardware_set: string | null
+          height_mm: number | null
+          id: string
+          mark_number: string
+          thickness_mm: number | null
+          updated_at: string
+          wbs_node_id: string
+          width_mm: number | null
+        }
+        Insert: {
+          created_at?: string
+          door_type?: string | null
+          fire_rating?: string | null
+          hardware_set?: string | null
+          height_mm?: number | null
+          id?: string
+          mark_number: string
+          thickness_mm?: number | null
+          updated_at?: string
+          wbs_node_id: string
+          width_mm?: number | null
+        }
+        Update: {
+          created_at?: string
+          door_type?: string | null
+          fire_rating?: string | null
+          hardware_set?: string | null
+          height_mm?: number | null
+          id?: string
+          mark_number?: string
+          thickness_mm?: number | null
+          updated_at?: string
+          wbs_node_id?: string
+          width_mm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architecture_door_schedule_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      architecture_room_data: {
+        Row: {
+          ceiling_finish: string | null
+          cornice_finish: string | null
+          created_at: string
+          floor_finish: string | null
+          id: string
+          mep_requirements: Json | null
+          remarks: string | null
+          skirting_finish: string | null
+          updated_at: string
+          wall_finish: string | null
+          wbs_node_id: string
+        }
+        Insert: {
+          ceiling_finish?: string | null
+          cornice_finish?: string | null
+          created_at?: string
+          floor_finish?: string | null
+          id?: string
+          mep_requirements?: Json | null
+          remarks?: string | null
+          skirting_finish?: string | null
+          updated_at?: string
+          wall_finish?: string | null
+          wbs_node_id: string
+        }
+        Update: {
+          ceiling_finish?: string | null
+          cornice_finish?: string | null
+          created_at?: string
+          floor_finish?: string | null
+          id?: string
+          mep_requirements?: Json | null
+          remarks?: string | null
+          skirting_finish?: string | null
+          updated_at?: string
+          wall_finish?: string | null
+          wbs_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architecture_room_data_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: true
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      architecture_window_schedule: {
+        Row: {
+          created_at: string
+          glazing_type: string | null
+          height_mm: number | null
+          id: string
+          mark_number: string
+          remarks: string | null
+          updated_at: string
+          wbs_node_id: string
+          width_mm: number | null
+          window_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          glazing_type?: string | null
+          height_mm?: number | null
+          id?: string
+          mark_number: string
+          remarks?: string | null
+          updated_at?: string
+          wbs_node_id: string
+          width_mm?: number | null
+          window_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          glazing_type?: string | null
+          height_mm?: number | null
+          id?: string
+          mark_number?: string
+          remarks?: string | null
+          updated_at?: string
+          wbs_node_id?: string
+          width_mm?: number | null
+          window_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architecture_window_schedule_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -167,6 +314,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          legal_name: string | null
+          logo_url: string | null
+          name: string
+          phone: string | null
+          registration_number: string | null
+          settings: Json | null
+          tax_id: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          registration_number?: string | null
+          settings?: Json | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          registration_number?: string | null
+          settings?: Json | null
+          tax_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       daily_delays: {
         Row: {
@@ -526,10 +721,15 @@ export type Database = {
           created_by: string | null
           current_version: number
           description: string | null
+          discipline: string | null
+          document_number: string | null
           id: string
           project_id: string
+          revision: string | null
+          status: Database["public"]["Enums"]["document_status"]
           title: string
           updated_at: string
+          wbs_node_id: string | null
         }
         Insert: {
           category?: string
@@ -537,10 +737,15 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           description?: string | null
+          discipline?: string | null
+          document_number?: string | null
           id?: string
           project_id: string
+          revision?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
           title: string
           updated_at?: string
+          wbs_node_id?: string | null
         }
         Update: {
           category?: string
@@ -548,10 +753,15 @@ export type Database = {
           created_by?: string | null
           current_version?: number
           description?: string | null
+          discipline?: string | null
+          document_number?: string | null
           id?: string
           project_id?: string
+          revision?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
           title?: string
           updated_at?: string
+          wbs_node_id?: string | null
         }
         Relationships: [
           {
@@ -559,6 +769,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
             referencedColumns: ["id"]
           },
         ]
@@ -918,6 +1135,42 @@ export type Database = {
           },
         ]
       }
+      material_catalog: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          default_price: number | null
+          description: string | null
+          id: string
+          name: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          default_price?: number | null
+          description?: string | null
+          id?: string
+          name: string
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          default_price?: number | null
+          description?: string | null
+          id?: string
+          name?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       material_issues: {
         Row: {
           id: string
@@ -1098,6 +1351,189 @@ export type Database = {
             columns: ["requested_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mep_drawings: {
+        Row: {
+          created_at: string
+          discipline: string
+          drawing_number: string
+          file_url: string | null
+          id: string
+          project_id: string
+          revision: string
+          status: string
+          title: string
+          updated_at: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          discipline?: string
+          drawing_number: string
+          file_url?: string | null
+          id?: string
+          project_id: string
+          revision?: string
+          status?: string
+          title: string
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          discipline?: string
+          drawing_number?: string
+          file_url?: string | null
+          id?: string
+          project_id?: string
+          revision?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_drawings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_drawings_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mep_equipment_schedules: {
+        Row: {
+          capacity: string | null
+          created_at: string
+          description: string
+          discipline: string
+          duty: string | null
+          id: string
+          make_model: string | null
+          project_id: string
+          status: string
+          tag_number: string
+          updated_at: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          capacity?: string | null
+          created_at?: string
+          description: string
+          discipline?: string
+          duty?: string | null
+          id?: string
+          make_model?: string | null
+          project_id: string
+          status?: string
+          tag_number: string
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          capacity?: string | null
+          created_at?: string
+          description?: string
+          discipline?: string
+          duty?: string | null
+          id?: string
+          make_model?: string | null
+          project_id?: string
+          status?: string
+          tag_number?: string
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_equipment_schedules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_equipment_schedules_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mep_sleeve_openings: {
+        Row: {
+          arc_approved: boolean
+          comments: string | null
+          coordination_status: string
+          created_at: string
+          discipline: string
+          element_type: string
+          id: string
+          location_description: string
+          project_id: string
+          reference_no: string
+          size_mm: string | null
+          str_approved: boolean
+          updated_at: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          arc_approved?: boolean
+          comments?: string | null
+          coordination_status?: string
+          created_at?: string
+          discipline?: string
+          element_type?: string
+          id?: string
+          location_description: string
+          project_id: string
+          reference_no: string
+          size_mm?: string | null
+          str_approved?: boolean
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          arc_approved?: boolean
+          comments?: string | null
+          coordination_status?: string
+          created_at?: string
+          discipline?: string
+          element_type?: string
+          id?: string
+          location_description?: string
+          project_id?: string
+          reference_no?: string
+          size_mm?: string | null
+          str_approved?: boolean
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_sleeve_openings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_sleeve_openings_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
             referencedColumns: ["id"]
           },
         ]
@@ -1378,9 +1814,68 @@ export type Database = {
         }
         Relationships: []
       }
+      pr_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          material_id: string | null
+          pr_id: string
+          quantity: number
+          total_price: number | null
+          unit_price: number
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          material_id?: string | null
+          pr_id: string
+          quantity: number
+          total_price?: number | null
+          unit_price: number
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          material_id?: string | null
+          pr_id?: string
+          quantity?: number
+          total_price?: number | null
+          unit_price?: number
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pr_items_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pr_items_pr_id_fkey"
+            columns: ["pr_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pr_items_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          company_id: string | null
           created_at: string
           employee_id: string | null
           full_name: string
@@ -1391,6 +1886,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          company_id?: string | null
           created_at?: string
           employee_id?: string | null
           full_name?: string
@@ -1401,6 +1897,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          company_id?: string | null
           created_at?: string
           employee_id?: string | null
           full_name?: string
@@ -1409,7 +1906,15 @@ export type Database = {
           phone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       progress_claims: {
         Row: {
@@ -1523,11 +2028,55 @@ export type Database = {
           },
         ]
       }
+      project_stakeholders: {
+        Row: {
+          added_at: string
+          approval_authority: boolean
+          id: string
+          project_id: string
+          project_role: string | null
+          stakeholder_id: string
+        }
+        Insert: {
+          added_at?: string
+          approval_authority?: boolean
+          id?: string
+          project_id: string
+          project_role?: string | null
+          stakeholder_id: string
+        }
+        Update: {
+          added_at?: string
+          approval_authority?: boolean
+          id?: string
+          project_id?: string
+          project_role?: string | null
+          stakeholder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stakeholders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_stakeholders_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           budget: number | null
+          client_id: string | null
           client_name: string | null
           code: string
+          company_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1541,8 +2090,10 @@ export type Database = {
         }
         Insert: {
           budget?: number | null
+          client_id?: string | null
           client_name?: string | null
           code: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1556,8 +2107,10 @@ export type Database = {
         }
         Update: {
           budget?: number | null
+          client_id?: string | null
           client_name?: string | null
           code?: string
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1569,7 +2122,22 @@ export type Database = {
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       punch_list_items: {
         Row: {
@@ -1758,6 +2326,124 @@ export type Database = {
           },
         ]
       }
+      purchase_requisitions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          pr_number: string
+          project_id: string
+          requested_by: string | null
+          required_date: string | null
+          status: Database["public"]["Enums"]["pr_status"]
+          subject: string
+          total_estimate: number | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          pr_number: string
+          project_id: string
+          requested_by?: string | null
+          required_date?: string | null
+          status?: Database["public"]["Enums"]["pr_status"]
+          subject: string
+          total_estimate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          pr_number?: string
+          project_id?: string
+          requested_by?: string | null
+          required_date?: string | null
+          status?: Database["public"]["Enums"]["pr_status"]
+          subject?: string
+          total_estimate?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requisitions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rds_material_takeoffs: {
+        Row: {
+          created_at: string
+          id: string
+          linked_pr_id: string | null
+          material_id: string
+          project_id: string
+          quantity: number
+          status: string | null
+          wbs_node_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_pr_id?: string | null
+          material_id: string
+          project_id: string
+          quantity: number
+          status?: string | null
+          wbs_node_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_pr_id?: string | null
+          material_id?: string
+          project_id?: string
+          quantity?: number
+          status?: string | null
+          wbs_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rds_material_takeoffs_linked_pr_id_fkey"
+            columns: ["linked_pr_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_material_takeoffs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_material_takeoffs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rds_material_takeoffs_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resource_rates: {
         Row: {
           created_at: string | null
@@ -1786,6 +2472,389 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfi_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          rfi_id: string
+          size_bytes: number | null
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          rfi_id: string
+          size_bytes?: number | null
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          rfi_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfi_attachments_rfi_id_fkey"
+            columns: ["rfi_id"]
+            isOneToOne: false
+            referencedRelation: "rfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfi_responses: {
+        Row: {
+          created_at: string
+          id: string
+          is_official_answer: boolean | null
+          responded_by: string | null
+          response: string
+          rfi_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_official_answer?: boolean | null
+          responded_by?: string | null
+          response: string
+          rfi_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_official_answer?: boolean | null
+          responded_by?: string | null
+          response?: string
+          rfi_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfi_responses_rfi_id_fkey"
+            columns: ["rfi_id"]
+            isOneToOne: false
+            referencedRelation: "rfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfis: {
+        Row: {
+          assigned_to_stakeholder_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          cost_impact: boolean | null
+          created_at: string
+          created_by: string | null
+          discipline: string
+          due_date: string | null
+          id: string
+          priority: Database["public"]["Enums"]["rfi_priority"]
+          project_id: string
+          question: string
+          rfi_number: string
+          schedule_impact: boolean | null
+          status: Database["public"]["Enums"]["rfi_status"]
+          subject: string
+          suggested_solution: string | null
+          updated_at: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          assigned_to_stakeholder_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_impact?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          discipline: string
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["rfi_priority"]
+          project_id: string
+          question: string
+          rfi_number: string
+          schedule_impact?: boolean | null
+          status?: Database["public"]["Enums"]["rfi_status"]
+          subject: string
+          suggested_solution?: string | null
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          assigned_to_stakeholder_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          cost_impact?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          discipline?: string
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["rfi_priority"]
+          project_id?: string
+          question?: string
+          rfi_number?: string
+          schedule_impact?: boolean | null
+          status?: Database["public"]["Enums"]["rfi_status"]
+          subject?: string
+          suggested_solution?: string | null
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfis_assigned_to_stakeholder_id_fkey"
+            columns: ["assigned_to_stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfis_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfis_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          is_allowed: boolean | null
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          is_allowed?: boolean | null
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          is_allowed?: boolean | null
+          module?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      safety_incidents: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          immediate_action_taken: string | null
+          incident_date: string
+          incident_number: string
+          project_id: string
+          reported_by: string | null
+          severity: Database["public"]["Enums"]["incident_severity"]
+          status: string
+          subject: string
+          type: Database["public"]["Enums"]["incident_type"]
+          updated_at: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          immediate_action_taken?: string | null
+          incident_date?: string
+          incident_number: string
+          project_id: string
+          reported_by?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: string
+          subject: string
+          type: Database["public"]["Enums"]["incident_type"]
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          immediate_action_taken?: string | null
+          incident_date?: string
+          incident_number?: string
+          project_id?: string
+          reported_by?: string | null
+          severity?: Database["public"]["Enums"]["incident_severity"]
+          status?: string
+          subject?: string
+          type?: Database["public"]["Enums"]["incident_type"]
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_incidents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_incidents_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      safety_permits: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          permit_number: string
+          project_id: string
+          requested_by: string | null
+          status: Database["public"]["Enums"]["safety_status"]
+          subject: string
+          type: Database["public"]["Enums"]["permit_type"]
+          updated_at: string
+          valid_from: string
+          valid_until: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          permit_number: string
+          project_id: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["safety_status"]
+          subject: string
+          type?: Database["public"]["Enums"]["permit_type"]
+          updated_at?: string
+          valid_from: string
+          valid_until: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          permit_number?: string
+          project_id?: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["safety_status"]
+          subject?: string
+          type?: Database["public"]["Enums"]["permit_type"]
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_permits_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_permits_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      safety_toolbox_talks: {
+        Row: {
+          attendee_count: number | null
+          conducted_at: string
+          conducted_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          project_id: string
+          subject: string
+          topic: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          attendee_count?: number | null
+          conducted_at?: string
+          conducted_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id: string
+          subject: string
+          topic: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          attendee_count?: number | null
+          conducted_at?: string
+          conducted_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          project_id?: string
+          subject?: string
+          topic?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_toolbox_talks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_toolbox_talks_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
             referencedColumns: ["id"]
           },
         ]
@@ -1820,6 +2889,89 @@ export type Database = {
           trigger_reason?: string | null
           triggered_by_task_id?: string | null
           triggered_by_user?: string | null
+        }
+        Relationships: []
+      }
+      stakeholder_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_primary: boolean
+          job_title: string | null
+          phone: string | null
+          stakeholder_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_primary?: boolean
+          job_title?: string | null
+          phone?: string | null
+          stakeholder_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_primary?: boolean
+          job_title?: string | null
+          phone?: string | null
+          stakeholder_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholder_contacts_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stakeholders: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          notes: string | null
+          organization_name: string
+          phone: string | null
+          status: string
+          type: Database["public"]["Enums"]["stakeholder_type"]
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          organization_name: string
+          phone?: string | null
+          status?: string
+          type: Database["public"]["Enums"]["stakeholder_type"]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          organization_name?: string
+          phone?: string | null
+          status?: string
+          type?: Database["public"]["Enums"]["stakeholder_type"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1860,6 +3012,393 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      structural_drawings: {
+        Row: {
+          created_at: string
+          drawing_number: string
+          file_url: string | null
+          id: string
+          project_id: string
+          revision: string
+          status: string
+          title: string
+          updated_at: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          drawing_number: string
+          file_url?: string | null
+          id?: string
+          project_id: string
+          revision?: string
+          status?: string
+          title: string
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          drawing_number?: string
+          file_url?: string | null
+          id?: string
+          project_id?: string
+          revision?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_drawings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_drawings_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structural_inspections: {
+        Row: {
+          comments: string | null
+          created_at: string
+          id: string
+          inspected_at: string | null
+          inspected_by: string | null
+          photo_urls: string[] | null
+          project_id: string
+          result: string
+          subject: string
+          type: Database["public"]["Enums"]["inspection_type"]
+          updated_at: string
+          wbs_node_id: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          photo_urls?: string[] | null
+          project_id: string
+          result?: string
+          subject: string
+          type: Database["public"]["Enums"]["inspection_type"]
+          updated_at?: string
+          wbs_node_id: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          inspected_at?: string | null
+          inspected_by?: string | null
+          photo_urls?: string[] | null
+          project_id?: string
+          result?: string
+          subject?: string
+          type?: Database["public"]["Enums"]["inspection_type"]
+          updated_at?: string
+          wbs_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_inspections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_inspections_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structural_rebar_schedules: {
+        Row: {
+          bar_mark: string
+          created_at: string
+          diameter_mm: number
+          drawing_id: string | null
+          id: string
+          member_mark: string
+          project_id: string
+          quantity: number
+          shape_code: string
+          total_length_mm: number
+          total_weight_kg: number | null
+          wbs_node_id: string
+        }
+        Insert: {
+          bar_mark: string
+          created_at?: string
+          diameter_mm: number
+          drawing_id?: string | null
+          id?: string
+          member_mark: string
+          project_id: string
+          quantity?: number
+          shape_code: string
+          total_length_mm: number
+          total_weight_kg?: number | null
+          wbs_node_id: string
+        }
+        Update: {
+          bar_mark?: string
+          created_at?: string
+          diameter_mm?: number
+          drawing_id?: string | null
+          id?: string
+          member_mark?: string
+          project_id?: string
+          quantity?: number
+          shape_code?: string
+          total_length_mm?: number
+          total_weight_kg?: number | null
+          wbs_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_rebar_schedules_drawing_id_fkey"
+            columns: ["drawing_id"]
+            isOneToOne: false
+            referencedRelation: "structural_drawings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_rebar_schedules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_rebar_schedules_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontract_claims: {
+        Row: {
+          certified_amount: number | null
+          certified_at: string | null
+          certified_by: string | null
+          claim_number: string
+          claimed_amount: number
+          contract_id: string
+          created_at: string
+          id: string
+          net_payable: number | null
+          notes: string | null
+          period_end: string
+          period_start: string
+          retention_deducted: number | null
+          status: Database["public"]["Enums"]["subcontract_claim_status"]
+          updated_at: string
+        }
+        Insert: {
+          certified_amount?: number | null
+          certified_at?: string | null
+          certified_by?: string | null
+          claim_number: string
+          claimed_amount?: number
+          contract_id: string
+          created_at?: string
+          id?: string
+          net_payable?: number | null
+          notes?: string | null
+          period_end: string
+          period_start: string
+          retention_deducted?: number | null
+          status?: Database["public"]["Enums"]["subcontract_claim_status"]
+          updated_at?: string
+        }
+        Update: {
+          certified_amount?: number | null
+          certified_at?: string | null
+          certified_by?: string | null
+          claim_number?: string
+          claimed_amount?: number
+          contract_id?: string
+          created_at?: string
+          id?: string
+          net_payable?: number | null
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          retention_deducted?: number | null
+          status?: Database["public"]["Enums"]["subcontract_claim_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontract_claims_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "subcontract_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontract_contracts: {
+        Row: {
+          contract_number: string
+          created_at: string
+          end_date: string | null
+          id: string
+          project_id: string
+          retention_percentage: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["contract_status"]
+          subcontractor_id: string
+          subject: string
+          total_value: number
+          updated_at: string
+        }
+        Insert: {
+          contract_number: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          project_id: string
+          retention_percentage?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          subcontractor_id: string
+          subject: string
+          total_value?: number
+          updated_at?: string
+        }
+        Update: {
+          contract_number?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          project_id?: string
+          retention_percentage?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["contract_status"]
+          subcontractor_id?: string
+          subject?: string
+          total_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontract_contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontract_contracts_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontract_items: {
+        Row: {
+          agreed_value: number
+          contract_id: string
+          created_at: string
+          description: string | null
+          id: string
+          wbs_node_id: string
+        }
+        Insert: {
+          agreed_value?: number
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          wbs_node_id: string
+        }
+        Update: {
+          agreed_value?: number
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          wbs_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontract_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "subcontract_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcontract_items_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontractors: {
+        Row: {
+          address: string | null
+          company_name: string
+          contact_person: string | null
+          created_at: string
+          email: string | null
+          id: string
+          phone: string | null
+          rating: number | null
+          specialization: string
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          rating?: number | null
+          specialization: string
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          rating?: number | null
+          specialization?: string
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       task_assignments: {
         Row: {
@@ -2427,6 +3966,112 @@ export type Database = {
           },
         ]
       }
+      transmittal_items: {
+        Row: {
+          document_id: string
+          id: string
+          purpose: string | null
+          transmittal_id: string
+          version_id: string
+        }
+        Insert: {
+          document_id: string
+          id?: string
+          purpose?: string | null
+          transmittal_id: string
+          version_id: string
+        }
+        Update: {
+          document_id?: string
+          id?: string
+          purpose?: string | null
+          transmittal_id?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transmittal_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transmittal_items_transmittal_id_fkey"
+            columns: ["transmittal_id"]
+            isOneToOne: false
+            referencedRelation: "transmittals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transmittal_items_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transmittals: {
+        Row: {
+          created_at: string
+          due_at: string | null
+          id: string
+          notes: string | null
+          project_id: string
+          recipient_id: string
+          sender_id: string
+          sent_at: string
+          status: string
+          subject: string
+          transmittal_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          project_id: string
+          recipient_id: string
+          sender_id: string
+          sent_at?: string
+          status?: string
+          subject: string
+          transmittal_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string
+          recipient_id?: string
+          sender_id?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+          transmittal_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transmittals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transmittals_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2496,6 +4141,7 @@ export type Database = {
           parent_id: string | null
           path: string[]
           path_text: string
+          progress_pct: number | null
           project_id: string
           sort_order: number
           updated_at: string
@@ -2512,6 +4158,7 @@ export type Database = {
           parent_id?: string | null
           path?: string[]
           path_text?: string
+          progress_pct?: number | null
           project_id: string
           sort_order?: number
           updated_at?: string
@@ -2528,6 +4175,7 @@ export type Database = {
           parent_id?: string | null
           path?: string[]
           path_text?: string
+          progress_pct?: number | null
           project_id?: string
           sort_order?: number
           updated_at?: string
@@ -2583,6 +4231,10 @@ export type Database = {
       }
     }
     Functions: {
+      check_permission: {
+        Args: { v_action: string; v_module: string; v_user_id: string }
+        Returns: boolean
+      }
       compute_payroll_lines: {
         Args: { _period_id: string }
         Returns: undefined
@@ -2670,6 +4322,10 @@ export type Database = {
         }
       }
       seed_demo_run: { Args: never; Returns: Json }
+      sync_all_wbs_progress: {
+        Args: { v_project_id: string }
+        Returns: undefined
+      }
       update_assigned_task_limited:
         | {
             Args: {
@@ -2774,6 +4430,10 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      wbs_roll_up_node_progress: {
+        Args: { v_node_id: string }
+        Returns: undefined
+      }
       wbs_user_can: {
         Args: {
           _node_id: string
@@ -2794,6 +4454,12 @@ export type Database = {
         | "accountant"
       checklist_result: "pass" | "fail" | "n/a"
       claim_status: "draft" | "submitted" | "certified" | "paid" | "rejected"
+      contract_status:
+        | "draft"
+        | "active"
+        | "suspended"
+        | "completed"
+        | "terminated"
       dep_relation_type: "FS" | "SS" | "FF" | "SF"
       department:
         | "architecture"
@@ -2821,6 +4487,13 @@ export type Database = {
         | "completed"
         | "rejected"
         | "cancelled"
+      document_status:
+        | "draft"
+        | "submitted"
+        | "reviewing"
+        | "approved"
+        | "for_construction"
+        | "superseded"
       dsr_delay_category:
         | "weather"
         | "material"
@@ -2832,6 +4505,14 @@ export type Database = {
       dsr_severity: "low" | "med" | "high"
       dsr_site_status: "working" | "partial" | "closed"
       dsr_status: "draft" | "submitted" | "approved" | "rejected"
+      incident_severity: "low" | "medium" | "high" | "critical"
+      incident_type:
+        | "near_miss"
+        | "first_aid"
+        | "lost_time_injury"
+        | "property_damage"
+        | "environmental"
+      inspection_type: "rebar" | "formwork" | "pre_pour" | "concrete_cube_test"
       ir_status:
         | "draft"
         | "requested"
@@ -2865,11 +4546,27 @@ export type Database = {
         | "timesheet_rejected"
         | "timesheet_flagged"
       payroll_period_status: "open" | "locked" | "paid"
+      permit_type:
+        | "hot_work"
+        | "working_at_height"
+        | "excavation"
+        | "confined_space"
+        | "electrical"
+        | "lifting"
+        | "general"
       po_status:
         | "draft"
         | "issued"
         | "partially_received"
         | "completed"
+        | "cancelled"
+      pr_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "rejected"
+        | "ordered"
+        | "received"
         | "cancelled"
       project_status:
         | "planning"
@@ -2878,6 +4575,31 @@ export type Database = {
         | "completed"
         | "cancelled"
       punch_list_status: "open" | "resolved" | "verified"
+      rfi_priority: "low" | "medium" | "high" | "urgent"
+      rfi_status: "draft" | "open" | "answered" | "closed" | "void"
+      safety_status:
+        | "draft"
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "expired"
+        | "closed"
+      stakeholder_type:
+        | "client"
+        | "project_manager"
+        | "contractor"
+        | "architect"
+        | "subcontractor"
+        | "supplier"
+        | "authority"
+        | "consultant"
+        | "other"
+      subcontract_claim_status:
+        | "draft"
+        | "submitted"
+        | "certified"
+        | "paid"
+        | "rejected"
       task_category:
         | "design_log_report"
         | "design_summary_report"
@@ -2938,6 +4660,8 @@ export type Database = {
         | "system"
         | "package"
         | "other"
+        | "room"
+        | "element"
       wbs_permission: "view" | "edit" | "manage"
     }
     CompositeTypes: {
@@ -3077,6 +4801,13 @@ export const Constants = {
       ],
       checklist_result: ["pass", "fail", "n/a"],
       claim_status: ["draft", "submitted", "certified", "paid", "rejected"],
+      contract_status: [
+        "draft",
+        "active",
+        "suspended",
+        "completed",
+        "terminated",
+      ],
       dep_relation_type: ["FS", "SS", "FF", "SF"],
       department: [
         "architecture",
@@ -3106,6 +4837,14 @@ export const Constants = {
         "rejected",
         "cancelled",
       ],
+      document_status: [
+        "draft",
+        "submitted",
+        "reviewing",
+        "approved",
+        "for_construction",
+        "superseded",
+      ],
       dsr_delay_category: [
         "weather",
         "material",
@@ -3118,6 +4857,15 @@ export const Constants = {
       dsr_severity: ["low", "med", "high"],
       dsr_site_status: ["working", "partial", "closed"],
       dsr_status: ["draft", "submitted", "approved", "rejected"],
+      incident_severity: ["low", "medium", "high", "critical"],
+      incident_type: [
+        "near_miss",
+        "first_aid",
+        "lost_time_injury",
+        "property_damage",
+        "environmental",
+      ],
+      inspection_type: ["rebar", "formwork", "pre_pour", "concrete_cube_test"],
       ir_status: [
         "draft",
         "requested",
@@ -3154,11 +4902,29 @@ export const Constants = {
         "timesheet_flagged",
       ],
       payroll_period_status: ["open", "locked", "paid"],
+      permit_type: [
+        "hot_work",
+        "working_at_height",
+        "excavation",
+        "confined_space",
+        "electrical",
+        "lifting",
+        "general",
+      ],
       po_status: [
         "draft",
         "issued",
         "partially_received",
         "completed",
+        "cancelled",
+      ],
+      pr_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected",
+        "ordered",
+        "received",
         "cancelled",
       ],
       project_status: [
@@ -3169,6 +4935,34 @@ export const Constants = {
         "cancelled",
       ],
       punch_list_status: ["open", "resolved", "verified"],
+      rfi_priority: ["low", "medium", "high", "urgent"],
+      rfi_status: ["draft", "open", "answered", "closed", "void"],
+      safety_status: [
+        "draft",
+        "pending",
+        "approved",
+        "rejected",
+        "expired",
+        "closed",
+      ],
+      stakeholder_type: [
+        "client",
+        "project_manager",
+        "contractor",
+        "architect",
+        "subcontractor",
+        "supplier",
+        "authority",
+        "consultant",
+        "other",
+      ],
+      subcontract_claim_status: [
+        "draft",
+        "submitted",
+        "certified",
+        "paid",
+        "rejected",
+      ],
       task_category: [
         "design_log_report",
         "design_summary_report",
@@ -3233,6 +5027,8 @@ export const Constants = {
         "system",
         "package",
         "other",
+        "room",
+        "element",
       ],
       wbs_permission: ["view", "edit", "manage"],
     },
