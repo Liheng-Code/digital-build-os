@@ -523,6 +523,25 @@ const App = () => (
                     </ProtectedRoute>
                   } 
                 />
+                {/* Cross-Module Integration Routes */}
+                <Route 
+                  path="/construction/material-usage" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <div className="p-8">
+                          <h2 className="text-xl font-bold mb-4">Material Usage Logs</h2>
+                          <p className="text-muted-foreground mb-4">
+                            Construction material usage linked to Procurement POs and Inventory stock issues.
+                          </p>
+                          <a href="/materials" className="text-primary hover:underline">
+                            ← Go to Materials & Procurement Module
+                          </a>
+                        </div>
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 <Route 
                   path="/transmittals" 
                   element={
