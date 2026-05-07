@@ -60,7 +60,7 @@ export default function Structural() {
     if (!activeProject) return;
     setLoading(true);
     try {
-      const [drawingsRes, bbsRes, inspectionsRes] = await Promise.all([
+      const [drawingsRes, bbsRes, inspectionsRes, wbsRes] = await Promise.all([
         supabase
           .from("structural_drawings")
           .select("*")
