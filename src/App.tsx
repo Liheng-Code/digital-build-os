@@ -19,6 +19,7 @@ import Structural from "./pages/Structural";
 import MEP from "./pages/MEP";
 import Construction from "./pages/Construction";
 import ConstructionTaskDetail from "./pages/ConstructionTaskDetail";
+import ConstructionReports from "./pages/ConstructionReports";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -508,6 +509,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <ConstructionTaskDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/construction/reports" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ConstructionReports />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
