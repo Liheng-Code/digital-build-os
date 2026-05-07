@@ -81,8 +81,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Work",
     items: [
       { to: "/tasks", label: "Tasks", icon: ClipboardList, module: "tasks" },
-      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
-        roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
       { to: "/timesheets", label: "Timesheets", icon: Clock, module: "timesheets" },
       { to: "/approvals", label: "Approvals", icon: CheckSquare, module: "approvals",
         roles: ["admin", "project_manager", "supervisor", "accountant", "qaqc_inspector"] },
@@ -94,7 +92,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/procurement/invoices", label: "Invoices", icon: FileText, module: "procurement" },
       { to: "/procurement/grns", label: "GRNs", icon: Package, module: "procurement" },
       { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "procurement" },
-      { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
       { to: "/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
       { to: "/financials", label: "Financials", icon: DollarSign, module: "financials" },
