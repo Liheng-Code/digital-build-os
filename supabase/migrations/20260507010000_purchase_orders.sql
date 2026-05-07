@@ -57,46 +57,62 @@ CREATE TABLE IF NOT EXISTS public.po_items (
 ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_items ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS Policies for Purchase Orders
-CREATE POLICY "Project members can view POs"
-  ON public.purchase_orders FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.project_members
-    WHERE project_members.project_id = purchase_orders.project_id
-    AND project_members.user_id = auth.uid()
-  ));
+-- 5. RLS Policies for Purchase Orders (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Project members can view POs"
+    ON public.purchase_orders FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.project_members
+        WHERE project_members.project_id = purchase_orders.project_id
+        AND project_members.user_id = auth.uid()
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Procurement staff can manage POs"
-  ON public.purchase_orders FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM public.role_permissions rp
-    JOIN public.user_roles ur ON rp.role = ur.role
-    WHERE ur.user_id = auth.uid()
-    AND rp.module = 'procurement'
-    AND rp.action = 'create'
-    AND rp.is_allowed = true
-  ));
+DO $$
+BEGIN
+  CREATE POLICY "Procurement staff can manage POs"
+    ON public.purchase_orders FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.role_permissions rp
+        JOIN public.user_roles ur ON rp.role = ur.role
+        WHERE ur.user_id = auth.uid()
+        AND rp.module = 'procurement'
+        AND rp.action = 'create'
+        AND rp.is_allowed = true
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- 6. RLS Policies for PO Items
-CREATE POLICY "Project members can view PO items"
-  ON public.po_items FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.purchase_orders po
-    JOIN public.project_members pm ON pm.project_id = po.project_id
-    WHERE po.id = po_items.po_id
-    AND pm.user_id = auth.uid()
-  ));
+-- 6. RLS Policies for PO Items (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Project members can view PO items"
+    ON public.po_items FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.purchase_orders po
+        JOIN public.project_members pm ON pm.project_id = po.project_id
+        WHERE po.id = po_items.po_id
+        AND pm.user_id = auth.uid()
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Procurement staff can manage PO items"
-  ON public.po_items FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM public.role_permissions rp
-    JOIN public.user_roles ur ON rp.role = ur.role
-    WHERE ur.user_id = auth.uid()
-    AND rp.module = 'procurement'
-    AND rp.action = 'create'
-    AND rp.is_allowed = true
-  ));
+DO $$
+BEGIN
+  CREATE POLICY "Procurement staff can manage PO items"
+    ON public.po_items FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.role_permissions rp
+        JOIN public.user_roles ur ON rp.role = ur.role
+        WHERE ur.user_id = auth.uid()
+        AND rp.module = 'procurement'
+        AND rp.action = 'create'
+        AND rp.is_allowed = true
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- 7. Updated_at trigger for PO
 CREATE OR REPLACE FUNCTION public.handle_po_updated_at()

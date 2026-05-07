@@ -52,7 +52,7 @@ BEGIN
     IF total_received_qty >= total_po_qty THEN
       UPDATE public.purchase_orders SET status = 'completed' WHERE id = NEW.po_id;
     ELSIF total_received_qty > 0 THEN
-      UPDATE public.purchase_orders SET status = 'partially_received' WHERE id = NEW.po_id;
+      UPDATE public.purchase_orders SET status = 'partially_delivered' WHERE id = NEW.po_id;
     END IF;
   END IF;
   
@@ -60,10 +60,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 5. Create trigger on GRN items insert/update
-CREATE OR REPLACE TRIGGER update_po_delivery_status_trigger
-  AFTER INSERT OR UPDATE ON public.grn_items
-  FOR EACH ROW EXECUTE FUNCTION public.update_po_delivery_status();
+-- 5. Create trigger on GRN items insert/update (safe creation)
+DO $$
+BEGIN
+  CREATE TRIGGER update_po_delivery_status_trigger
+    AFTER INSERT OR UPDATE ON public.grn_items
+    FOR EACH ROW EXECUTE FUNCTION public.update_po_delivery_status();
+EXCEPTION WHEN others THEN null;
+END $$;
 
 -- 6. Add comments
 COMMENT ON COLUMN public.grns.delivery_note_number IS 'Delivery note or challan number from supplier';

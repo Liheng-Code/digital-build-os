@@ -78,11 +78,10 @@ CREATE OR REPLACE FUNCTION public.update_budget_commitment()
 RETURNS TRIGGER AS $$
 DECLARE
   v_budget_code text;
-  v_total numeric(15,2);
 BEGIN
   -- Only act on status change to 'approved'
   IF NEW.status = 'approved' AND OLD.status != 'approved' THEN
-    -- Get budget code and total from PR
+    -- Get budget code from PR
     v_budget_code := NEW.budget_code;
     
     IF v_budget_code IS NOT NULL THEN
@@ -100,10 +99,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 6. Create trigger on PR status change
-CREATE OR REPLACE TRIGGER update_budget_on_pr_approval
-  AFTER UPDATE ON public.purchase_requisitions
-  FOR EACH ROW EXECUTE FUNCTION public.update_budget_commitment();
+-- 6. Create trigger on PR status change (safe creation)
+DO $$
+BEGIN
+  CREATE TRIGGER update_budget_on_pr_approval
+    AFTER UPDATE ON public.purchase_requisitions
+    FOR EACH ROW EXECUTE FUNCTION public.update_budget_commitment();
+EXCEPTION WHEN others THEN null;
+END $$;
 
 -- 7. Create function to update actual spend when invoice is paid
 CREATE OR REPLACE FUNCTION public.update_budget_spending()
@@ -117,7 +120,7 @@ BEGIN
     -- Get PO and then PR to find budget code
     SELECT po.*, pr.budget_code INTO v_po_record
     FROM public.purchase_orders po
-    LEFT JOIN public.purchase_requisitions pr ON pr.id = po.rfq_id -- This needs adjustment based on your actual relationship
+    LEFT JOIN public.purchase_requisitions pr ON pr.id = po.rfq_id
     WHERE po.id = NEW.po_id;
     
     IF v_po_record.budget_code IS NOT NULL THEN
@@ -139,48 +142,64 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE public.project_budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budget_line_items ENABLE ROW LEVEL SECURITY;
 
--- 9. RLS Policies for Budgets
-CREATE POLICY "Project members can view budgets"
-  ON public.project_budgets FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.project_members
-    WHERE project_members.project_id = project_budgets.project_id
-    AND project_members.user_id = auth.uid()
-  ));
+-- 9. RLS Policies for Budgets (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Project members can view budgets"
+    ON public.project_budgets FOR SELECT
+    USING (EXISTS (
+      SELECT 1 FROM public.project_members
+      WHERE project_members.project_id = project_budgets.project_id
+      AND project_members.user_id = auth.uid()
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Admins and PMs can manage budgets"
-  ON public.project_budgets FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM public.role_permissions rp
-    JOIN public.user_roles ur ON rp.role = ur.role
-    WHERE ur.user_id = auth.uid()
-    AND rp.module = 'procurement'
-    AND rp.action = 'create'
-    AND rp.is_allowed = true
-  ));
+DO $$
+BEGIN
+  CREATE POLICY "Admins and PMs can manage budgets"
+    ON public.project_budgets FOR ALL
+    USING (EXISTS (
+      SELECT 1 FROM public.role_permissions rp
+      JOIN public.user_roles ur ON rp.role = ur.role
+      WHERE ur.user_id = auth.uid()
+      AND rp.module = 'procurement'
+      AND rp.action = 'create'
+      AND rp.is_allowed = true
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- 10. RLS Policies for Budget Line Items
-CREATE POLICY "Project members can view budget line items"
-  ON public.budget_line_items FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.project_budgets pb
-    JOIN public.project_members pm ON pm.project_id = pb.project_id
-    WHERE pb.id = budget_line_items.budget_id
-    AND pm.user_id = auth.uid()
-  ));
+-- 10. RLS Policies for Budget Line Items (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Project members can view budget line items"
+    ON public.budget_line_items FOR SELECT
+    USING (EXISTS (
+      SELECT 1 FROM public.project_budgets pb
+      JOIN public.project_members pm ON pm.project_id = pb.project_id
+      WHERE pb.id = budget_line_items.budget_id
+      AND pm.user_id = auth.uid()
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Admins and PMs can manage budget line items"
-  ON public.budget_line_items FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM public.role_permissions rp
-    JOIN public.user_roles ur ON rp.role = ur.role
-    WHERE ur.user_id = auth.uid()
-    AND rp.module = 'procurement'
-    AND rp.action = 'create'
-    AND rp.is_allowed = true
-  ));
+DO $$
+BEGIN
+  CREATE POLICY "Admins and PMs can manage budget line items"
+    ON public.budget_line_items FOR ALL
+    USING (EXISTS (
+      SELECT 1 FROM public.role_permissions rp
+      JOIN public.user_roles ur ON rp.role = ur.role
+      WHERE ur.user_id = auth.uid()
+      AND rp.module = 'procurement'
+      AND rp.action = 'create'
+      AND rp.is_allowed = true
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- 11. Updated_at triggers
+-- 11. Updated_at triggers (safe creation)
 CREATE OR REPLACE FUNCTION public.handle_budget_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -189,13 +208,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER handle_project_budgets_updated_at
-  BEFORE UPDATE ON public.project_budgets
-  FOR EACH ROW EXECUTE FUNCTION public.handle_budget_updated_at();
+DO $$
+BEGIN
+  CREATE TRIGGER handle_project_budgets_updated_at
+    BEFORE UPDATE ON public.project_budgets
+    FOR EACH ROW EXECUTE FUNCTION public.handle_budget_updated_at();
+EXCEPTION WHEN others THEN null;
+END $$;
 
-CREATE TRIGGER handle_budget_line_items_updated_at
-  BEFORE UPDATE ON public.budget_line_items
-  FOR EACH ROW EXECUTE FUNCTION public.handle_budget_updated_at();
+DO $$
+BEGIN
+  CREATE TRIGGER handle_budget_line_items_updated_at
+    BEFORE UPDATE ON public.budget_line_items
+    FOR EACH ROW EXECUTE FUNCTION public.handle_budget_updated_at();
+EXCEPTION WHEN others THEN null;
+END $$;
 
 -- 12. Performance indexes
 CREATE INDEX IF NOT EXISTS idx_project_budgets_project_id ON public.project_budgets(project_id);

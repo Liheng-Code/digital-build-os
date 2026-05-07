@@ -52,46 +52,62 @@ CREATE TABLE IF NOT EXISTS public.invoice_items (
 ALTER TABLE public.supplier_invoices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoice_items ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS Policies for Supplier Invoices
-CREATE POLICY "Project members can view invoices"
-  ON public.supplier_invoices FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.project_members
-    WHERE project_members.project_id = supplier_invoices.project_id
-    AND project_members.user_id = auth.uid()
-  ));
+-- 5. RLS Policies for Supplier Invoices (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Project members can view invoices"
+    ON public.supplier_invoices FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.project_members
+        WHERE project_members.project_id = supplier_invoices.project_id
+        AND project_members.user_id = auth.uid()
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Project members can manage invoices"
-  ON public.supplier_invoices FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM public.role_permissions rp
-    JOIN public.user_roles ur ON rp.role = ur.role
-    WHERE ur.user_id = auth.uid()
-    AND rp.module = 'procurement'
-    AND rp.action = 'create'
-    AND rp.is_allowed = true
-  ));
+DO $$
+BEGIN
+  CREATE POLICY "Project members can manage invoices"
+    ON public.supplier_invoices FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.role_permissions rp
+        JOIN public.user_roles ur ON rp.role = ur.role
+        WHERE ur.user_id = auth.uid()
+        AND rp.module = 'procurement'
+        AND rp.action = 'create'
+        AND rp.is_allowed = true
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
--- 6. RLS Policies for Invoice Items
-CREATE POLICY "Project members can view invoice items"
-  ON public.invoice_items FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.supplier_invoices si
-    JOIN public.project_members pm ON pm.project_id = si.project_id
-    WHERE si.id = invoice_items.invoice_id
-    AND pm.user_id = auth.uid()
-  ));
+-- 6. RLS Policies for Invoice Items (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Project members can view invoice items"
+    ON public.invoice_items FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.supplier_invoices si
+        JOIN public.project_members pm ON pm.project_id = si.project_id
+        WHERE si.id = invoice_items.invoice_id
+        AND pm.user_id = auth.uid()
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Project members can manage invoice items"
-  ON public.invoice_items FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM public.role_permissions rp
-    JOIN public.user_roles ur ON rp.role = ur.role
-    WHERE ur.user_id = auth.uid()
-    AND rp.module = 'procurement'
-    AND rp.action = 'create'
-    AND rp.is_allowed = true
-  ));
+DO $$
+BEGIN
+  CREATE POLICY "Project members can manage invoice items"
+    ON public.invoice_items FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.role_permissions rp
+        JOIN public.user_roles ur ON rp.role = ur.role
+        WHERE ur.user_id = auth.uid()
+        AND rp.module = 'procurement'
+        AND rp.action = 'create'
+        AND rp.is_allowed = true
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- 7. Updated_at trigger for invoices
 CREATE OR REPLACE FUNCTION public.handle_invoice_updated_at()

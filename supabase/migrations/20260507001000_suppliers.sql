@@ -17,22 +17,30 @@ CREATE TABLE IF NOT EXISTS public.suppliers (
 -- Enable Row Level Security
 ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for Suppliers
-CREATE POLICY "Authenticated users can view suppliers"
-  ON public.suppliers FOR SELECT
-  TO authenticated
-  USING (true);
+-- RLS Policies for Suppliers (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Authenticated users can view suppliers"
+    ON public.suppliers FOR SELECT
+    TO authenticated
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Procurement staff can manage suppliers"
-  ON public.suppliers FOR ALL
-  USING (EXISTS (
-    SELECT 1 FROM public.role_permissions rp
-    JOIN public.user_roles ur ON rp.role = ur.role
-    WHERE ur.user_id = auth.uid()
-    AND rp.module = 'procurement'
-    AND rp.action = 'create'
-    AND rp.is_allowed = true
-  ));
+DO $$
+BEGIN
+  CREATE POLICY "Procurement staff can manage suppliers"
+    ON public.suppliers FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.role_permissions rp
+        JOIN public.user_roles ur ON rp.role = ur.role
+        WHERE ur.user_id = auth.uid()
+        AND rp.module = 'procurement'
+        AND rp.action = 'create'
+        AND rp.is_allowed = true
+    ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Updated_at trigger for suppliers
 CREATE OR REPLACE FUNCTION public.handle_suppliers_updated_at()

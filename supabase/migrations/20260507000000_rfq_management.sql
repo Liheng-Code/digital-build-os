@@ -70,24 +70,34 @@ ALTER TABLE public.rfq_suppliers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_quotations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quotation_items ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
-CREATE POLICY "Project members can view RFQs"
+-- RLS Policies (safe creation)
+DO $$
+BEGIN
+  CREATE POLICY "Project members can view RFQs"
     ON public.rfq FOR SELECT
     USING (EXISTS (
         SELECT 1 FROM public.project_members
         WHERE project_members.project_id = rfq.project_id
         AND project_members.user_id = auth.uid()
     ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Project members can create RFQs"
+DO $$
+BEGIN
+  CREATE POLICY "Project members can create RFQs"
     ON public.rfq FOR INSERT
     WITH CHECK (EXISTS (
         SELECT 1 FROM public.project_members
         WHERE project_members.project_id = rfq.project_id
         AND project_members.user_id = auth.uid()
     ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Procurement staff can update RFQs"
+DO $$
+BEGIN
+  CREATE POLICY "Procurement staff can update RFQs"
     ON public.rfq FOR UPDATE
     USING (EXISTS (
         SELECT 1 FROM public.role_permissions rp
@@ -97,6 +107,8 @@ CREATE POLICY "Procurement staff can update RFQs"
         AND rp.action = 'create'
         AND rp.is_allowed = true
     ));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- Updated_at trigger for RFQ
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
@@ -110,8 +122,8 @@ $$ LANGUAGE plpgsql;
 DO $$
 BEGIN
   CREATE TRIGGER handle_rfq_updated_at
-      BEFORE UPDATE ON public.rfq
-      FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+    BEFORE UPDATE ON public.rfq
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 EXCEPTION WHEN others THEN null;
 END $$;
 
