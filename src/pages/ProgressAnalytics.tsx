@@ -145,6 +145,16 @@ export default function ProgressAnalytics() {
           <h1 className="text-2xl font-bold tracking-tight">Progress & Analytics</h1>
           <p className="text-muted-foreground">Real-time performance roll-up from WBS hierarchy.</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSync}
+          disabled={syncing}
+          className="gap-2"
+        >
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Sync Progress
+        </Button>
       </div>
 
       {/* KPI Overviews */}
