@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS inventory_items (
   reorder_level DECIMAL(10,2) DEFAULT 0,
   max_stock_level DECIMAL(10,2),
   storage_location VARCHAR(100),
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE SET NULL,
+  wbs_node_id UUID,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS inventory_items (
 CREATE TABLE IF NOT EXISTS stock_receipts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   receipt_number VARCHAR(50) NOT NULL UNIQUE,
-  po_id UUID REFERENCES purchase_orders(id) ON DELETE SET NULL,
-  grn_id UUID REFERENCES grns(id) ON DELETE SET NULL,
+  po_id UUID,
+  grn_id UUID,
   receipt_date DATE NOT NULL,
   status stock_receipt_status DEFAULT 'pending_inspection',
   supplier_name VARCHAR(255),
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS stock_receipts (
   accepted_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   acceptance_date DATE,
   notes TEXT,
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -55,13 +55,13 @@ CREATE TABLE IF NOT EXISTS stock_receipts (
 -- Stock Receipt Items
 CREATE TABLE IF NOT EXISTS stock_receipt_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  stock_receipt_id UUID REFERENCES stock_receipts(id) ON DELETE CASCADE NOT NULL,
-  inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE RESTRICT NOT NULL,
+  stock_receipt_id UUID NOT NULL,
+  inventory_item_id UUID NOT NULL,
   quantity_received DECIMAL(10,2) NOT NULL,
   accepted_quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
   rejected_quantity DECIMAL(10,2) NOT NULL DEFAULT 0,
   unit_cost DECIMAL(10,2),
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS material_requests (
   requested_by UUID REFERENCES auth.users(id) ON DELETE SET NULL NOT NULL,
   approved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   approval_date DATE,
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -85,11 +85,11 @@ CREATE TABLE IF NOT EXISTS material_requests (
 -- Material Request Items
 CREATE TABLE IF NOT EXISTS material_request_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  material_request_id UUID REFERENCES material_requests(id) ON DELETE CASCADE NOT NULL,
-  inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE RESTRICT NOT NULL,
+  material_request_id UUID NOT NULL,
+  inventory_item_id UUID NOT NULL,
   quantity_requested DECIMAL(10,2) NOT NULL,
   quantity_issued DECIMAL(10,2) DEFAULT 0,
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -98,14 +98,14 @@ CREATE TABLE IF NOT EXISTS material_request_items (
 CREATE TABLE IF NOT EXISTS stock_issues (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   issue_number VARCHAR(50) NOT NULL UNIQUE,
-  material_request_id UUID REFERENCES material_requests(id) ON DELETE SET NULL,
+  material_request_id UUID,
   issue_date DATE NOT NULL,
   status stock_issue_status DEFAULT 'pending_approval',
   issued_to VARCHAR(255) NOT NULL,
   approved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   approval_date DATE,
   issued_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -114,11 +114,11 @@ CREATE TABLE IF NOT EXISTS stock_issues (
 -- Stock Issue Items
 CREATE TABLE IF NOT EXISTS stock_issue_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  stock_issue_id UUID REFERENCES stock_issues(id) ON DELETE CASCADE NOT NULL,
-  inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE RESTRICT NOT NULL,
+  stock_issue_id UUID NOT NULL,
+  inventory_item_id UUID NOT NULL,
   quantity_issued DECIMAL(10,2) NOT NULL,
   unit_cost DECIMAL(10,2),
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -133,8 +133,8 @@ CREATE TABLE IF NOT EXISTS stock_transfers (
   status stock_transfer_status DEFAULT 'pending_approval',
   approved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   approval_date DATE,
-  from_wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
-  to_wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  from_wbs_node_id UUID NOT NULL,
+  to_wbs_node_id UUID NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -143,8 +143,8 @@ CREATE TABLE IF NOT EXISTS stock_transfers (
 -- Stock Transfer Items
 CREATE TABLE IF NOT EXISTS stock_transfer_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  stock_transfer_id UUID REFERENCES stock_transfers(id) ON DELETE CASCADE NOT NULL,
-  inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE RESTRICT NOT NULL,
+  stock_transfer_id UUID NOT NULL,
+  inventory_item_id UUID NOT NULL,
   quantity_transferred DECIMAL(10,2) NOT NULL,
   unit_cost DECIMAL(10,2),
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS stock_adjustments (
   adjustment_type stock_adjustment_type NOT NULL,
   reason TEXT NOT NULL,
   approved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -168,11 +168,11 @@ CREATE TABLE IF NOT EXISTS stock_adjustments (
 -- Stock Adjustment Items
 CREATE TABLE IF NOT EXISTS stock_adjustment_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  stock_adjustment_id UUID REFERENCES stock_adjustments(id) ON DELETE CASCADE NOT NULL,
-  inventory_item_id UUID REFERENCES inventory_items(id) ON DELETE RESTRICT NOT NULL,
+  stock_adjustment_id UUID NOT NULL,
+  inventory_item_id UUID NOT NULL,
   quantity_adjusted DECIMAL(10,2) NOT NULL,
   unit_cost DECIMAL(10,2),
-  wbs_node_id UUID REFERENCES wbs_nodes(id) ON DELETE RESTRICT NOT NULL,
+  wbs_node_id UUID NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -273,6 +273,79 @@ CREATE INDEX IF NOT EXISTS idx_stock_transfer_items_item_id ON stock_transfer_it
 CREATE INDEX IF NOT EXISTS idx_stock_adjustments_wbs_node_id ON stock_adjustments(wbs_node_id);
 CREATE INDEX IF NOT EXISTS idx_stock_adjustment_items_adjustment_id ON stock_adjustment_items(stock_adjustment_id);
 CREATE INDEX IF NOT EXISTS idx_stock_adjustment_items_item_id ON stock_adjustment_items(inventory_item_id);
+
+-- Add foreign key constraints after all tables are created
+-- This ensures tables exist before adding constraints (fixes migration order issues)
+
+-- inventory_items FKs
+ALTER TABLE inventory_items ADD CONSTRAINT fk_inventory_items_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE SET NULL;
+
+-- stock_receipts FKs
+ALTER TABLE stock_receipts ADD CONSTRAINT fk_stock_receipts_po 
+  FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE SET NULL;
+ALTER TABLE stock_receipts ADD CONSTRAINT fk_stock_receipts_grn 
+  FOREIGN KEY (grn_id) REFERENCES grns(id) ON DELETE SET NULL;
+ALTER TABLE stock_receipts ADD CONSTRAINT fk_stock_receipts_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- stock_receipt_items FKs
+ALTER TABLE stock_receipt_items ADD CONSTRAINT fk_stock_receipt_items_receipt 
+  FOREIGN KEY (stock_receipt_id) REFERENCES stock_receipts(id) ON DELETE CASCADE;
+ALTER TABLE stock_receipt_items ADD CONSTRAINT fk_stock_receipt_items_inventory_item 
+  FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT;
+ALTER TABLE stock_receipt_items ADD CONSTRAINT fk_stock_receipt_items_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- material_requests FKs
+ALTER TABLE material_requests ADD CONSTRAINT fk_material_requests_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- material_request_items FKs
+ALTER TABLE material_request_items ADD CONSTRAINT fk_material_request_items_request 
+  FOREIGN KEY (material_request_id) REFERENCES material_requests(id) ON DELETE CASCADE;
+ALTER TABLE material_request_items ADD CONSTRAINT fk_material_request_items_inventory_item 
+  FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT;
+ALTER TABLE material_request_items ADD CONSTRAINT fk_material_request_items_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- stock_issues FKs
+ALTER TABLE stock_issues ADD CONSTRAINT fk_stock_issues_material_request 
+  FOREIGN KEY (material_request_id) REFERENCES material_requests(id) ON DELETE SET NULL;
+ALTER TABLE stock_issues ADD CONSTRAINT fk_stock_issues_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- stock_issue_items FKs
+ALTER TABLE stock_issue_items ADD CONSTRAINT fk_stock_issue_items_issue 
+  FOREIGN KEY (stock_issue_id) REFERENCES stock_issues(id) ON DELETE CASCADE;
+ALTER TABLE stock_issue_items ADD CONSTRAINT fk_stock_issue_items_inventory_item 
+  FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT;
+ALTER TABLE stock_issue_items ADD CONSTRAINT fk_stock_issue_items_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- stock_transfers FKs
+ALTER TABLE stock_transfers ADD CONSTRAINT fk_stock_transfers_from_wbs_node 
+  FOREIGN KEY (from_wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+ALTER TABLE stock_transfers ADD CONSTRAINT fk_stock_transfers_to_wbs_node 
+  FOREIGN KEY (to_wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- stock_transfer_items FKs
+ALTER TABLE stock_transfer_items ADD CONSTRAINT fk_stock_transfer_items_transfer 
+  FOREIGN KEY (stock_transfer_id) REFERENCES stock_transfers(id) ON DELETE CASCADE;
+ALTER TABLE stock_transfer_items ADD CONSTRAINT fk_stock_transfer_items_inventory_item 
+  FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT;
+
+-- stock_adjustments FKs
+ALTER TABLE stock_adjustments ADD CONSTRAINT fk_stock_adjustments_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
+
+-- stock_adjustment_items FKs
+ALTER TABLE stock_adjustment_items ADD CONSTRAINT fk_stock_adjustment_items_adjustment 
+  FOREIGN KEY (stock_adjustment_id) REFERENCES stock_adjustments(id) ON DELETE CASCADE;
+ALTER TABLE stock_adjustment_items ADD CONSTRAINT fk_stock_adjustment_items_inventory_item 
+  FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id) ON DELETE RESTRICT;
+ALTER TABLE stock_adjustment_items ADD CONSTRAINT fk_stock_adjustment_items_wbs_node 
+  FOREIGN KEY (wbs_node_id) REFERENCES wbs_nodes(id) ON DELETE RESTRICT;
 
 -- Enable RLS
 ALTER TABLE inventory_items ENABLE ROW LEVEL SECURITY;
