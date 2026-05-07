@@ -20,6 +20,7 @@ import MEP from "./pages/MEP";
 import Construction from "./pages/Construction";
 import ConstructionTaskDetail from "./pages/ConstructionTaskDetail";
 import ConstructionReports from "./pages/ConstructionReports";
+import AdminConstructionConfig from "./pages/AdminConstructionConfig";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -538,6 +539,17 @@ const App = () => (
                             ← Go to Materials & Procurement Module
                           </a>
                         </div>
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                {/* Admin Construction Config */}
+                <Route 
+                  path="/admin/construction" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <AdminConstructionConfig />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
