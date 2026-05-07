@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useProjects } from "@/contexts/ProjectContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchPOById, fetchPOs, fetchApprovedQuotations, createPO, PurchaseOrder } from "@/services/poService";
+import { fetchPOs, fetchPOById, fetchApprovedQuotations, createPO, PurchaseOrder } from "@/services/poService";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
