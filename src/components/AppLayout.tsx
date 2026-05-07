@@ -92,6 +92,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/procurement/invoices", label: "Invoices", icon: FileText, module: "procurement" },
       { to: "/procurement/grns", label: "GRNs", icon: Package, module: "procurement" },
       { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "procurement" },
+      { to: "/inventory", label: "Inventory / Stock", icon: Package, module: "inventory" },
       { to: "/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
       { to: "/financials", label: "Financials", icon: DollarSign, module: "financials" },
@@ -126,6 +127,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Site Execution",
     items: [
       { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
+      { to: "/inventory", label: "Inventory / Stock", icon: Package, module: "inventory" },
       { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
         roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
       { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },

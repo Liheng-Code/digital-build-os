@@ -21,6 +21,7 @@ import Construction from "./pages/Construction";
 import ConstructionTaskDetail from "./pages/ConstructionTaskDetail";
 import ConstructionReports from "./pages/ConstructionReports";
 import AdminConstructionConfig from "./pages/AdminConstructionConfig";
+import Inventory from "./pages/Inventory";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -520,6 +521,16 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <ConstructionReports />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/inventory" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Inventory />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
