@@ -10,6 +10,11 @@ CREATE TYPE stock_issue_status AS ENUM ('pending_approval', 'approved', 'issued'
 CREATE TYPE stock_transfer_status AS ENUM ('pending_approval', 'approved', 'in_transit', 'completed');
 CREATE TYPE stock_adjustment_type AS ENUM ('add', 'subtract');
 
+-- Drop stock_balances if exists (handle any object type from previous attempts)
+DROP TABLE IF EXISTS stock_balances CASCADE;
+DROP VIEW IF EXISTS stock_balances CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS stock_balances CASCADE;
+
 -- Inventory Items Master Table
 CREATE TABLE IF NOT EXISTS inventory_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -172,12 +177,12 @@ CREATE TABLE IF NOT EXISTS stock_adjustment_items (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Stock Balance Materialized View (fixed to avoid cartesian product)
-CREATE OR REPLACE VIEW stock_balances AS
+-- Stock Balance Materialized View (fixed COALESCE syntax)
+CREATE MATERIALIZED VIEW stock_balances AS
 WITH receipt_totals AS (
   SELECT 
     sri.inventory_item_id,
-    COALESCE(SUM(CASE WHEN sr.status = 'accepted' THEN sri.accepted_quantity ELSE 0 END), 0) AS total_receipts
+    SUM(CASE WHEN sr.status = 'accepted' THEN sri.accepted_quantity ELSE 0 END) AS total_receipts
   FROM stock_receipt_items sri
   LEFT JOIN stock_receipts sr ON sri.stock_receipt_id = sr.id
   GROUP BY sri.inventory_item_id
@@ -185,7 +190,7 @@ WITH receipt_totals AS (
 issue_totals AS (
   SELECT 
     sii.inventory_item_id,
-    COALESCE(SUM(CASE WHEN si.status = 'issued' THEN sii.quantity_issued ELSE 0 END), 0) AS total_issues
+    SUM(CASE WHEN si.status = 'issued' THEN sii.quantity_issued ELSE 0 END) AS total_issues
   FROM stock_issue_items sii
   LEFT JOIN stock_issues si ON sii.stock_issue_id = si.id
   GROUP BY sii.inventory_item_id
@@ -193,7 +198,7 @@ issue_totals AS (
 transfer_in_totals AS (
   SELECT 
     sti.inventory_item_id,
-    COALESCE(SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END), 0) AS total_transfers_in
+    SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END) AS total_transfers_in
   FROM stock_transfer_items sti
   LEFT JOIN stock_transfers st ON sti.stock_transfer_id = st.id
   WHERE st.to_wbs_node_id IS NOT NULL
@@ -202,7 +207,7 @@ transfer_in_totals AS (
 transfer_out_totals AS (
   SELECT 
     sti.inventory_item_id,
-    COALESCE(SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END), 0) AS total_transfers_out
+    SUM(CASE WHEN st.status = 'completed' THEN sti.quantity_transferred ELSE 0 END) AS total_transfers_out
   FROM stock_transfer_items sti
   LEFT JOIN stock_transfers st ON sti.stock_transfer_id = st.id
   WHERE st.from_wbs_node_id IS NOT NULL
@@ -211,7 +216,7 @@ transfer_out_totals AS (
 adjustment_add_totals AS (
   SELECT 
     sai.inventory_item_id,
-    COALESCE(SUM(CASE WHEN sa.adjustment_type = 'add' THEN sai.quantity_adjusted ELSE 0 END), 0) AS total_adjustments_add
+    SUM(CASE WHEN sa.adjustment_type = 'add' THEN sai.quantity_adjusted ELSE 0 END) AS total_adjustments_add
   FROM stock_adjustment_items sai
   LEFT JOIN stock_adjustments sa ON sai.stock_adjustment_id = sa.id
   GROUP BY sai.inventory_item_id
@@ -219,7 +224,7 @@ adjustment_add_totals AS (
 adjustment_subtract_totals AS (
   SELECT 
     sai.inventory_item_id,
-    COALESCE(SUM(CASE WHEN sa.adjustment_type = 'subtract' THEN sai.quantity_adjusted ELSE 0 END), 0) AS total_adjustments_subtract
+    SUM(CASE WHEN sa.adjustment_type = 'subtract' THEN sai.quantity_adjusted ELSE 0 END) AS total_adjustments_subtract
   FROM stock_adjustment_items sai
   LEFT JOIN stock_adjustments sa ON sai.stock_adjustment_id = sa.id
   GROUP BY sai.inventory_item_id
@@ -236,11 +241,11 @@ SELECT
   COALESCE(aa.total_adjustments_add, 0) AS total_adjustments_add,
   COALESCE(asub.total_adjustments_subtract, 0) AS total_adjustments_subtract,
   (COALESCE(rt.total_receipts, 0) 
-   + COALESCE(tin.total_transfers_in, 0)
-   + COALESCE(aa.total_adjustments_add, 0)
-   - COALESCE(it.total_issues, 0)
-   - COALESCE(tout.total_transfers_out, 0)
-   - COALESCE(asub.total_adjustments_subtract, 0)
+    + COALESCE(tin.total_transfers_in, 0)
+    + COALESCE(aa.total_adjustments_add, 0)
+    - COALESCE(it.total_issues, 0)
+    - COALESCE(tout.total_transfers_out, 0)
+    - COALESCE(asub.total_adjustments_subtract, 0)
   ) AS current_balance
 FROM inventory_items i
 LEFT JOIN receipt_totals rt ON i.id = rt.inventory_item_id
