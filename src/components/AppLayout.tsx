@@ -126,6 +126,15 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: "Site Execution",
+    items: [
+      { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
+      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
+        roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
+      { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
+    ],
+  },
+  {
     label: "Administration",
     items: [
       { to: "/stakeholders", label: "Stakeholders", icon: Building2, module: "stakeholders", roles: ["admin", "project_manager"] },

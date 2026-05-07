@@ -17,6 +17,8 @@ import HSE from "./pages/HSE";
 import Subcontractors from "./pages/Subcontractors";
 import Structural from "./pages/Structural";
 import MEP from "./pages/MEP";
+import Construction from "./pages/Construction";
+import ConstructionTaskDetail from "./pages/ConstructionTaskDetail";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
@@ -486,6 +488,26 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <MEP />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/construction" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Construction />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/construction/tasks/:id" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ConstructionTaskDetail />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
