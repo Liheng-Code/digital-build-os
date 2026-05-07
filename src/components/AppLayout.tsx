@@ -39,6 +39,7 @@ import {
   Mail,
   Building2,
   Zap,
+  Package,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -88,6 +89,11 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/procurement", label: "Procurement & MTO", icon: ShoppingCart, module: "procurement" },
+      { to: "/procurement/rfqs", label: "RFQs", icon: FileText, module: "procurement" },
+      { to: "/procurement/pos", label: "Purchase Orders", icon: ClipboardList, module: "procurement" },
+      { to: "/procurement/invoices", label: "Invoices", icon: FileText, module: "procurement" },
+      { to: "/procurement/grns", label: "GRNs", icon: Package, module: "procurement" },
+      { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "procurement" },
       { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
       { to: "/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
