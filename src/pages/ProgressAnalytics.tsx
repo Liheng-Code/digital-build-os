@@ -278,24 +278,27 @@ export default function ProgressAnalytics() {
             {wbsNodes
               .filter(n => n.node_type === 'level' || n.node_type === 'zone')
               .slice(0, 10)
-              .map(node => (
+              .map(node => {
+                const pct = nodeStats.get(node.id)?.avgProgress ?? 0;
+                return (
                 <div key={node.id} className="p-3 border rounded-lg flex flex-col gap-2">
                   <div className="text-[10px] font-mono text-muted-foreground uppercase truncate">{node.code}</div>
                   <div className="text-xs font-bold truncate">{node.name}</div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm font-bold text-primary">{(node as any).progress_pct || 0}%</span>
-                    <Badge variant={((node as any).progress_pct || 0) > 80 ? "default" : "outline"} className="text-[9px] h-4">
-                      {((node as any).progress_pct || 0) > 80 ? "Active" : "Pending"}
+                    <span className="text-sm font-bold text-primary">{pct}%</span>
+                    <Badge variant={pct > 80 ? "default" : "outline"} className="text-[9px] h-4">
+                      {pct > 80 ? "Active" : "Pending"}
                     </Badge>
                   </div>
                   <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
                     <div 
-                      className={`h-full ${((node as any).progress_pct || 0) > 50 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
-                      style={{ width: `${(node as any).progress_pct || 0}%` }} 
+                      className={`h-full ${pct > 50 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                      style={{ width: `${pct}%` }} 
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
           </div>
         </CardContent>
       </Card>
