@@ -35,35 +35,19 @@ import { Badge } from "@/components/ui/badge";
 
 export default function ProgressAnalytics() {
   const { activeProject } = useProjects();
-  const { nodes: wbsNodes, loading: wbsLoading, refresh: refreshWbs } = useWbsTree(activeProject?.id);
-  
+  const { nodes: wbsNodes, nodeStats, loading: wbsLoading } = useWbsTree(activeProject?.id);
+
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [syncing, setSyncing] = React.useState(false);
 
   const loadTasks = async () => {
     if (!activeProject) return;
     const { data } = await supabase
       .from("tasks")
-      .select("id, title, planned_start, planned_end, actual_start, actual_end, progress_pct, wbs_node_id")
+      .select("id, title, planned_start, planned_end, actual_start, actual_end, progress_pct, estimated_hours, wbs_node_id")
       .eq("project_id", activeProject.id);
     setTasks(data || []);
     setLoading(false);
-  };
-
-  const handleSync = async () => {
-    if (!activeProject) return;
-    setSyncing(true);
-    try {
-      const { error } = await supabase.rpc('sync_all_wbs_progress', { v_project_id: activeProject.id });
-      if (error) throw error;
-      toast.success("Progress synchronized successfully");
-      await Promise.all([loadTasks(), refreshWbs()]);
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setSyncing(false);
-    }
   };
 
   React.useEffect(() => {
@@ -104,15 +88,15 @@ export default function ProgressAnalytics() {
     });
   }, [tasks]);
 
-  // Progress by Building
+  // Progress by Building (live weighted, matches WBS Breakdown)
   const buildingData = React.useMemo(() => {
     return wbsNodes
       .filter(n => n.node_type === 'building')
       .map(n => ({
         name: n.name,
-        progress: (n as any).progress_pct || 0,
+        progress: nodeStats.get(n.id)?.avgProgress ?? 0,
       }));
-  }, [wbsNodes]);
+  }, [wbsNodes, nodeStats]);
 
   if (!activeProject) {
     return <div className="p-8 text-muted-foreground">Select a project to view analytics.</div>;
@@ -126,10 +110,17 @@ export default function ProgressAnalytics() {
     );
   }
 
-  const overallProgress = Math.round(
-    wbsNodes.filter(n => !n.parent_id).reduce((acc, n) => acc + ((n as any).progress_pct || 0), 0) / 
-    (wbsNodes.filter(n => !n.parent_id).length || 1)
-  );
+  // Overall: weighted average across all tasks (same formula as WBS Breakdown roll-up)
+  const overallProgress = (() => {
+    let weighted = 0;
+    let totalW = 0;
+    for (const t of tasks) {
+      const w = Math.max(0.0001, Number(t.estimated_hours ?? 0)) || 1;
+      weighted += (Number(t.progress_pct) || 0) * w;
+      totalW += w;
+    }
+    return totalW > 0 ? Math.round(weighted / totalW) : 0;
+  })();
 
   return (
     <div className="space-y-6">
@@ -138,16 +129,6 @@ export default function ProgressAnalytics() {
           <h1 className="text-2xl font-bold tracking-tight">Progress & Analytics</h1>
           <p className="text-muted-foreground">Real-time performance roll-up from WBS hierarchy.</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleSync} 
-          disabled={syncing}
-          className="gap-2"
-        >
-          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Sync Progress
-        </Button>
       </div>
 
       {/* KPI Overviews */}
@@ -297,24 +278,27 @@ export default function ProgressAnalytics() {
             {wbsNodes
               .filter(n => n.node_type === 'level' || n.node_type === 'zone')
               .slice(0, 10)
-              .map(node => (
+              .map(node => {
+                const pct = nodeStats.get(node.id)?.avgProgress ?? 0;
+                return (
                 <div key={node.id} className="p-3 border rounded-lg flex flex-col gap-2">
                   <div className="text-[10px] font-mono text-muted-foreground uppercase truncate">{node.code}</div>
                   <div className="text-xs font-bold truncate">{node.name}</div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm font-bold text-primary">{(node as any).progress_pct || 0}%</span>
-                    <Badge variant={((node as any).progress_pct || 0) > 80 ? "default" : "outline"} className="text-[9px] h-4">
-                      {((node as any).progress_pct || 0) > 80 ? "Active" : "Pending"}
+                    <span className="text-sm font-bold text-primary">{pct}%</span>
+                    <Badge variant={pct > 80 ? "default" : "outline"} className="text-[9px] h-4">
+                      {pct > 80 ? "Active" : "Pending"}
                     </Badge>
                   </div>
                   <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
                     <div 
-                      className={`h-full ${((node as any).progress_pct || 0) > 50 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
-                      style={{ width: `${(node as any).progress_pct || 0}%` }} 
+                      className={`h-full ${pct > 50 ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                      style={{ width: `${pct}%` }} 
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
           </div>
         </CardContent>
       </Card>
