@@ -77,7 +77,7 @@ export default function RFQs() {
     }
     createMutation.mutate({
       project_id: activeProject.id,
-      pr_id: selectedPR || undefined,
+      pr_id: selectedPR === "none" ? undefined : (selectedPR || undefined),
       due_date: dueDate,
       status: 'draft',
     });
@@ -127,7 +127,7 @@ export default function RFQs() {
                     <SelectValue placeholder="Select PR (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No PR Link</SelectItem>
+                    <SelectItem value="none">No PR Link</SelectItem>
                     {availablePRs.map((pr: any) => (
                       <SelectItem key={pr.id} value={pr.id}>
                         {pr.pr_number} - {pr.status}
