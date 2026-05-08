@@ -19,6 +19,8 @@ import {
   TASK_PRIORITY_LABELS, TASK_PRIORITY_TONE, TASK_TYPE_LABELS,
 } from "@/lib/taskMeta";
 import { formatHours } from "@/lib/timesheetMeta";
+import { LEAVE_STATUS_LABELS, LEAVE_STATUS_TONE, type LeaveRequest } from "@/lib/hrMeta";
+import { fetchPendingLeaveRequests, updateLeaveStatus } from "@/services/leaveService";
 import { CheckCheck, Clock, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -70,10 +72,16 @@ export default function Approvals() {
   const [rejectingId, setRejectingId] = React.useState<string | null>(null);
   const [rejectReason, setRejectReason] = React.useState("");
 
+  // Leave
+  const [leaveItems, setLeaveItems] = React.useState<LeaveRequest[]>([]);
+  const [loadingLeave, setLoadingLeave] = React.useState(true);
+  const [leaveBusy, setLeaveBusy] = React.useState<string | null>(null);
+
   const canApprove = roles.some((r) =>
     ["admin", "project_manager", "supervisor", "qaqc_inspector"].includes(r),
   );
   const canApproveTs = roles.some((r) => ["admin", "project_manager", "supervisor"].includes(r));
+  const canApproveLeave = roles.some((r) => ["admin", "project_manager", "supervisor"].includes(r));
 
   const loadTasks = React.useCallback(async () => {
     if (!activeProject) { setItems([]); setLoadingTasks(false); return; }
@@ -109,8 +117,44 @@ export default function Approvals() {
     setLoadingTs(false);
   }, [projects]);
 
+  const loadLeave = React.useCallback(async () => {
+    setLoadingLeave(true);
+    try {
+      const data = await fetchPendingLeaveRequests();
+      setLeaveItems(data);
+    } catch {
+      toast.error("Failed to load leave requests");
+    }
+    setLoadingLeave(false);
+  }, []);
+
+  const approveLeave = async (id: string) => {
+    setLeaveBusy(id);
+    try {
+      await updateLeaveStatus(id, "approved", "");
+      toast.success("Leave approved");
+      loadLeave();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setLeaveBusy(null);
+  };
+
+  const rejectLeave = async (id: string) => {
+    setLeaveBusy(id);
+    try {
+      await updateLeaveStatus(id, "rejected", "", "Rejected from Approvals");
+      toast.success("Leave rejected");
+      loadLeave();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setLeaveBusy(null);
+  };
+
   React.useEffect(() => { loadTasks(); }, [loadTasks]);
   React.useEffect(() => { loadTimesheets(); }, [loadTimesheets]);
+  React.useEffect(() => { loadLeave(); }, [loadLeave]);
 
   // NOTE: We intentionally do NOT auto-mark approval notifications as read
   // when a tab is opened — the sidebar "Approvals" badge and tab badges
@@ -192,6 +236,12 @@ export default function Approvals() {
             )}
             {timesheetApprovalCount === 0 && tsItems.length > 0 && (
               <span className="ml-2 rounded-full bg-warning text-warning-foreground px-1.5 text-[10px]">{tsItems.length}</span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="leave">
+            Leave
+            {leaveItems.length > 0 && (
+              <span className="ml-2 rounded-full bg-warning text-warning-foreground px-1.5 text-[10px]">{leaveItems.length}</span>
             )}
           </TabsTrigger>
         </TabsList>
@@ -339,6 +389,68 @@ export default function Approvals() {
                                 </Button>
                               </div>
                             )
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="leave" className="mt-4">
+          <Card>
+            <CardContent className="p-0">
+              {loadingLeave ? (
+                <div className="p-6 space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+              ) : leaveItems.length === 0 ? (
+                <div className="p-12 text-center">
+                  <CheckCheck className="h-12 w-12 text-success mx-auto mb-2" />
+                  <p className="font-medium">All caught up</p>
+                  <p className="text-sm text-muted-foreground">No leave requests pending approval.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Leave Type</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Days</TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {leaveItems.map((l) => (
+                      <TableRow key={l.id}>
+                        <TableCell className="font-medium">{l.profile?.full_name ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{l.leave_type?.name ?? "—"}</TableCell>
+                        <TableCell className="text-sm">
+                          {format(parseISO(l.start_date), "MMM d")} – {format(parseISO(l.end_date), "MMM d")}
+                        </TableCell>
+                        <TableCell className="num">{l.total_days}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{l.reason || "—"}</TableCell>
+                        <TableCell>
+                          <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", LEAVE_STATUS_TONE[l.status].bg, LEAVE_STATUS_TONE[l.status].fg)}>
+                            {LEAVE_STATUS_LABELS[l.status]}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {canApproveLeave && (
+                            <div className="flex gap-2 justify-end">
+                              <Button size="sm" variant="outline" disabled={leaveBusy === l.id} onClick={() => rejectLeave(l.id)}>
+                                {leaveBusy === l.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                                Reject
+                              </Button>
+                              <Button size="sm" disabled={leaveBusy === l.id} onClick={() => approveLeave(l.id)}>
+                                {leaveBusy === l.id && <Loader2 className="h-3 w-3 animate-spin" />}
+                                Approve
+                              </Button>
+                            </div>
                           )}
                         </TableCell>
                       </TableRow>

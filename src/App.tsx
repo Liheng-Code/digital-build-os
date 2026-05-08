@@ -48,6 +48,12 @@ import Stakeholders from "./pages/Stakeholders";
 import Transmittals from "./pages/Transmittals";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
 import RFIs from "./pages/RFIs";
+import HRDashboard from "./pages/hr/HRDashboard";
+import LeaveList from "./pages/hr/LeaveList";
+import LeaveRequestForm from "./pages/hr/LeaveRequestForm";
+import LeaveTypesAdmin from "./pages/hr/LeaveTypesAdmin";
+import Attendance from "./pages/hr/Attendance";
+import People from "./pages/hr/People";
 import RFQs from "./pages/RFQs";
 import RFQDetail from "./pages/RFQDetail";
 import POs from "./pages/POs";
@@ -574,6 +580,67 @@ const App = () => (
                       </AppLayout>
                     </ProtectedRoute>
                   } 
+                />
+                {/* HR Module */}
+                <Route
+                  path="/hr"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <HRDashboard />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hr/leave"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <LeaveList />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hr/leave/new"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <LeaveRequestForm />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hr/leave/types"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <LeaveTypesAdmin />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hr/attendance"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Attendance />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/hr/people"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <People />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
                 />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

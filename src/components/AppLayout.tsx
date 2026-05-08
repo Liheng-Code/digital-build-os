@@ -40,6 +40,7 @@ import {
   Building2,
   Zap,
   Package,
+  Calendar,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -75,6 +76,15 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/project-details", label: "Project Info", icon: Info },
       { to: "/projects", label: "Projects", icon: FolderKanban, module: "projects" },
       { to: "/wbs", label: "WBS", icon: Network, module: "wbs" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { to: "/hr", label: "HR Dashboard", icon: Activity, module: "hr" },
+      { to: "/hr/leave", label: "Leave", icon: Calendar, module: "hr" },
+      { to: "/hr/attendance", label: "Attendance", icon: Clock, module: "hr" },
+      { to: "/hr/people", label: "People", icon: Users, module: "hr" },
     ],
   },
   {
