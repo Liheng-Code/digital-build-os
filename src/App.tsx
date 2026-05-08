@@ -20,7 +20,7 @@ import MEP from "./pages/MEP";
 import Construction from "./pages/Construction";
 import ConstructionTaskDetail from "./pages/ConstructionTaskDetail";
 import ConstructionReports from "./pages/ConstructionReports";
-import AdminConstructionConfig from "./pages/AdminConstructionConfig";
+import AdminConfiguration from "./pages/AdminConfiguration";
 import Inventory from "./pages/Inventory";
 import ResetPassword from "./pages/ResetPassword";
 import Projects from "./pages/Projects";
@@ -625,13 +625,13 @@ const App = () => (
                     </ProtectedRoute>
                   } 
                 />
-                {/* Admin Construction Config */}
+                {/* Admin Configuration */}
                 <Route 
-                  path="/admin/construction" 
+                  path="/admin/config" 
                   element={
                     <ProtectedRoute>
                       <AppLayout>
-                        <AdminConstructionConfig />
+                        <AdminConfiguration />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

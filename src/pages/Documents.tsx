@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { useWbsTree } from "@/hooks/useWbsTree";
 import { flattenTree, buildWbsTree } from "@/lib/wbsMeta";
 import { DOCUMENT_DISCIPLINES } from "@/lib/documentMeta";
+import { fetchDocumentTypes } from "@/services/adminConfigService";
 
 interface DocRow {
   id: string;
@@ -88,6 +89,9 @@ export default function Documents() {
   const [discipline, setDiscipline] = useState("GEN");
   const [wbsNodeId, setWbsNodeId] = useState<string | null>(null);
   const [docNumber, setDocNumber] = useState("");
+  const [documentTypes, setDocumentTypes] = useState<{ code: string; name: string }[]>(
+    DOCUMENT_DISCIPLINES.map((discipline) => ({ code: discipline.value, name: discipline.label })),
+  );
   const [file, setFile] = useState<File | null>(null);
 
   const { nodes: wbsNodes } = useWbsTree(activeProject?.id);
@@ -117,8 +121,20 @@ export default function Documents() {
     setLoading(false);
   };
 
+  const loadDocumentTypes = async () => {
+    try {
+      const types = await fetchDocumentTypes();
+      if (types.length > 0) {
+        setDocumentTypes(types.map((t) => ({ code: t.code, name: t.name })));
+      }
+    } catch {
+      // Keep seed fallback values if the admin config table is unavailable.
+    }
+  };
+
   useEffect(() => {
     loadDocs();
+    loadDocumentTypes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProject?.id]);
 
@@ -186,8 +202,8 @@ export default function Documents() {
       setDocNumber("");
       setFile(null);
       await loadDocs();
-    } catch (e: any) {
-      toast.error(e.message || "Upload failed");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Upload failed"));
     } finally {
       setCreating(false);
     }
@@ -231,8 +247,8 @@ export default function Documents() {
       const updated = { ...activeDoc, current_version: nextVersion };
       setActiveDoc(updated);
       await Promise.all([loadDocs(), loadVersions(activeDoc.id)]);
-    } catch (e: any) {
-      toast.error(e.message || "Version upload failed");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Version upload failed"));
     } finally {
       setUploadingVersion(false);
     }
@@ -324,8 +340,8 @@ export default function Documents() {
                     <Select value={discipline} onValueChange={setDiscipline}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {DOCUMENT_DISCIPLINES.map((d) => (
-                          <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                        {documentTypes.map((d) => (
+                          <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -526,4 +542,8 @@ export default function Documents() {
       </Sheet>
     </div>
   );
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }

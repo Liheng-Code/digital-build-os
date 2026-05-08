@@ -25,10 +25,11 @@ import {
   Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { WBS_NODE_TYPE_LABELS } from "@/lib/wbsMeta";
+import { WBS_NODE_TYPE_LABELS, WbsNodeType } from "@/lib/wbsMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { DepRelation } from "@/lib/scheduleMeta";
 import { toast } from "sonner";
+import { fetchWbsNodeTypes } from "@/services/adminConfigService";
 
 type EditMode =
   | { kind: "view" }
@@ -38,6 +39,15 @@ type EditMode =
 type MainView = "tree" | "gantt";
 
 const STORAGE_KEY = "buildtrack.wbs.layout";
+
+interface WbsRpcClient {
+  rpc(
+    name: "reorder_wbs_nodes",
+    args: { _updates: { id: string; sort_order: number }[] }
+  ): Promise<{ error: { message: string } | null }>;
+}
+
+const wbsRpcClient = supabase as unknown as WbsRpcClient;
 
 export default function WbsPage() {
   const { activeProject } = useProjects();
@@ -63,6 +73,11 @@ export default function WbsPage() {
   const [editLink, setEditLink] = React.useState<DependencyLink | null>(null);
   const [editRelation, setEditRelation] = React.useState<DepRelation>("FS");
   const [editLag, setEditLag] = React.useState("0");
+  const [wbsNodeTypeLabels, setWbsNodeTypeLabels] =
+    React.useState<Record<string, string>>(WBS_NODE_TYPE_LABELS);
+  const [wbsNodeTypeOptions, setWbsNodeTypeOptions] = React.useState<WbsNodeType[]>(
+    Object.keys(WBS_NODE_TYPE_LABELS) as WbsNodeType[],
+  );
 
   const leftGanttBodyRef = React.useRef<HTMLDivElement>(null);
   const rightGanttBodyRef = React.useRef<HTMLDivElement>(null);
@@ -70,6 +85,29 @@ export default function WbsPage() {
 
   const canEdit = roles.includes("admin") || roles.includes("project_manager");
   const canManage = canEdit;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetchWbsNodeTypes()
+      .then((types) => {
+        if (cancelled || types.length === 0) return;
+        const validTypes = types.filter((type) =>
+          Object.prototype.hasOwnProperty.call(WBS_NODE_TYPE_LABELS, type.code),
+        ) as Array<(typeof types)[number] & { code: WbsNodeType }>;
+        if (validTypes.length === 0) return;
+        setWbsNodeTypeLabels({
+          ...WBS_NODE_TYPE_LABELS,
+          ...Object.fromEntries(validTypes.map((type) => [type.code, type.name])),
+        });
+        setWbsNodeTypeOptions(validTypes.map((type) => type.code));
+      })
+      .catch(() => {
+        // Keep local fallback labels if the admin config table is unavailable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectedNode = React.useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
@@ -177,14 +215,14 @@ export default function WbsPage() {
     ];
 
     try {
-      const { error } = await (supabase.rpc as any)("reorder_wbs_nodes", { _updates: updates });
+      const { error } = await wbsRpcClient.rpc("reorder_wbs_nodes", { _updates: updates });
       if (error) {
         for (const up of updates) {
           await supabase.from("wbs_nodes").update({ sort_order: up.sort_order }).eq("id", up.id);
         }
       }
       refresh();
-    } catch (err) {
+    } catch {
       toast.error("Failed to move node");
     }
   };
@@ -201,7 +239,7 @@ export default function WbsPage() {
       predecessor_id: selectedTaskId,
       relation_type: "FS",
       lag_days: 0,
-    } as any);
+    });
 
     if (error) {
       toast.error(error.message);
@@ -355,7 +393,7 @@ export default function WbsPage() {
                 .update({
                   relation_type: editRelation,
                   lag_days: Number(editLag) || 0,
-                } as any)
+                })
                 .eq("task_id", editLink.task_id)
                 .eq("predecessor_id", editLink.predecessor_id);
 
@@ -426,7 +464,7 @@ export default function WbsPage() {
                 predecessor_id: predId,
                 relation_type: "FS",
                 lag_days: 0,
-              } as any);
+              });
               if (error) { toast.error(error.message); return false; }
               toast.success("Dependency created (FS)");
               const ids = tasks.map((t) => t.id);
@@ -489,6 +527,7 @@ export default function WbsPage() {
                         onMove={handleMove}
                         canEdit={canEdit}
                         search={search}
+                        nodeTypeLabels={wbsNodeTypeLabels}
                       />
                     )}
                   </div>
@@ -506,6 +545,8 @@ export default function WbsPage() {
                     parentId={mode.parentId}
                     parentPath={mode.parentId ? nodes.find((n) => n.id === mode.parentId)?.path_text ?? null : null}
                     parentType={mode.parentId ? nodes.find((n) => n.id === mode.parentId)?.node_type ?? null : null}
+                    nodeTypeOptions={wbsNodeTypeOptions}
+                    nodeTypeLabels={wbsNodeTypeLabels}
                     canEdit={canEdit}
                     onSaved={async () => {
                       await refresh();
@@ -531,7 +572,7 @@ export default function WbsPage() {
                       <div>
                         <h2 className="text-2xl font-semibold">{selectedNode.name}</h2>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary">{WBS_NODE_TYPE_LABELS[selectedNode.node_type]}</Badge>
+                          <Badge variant="secondary">{wbsNodeTypeLabels[selectedNode.node_type]}</Badge>
                           <span className="font-mono text-xs text-muted-foreground">{selectedNode.code}</span>
                           {(nodeStats.get(selectedNode.id)?.taskCount ?? 0) > 0 && (
                             <Badge variant="outline" className="text-xs">
@@ -562,7 +603,7 @@ export default function WbsPage() {
                         )}
                         <Card>
                           <CardContent className="p-6 space-y-3 text-sm">
-                            <Row label="Type">{WBS_NODE_TYPE_LABELS[selectedNode.node_type]}</Row>
+                            <Row label="Type">{wbsNodeTypeLabels[selectedNode.node_type]}</Row>
                             <Row label="Code"><span className="font-mono">{selectedNode.code}</span></Row>
                             <Row label="Full path"><span className="font-mono">{selectedNode.path_text}</span></Row>
                             <Row label="Depth">{selectedNode.depth}</Row>
@@ -600,6 +641,8 @@ export default function WbsPage() {
                           parentId={selectedNode.parent_id}
                           parentPath={null}
                           parentType={selectedNode.parent_id ? nodes.find((n) => n.id === selectedNode.parent_id)?.node_type ?? null : null}
+                          nodeTypeOptions={wbsNodeTypeOptions}
+                          nodeTypeLabels={wbsNodeTypeLabels}
                           canEdit={canEdit}
                           onSaved={refresh}
                           onDeleted={async () => {

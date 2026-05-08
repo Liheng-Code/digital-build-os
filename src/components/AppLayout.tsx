@@ -176,6 +176,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/team", label: "Team & Roles", icon: Users, roles: ["admin"] },
       { to: "/permissions", label: "Permissions", icon: ShieldCheck, roles: ["admin"] },
       { to: "/audit", label: "Audit Log", icon: ShieldCheck, roles: ["admin"] },
+      { to: "/admin/config", label: "Admin Config", icon: Settings, roles: ["admin"] },
       { to: "/settings", label: "Settings", icon: Settings },
     ],
   },

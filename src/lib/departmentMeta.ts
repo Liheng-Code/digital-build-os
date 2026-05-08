@@ -13,6 +13,9 @@ export type DeptStatus =
 
 export type DeptRole = "member" | "reviewer" | "approver";
 
+export const DISCIPLINE_CONFIG_TABLE = "disciplines";
+
+// Fallback labels for synchronous UI paths. Runtime selectors should read active rows from disciplines.
 export const DEPARTMENT_LABELS: Record<Department, string> = {
   architecture: "Architecture",
   structure: "Structural",

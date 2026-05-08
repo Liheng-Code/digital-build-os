@@ -24,6 +24,8 @@ interface Props {
   parentId: string | null;          // for create mode
   parentPath: string | null;
   parentType?: WbsNodeType | null;
+  nodeTypeOptions?: WbsNodeType[];
+  nodeTypeLabels?: Record<string, string>;
   canEdit: boolean;
   onSaved: () => void;
   onDeleted: () => void;
@@ -31,7 +33,7 @@ interface Props {
 }
 
 export function WbsNodeEditor({
-  projectId, node, parentId, parentPath, parentType, canEdit, onSaved, onDeleted, onCancel,
+  projectId, node, parentId, parentPath, parentType, nodeTypeOptions, nodeTypeLabels, canEdit, onSaved, onDeleted, onCancel,
 }: Props) {
   const { user } = useAuth();
   const isCreate = !node;
@@ -41,6 +43,10 @@ export function WbsNodeEditor({
   const [description, setDescription] = useState(node?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const typeOptions = nodeTypeOptions?.length
+    ? nodeTypeOptions
+    : (Object.keys(WBS_NODE_TYPE_LABELS) as WbsNodeType[]);
+  const labels = nodeTypeLabels ?? WBS_NODE_TYPE_LABELS;
 
   useEffect(() => {
     setCode(node?.code ?? "");
@@ -58,7 +64,7 @@ export function WbsNodeEditor({
       else if (!parentType) setType("building"); // Root default
       else setType("other");
     }
-  }, [node?.id, parentType]);
+  }, [node, parentType]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,8 +168,8 @@ export function WbsNodeEditor({
             <Select value={type} onValueChange={(v) => setType(v as WbsNodeType)} disabled={!canEdit}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {(Object.keys(WBS_NODE_TYPE_LABELS) as WbsNodeType[]).map((t) => (
-                  <SelectItem key={t} value={t}>{WBS_NODE_TYPE_LABELS[t]}</SelectItem>
+                {typeOptions.map((t) => (
+                  <SelectItem key={t} value={t}>{labels[t] ?? WBS_NODE_TYPE_LABELS[t]}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

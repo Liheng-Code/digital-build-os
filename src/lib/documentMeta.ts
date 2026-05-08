@@ -15,6 +15,9 @@ export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
   superseded: "Superseded",
 };
 
+export const DOCUMENT_TYPE_CONFIG_TABLE = "document_types";
+
+// Fallback seed values. Runtime consumers should read active rows from document_types.
 export const DOCUMENT_DISCIPLINES = [
   { value: "GEN", label: "General" },
   { value: "ARC", label: "Architecture" },
