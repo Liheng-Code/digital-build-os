@@ -86,15 +86,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "HR Management",
-    items: [
-      { to: "/hr", label: "HR Dashboard", icon: Activity, module: "hr" },
-      { to: "/hr/leave", label: "Leave", icon: Calendar, module: "hr" },
-      { to: "/hr/attendance", label: "Attendance", icon: Clock, module: "hr" },
-      { to: "/hr/people", label: "People", icon: Users, module: "hr" },
-    ],
-  },
-  {
     label: "Work",
     items: [
       { to: "/tasks", label: "Tasks", icon: ClipboardList, module: "tasks" },
@@ -104,6 +95,14 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
+    ],
+  },
+  {
+    label: "Design",
+    items: [
+      { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
+      { to: "/structural", label: "Structural Engineering", icon: HardHat, module: "structural" },
+      { to: "/mep", label: "MEP Engineering", icon: Zap, module: "mep" },
     ],
   },
   {
@@ -117,6 +116,16 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "procurement" },
       { to: "/procurement/inventory", label: "Inventory / Stock", icon: Package, module: "inventory" },
       { to: "/procurement/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
+    ],
+  },
+  {
+    label: "Construction",
+    items: [
+      { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
+      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
+        roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
+      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck, module: "qaqc" },
+      { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
     ],
   },
   {
@@ -139,6 +148,15 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
+    label: "HR Management",
+    items: [
+      { to: "/hr", label: "HR Dashboard", icon: Activity, module: "hr" },
+      { to: "/hr/leave", label: "Leave", icon: Calendar, module: "hr" },
+      { to: "/hr/attendance", label: "Attendance", icon: Clock, module: "hr" },
+      { to: "/hr/people", label: "People", icon: Users, module: "hr" },
+    ],
+  },
+  {
     label: "Insights",
     items: [
       { to: "/analytics", label: "Progress & Analytics", icon: BarChart2, module: "analytics" },
@@ -149,24 +167,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         roles: ["admin"] },
       { to: "/documents", label: "Document Register", icon: FileText },
       { to: "/transmittals", label: "Transmittals", icon: Mail },
-    ],
-  },
-  {
-    label: "Design Management",
-    items: [
-      { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
-      { to: "/structural", label: "Structural Engineering", icon: HardHat, module: "structural" },
-      { to: "/mep", label: "MEP Engineering", icon: Zap, module: "mep" },
-    ],
-  },
-  {
-    label: "Construction Management",
-    items: [
-      { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
-      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
-        roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
-      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck, module: "qaqc" },
-      { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
     ],
   },
   {
