@@ -104,7 +104,6 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
-      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
     ],
   },
   {
@@ -166,6 +165,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
       { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
         roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
+      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck, module: "qaqc" },
       { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
     ],
   },
