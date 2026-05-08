@@ -41,6 +41,11 @@ import {
   Zap,
   Package,
   Calendar,
+  BookOpen,
+  Receipt,
+  GitCompareArrows,
+  TrendingUp,
+  Calculator,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -105,13 +110,22 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/inventory", label: "Inventory / Stock", icon: Package, module: "inventory" },
       { to: "/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
       { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
-      { to: "/financials", label: "Financials", icon: DollarSign, module: "financials" },
       { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
     ],
   },
   {
     label: "Finance",
     items: [
+      { to: "/financials", label: "Financial Control", icon: BarChart3, module: "financials" },
+      { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "financials" },
+      { to: "/procurement/invoices", label: "Supplier Invoices", icon: FileText, module: "financials" },
+      { to: "/account/client-invoices", label: "Client Invoices", icon: Receipt, module: "financials" },
+      { to: "/account/payment-requests", label: "Payment Requests", icon: ClipboardList, module: "financials" },
+      { to: "/account/variation-orders", label: "Variation Orders", icon: GitCompareArrows, module: "financials" },
+      { to: "/account/cash-flow", label: "Cash Flow", icon: TrendingUp, module: "financials" },
+      { to: "/account/chart-of-accounts", label: "Chart of Accounts", icon: BookOpen, module: "financials" },
+      { to: "/account/resource-rates", label: "Resource Rates", icon: Calculator, module: "financials" },
+      { to: "/account/final-account", label: "Final Account", icon: FileText, module: "financials" },
       { to: "/payroll", label: "Payroll", icon: DollarSign,
         roles: ["admin", "accountant"] },
     ],

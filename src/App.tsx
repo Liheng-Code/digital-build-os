@@ -48,6 +48,13 @@ import Stakeholders from "./pages/Stakeholders";
 import Transmittals from "./pages/Transmittals";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
 import RFIs from "./pages/RFIs";
+import ChartOfAccounts from "./pages/account/ChartOfAccounts";
+import PaymentRequests from "./pages/account/PaymentRequests";
+import ClientInvoices from "./pages/account/ClientInvoices";
+import VariationOrders from "./pages/account/VariationOrders";
+import CashFlow from "./pages/account/CashFlow";
+import ResourceRates from "./pages/account/ResourceRates";
+import FinalAccount from "./pages/account/FinalAccount";
 import HRDashboard from "./pages/hr/HRDashboard";
 import LeaveList from "./pages/hr/LeaveList";
 import LeaveRequestForm from "./pages/hr/LeaveRequestForm";
@@ -638,6 +645,77 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <People />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Account / Finance Module */}
+                <Route
+                  path="/account/chart-of-accounts"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ChartOfAccounts />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/payment-requests"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <PaymentRequests />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/client-invoices"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ClientInvoices />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/variation-orders"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <VariationOrders />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/cash-flow"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <CashFlow />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/resource-rates"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ResourceRates />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/account/final-account"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <FinalAccount />
                       </AppLayout>
                     </ProtectedRoute>
                   }
