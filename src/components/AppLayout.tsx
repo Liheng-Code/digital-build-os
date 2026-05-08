@@ -47,6 +47,7 @@ import {
   TrendingUp,
   Calculator,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -123,6 +124,9 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Finance",
     items: [
       { to: "/financials", label: "Financial Control", icon: BarChart3, module: "financials" },
+      { to: "/financial-reports", label: "Financial Reports", icon: BarChart3, module: "financials" },
+      { to: "/kpi-alerts", label: "KPI Alerts", icon: AlertTriangle, module: "financials" },
+      { to: "/report-schedules", label: "Report Schedules", icon: Calendar, module: "financials" },
 
       { to: "/account/client-invoices", label: "Client Invoices", icon: Receipt, module: "financials" },
       { to: "/account/payment-requests", label: "Payment Requests", icon: ClipboardList, module: "financials" },
@@ -140,6 +144,10 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/analytics", label: "Progress & Analytics", icon: BarChart2, module: "analytics" },
       { to: "/reports", label: "Reports", icon: BarChart3 },
+      { to: "/executive-dashboard", label: "Executive Dashboard", icon: BarChart3,
+        roles: ["admin", "project_manager"] },
+      { to: "/client-dashboard", label: "Client Dashboard", icon: BarChart3,
+        roles: ["admin"] },
       { to: "/documents", label: "Document Register", icon: FileText },
       { to: "/transmittals", label: "Transmittals", icon: Mail },
     ],

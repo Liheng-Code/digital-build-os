@@ -47,6 +47,12 @@ import ProgressClaims from "./pages/ProgressClaims";
 import Stakeholders from "./pages/Stakeholders";
 import Transmittals from "./pages/Transmittals";
 import ProgressAnalytics from "./pages/ProgressAnalytics";
+import ExecutiveDashboard from "./pages/ExecutiveDashboard";
+import ProjectDashboard from "./pages/ProjectDashboard";
+import ClientDashboard from "./pages/ClientDashboard";
+import FinancialReports from "./pages/FinancialReports";
+import KpiAlerts from "./pages/KpiAlerts";
+import ReportSchedules from "./pages/ReportSchedules";
 import RFIs from "./pages/RFIs";
 import ChartOfAccounts from "./pages/account/ChartOfAccounts";
 import PaymentRequests from "./pages/account/PaymentRequests";
@@ -478,6 +484,66 @@ const App = () => (
                       </AppLayout>
                     </ProtectedRoute>
                   } 
+                />
+                <Route
+                  path="/executive-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ExecutiveDashboard />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/projects/:id/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProjectDashboard />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/client-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ClientDashboard />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/financial-reports"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <FinancialReports />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/kpi-alerts"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <KpiAlerts />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/report-schedules"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ReportSchedules />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
                 />
                 <Route 
                   path="/architecture" 
