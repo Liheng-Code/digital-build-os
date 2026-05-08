@@ -6,6 +6,9 @@ export interface RoomData {
   ceiling_finish: string | null;
   skirting_finish: string | null;
   cornice_finish: string | null;
+  sanitary_fixtures?: string | null;
+  ironmongery_set?: string | null;
+  acoustic_rating?: string | null;
   mep_requirements: {
     power_points?: number;
     light_fixtures?: string[];
@@ -13,6 +16,17 @@ export interface RoomData {
     ac_type?: string;
   };
   remarks: string | null;
+}
+
+export interface MaterialBoard {
+  id: string;
+  project_id: string;
+  wbs_node_id: string | null;
+  category: string;
+  material_name: string;
+  sample_reference: string | null;
+  photo_url: string | null;
+  status: string;
 }
 
 export interface DoorEntry {

@@ -20,11 +20,20 @@ import {
   Loader2, 
   Plus, 
   Trash2,
-  Maximize2
+  Maximize2,
+  Palette,
+  Image as ImageIcon,
+  FileText,
+  MessageSquare,
+  Search,
+  Download,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
-import { RoomData, DoorEntry, WindowEntry, COMMON_FINISHES } from "@/lib/architectureMeta";
+import { RoomData, DoorEntry, WindowEntry, MaterialBoard, COMMON_FINISHES } from "@/lib/architectureMeta";
 import { WbsNode } from "@/lib/wbsMeta";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Architecture() {
   const { activeProject } = useProjects();
@@ -34,6 +43,7 @@ export default function Architecture() {
   const [roomData, setRoomData] = React.useState<RoomData | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [sidebarTab, setSidebarTab] = React.useState<'rooms' | 'drawings' | 'boards'>('boards');
 
   // Filter only rooms
   const rooms = React.useMemo(() => 
@@ -58,6 +68,9 @@ export default function Architecture() {
         ceiling_finish: "",
         skirting_finish: "",
         cornice_finish: "",
+        sanitary_fixtures: "",
+        ironmongery_set: "",
+        acoustic_rating: "",
         mep_requirements: {},
         remarks: ""
       });
@@ -99,53 +112,79 @@ export default function Architecture() {
 
   return (
     <div className="flex h-[calc(100vh-10rem)] gap-4">
-      {/* Room Sidebar */}
+      {/* Sidebar */}
       <Card className="w-80 flex flex-col">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Layout className="h-5 w-5 text-primary" />
-            Room Explorer
-          </CardTitle>
-          <CardDescription>Select a room to view RDS</CardDescription>
+          <Tabs value={sidebarTab} onValueChange={(v: any) => setSidebarTab(v)}>
+            <TabsList className="grid grid-cols-3 w-full">
+              <TabsTrigger value="boards" title="Material Boards"><Palette className="h-4 w-4" /></TabsTrigger>
+              <TabsTrigger value="drawings" title="Drawing Register"><FileText className="h-4 w-4" /></TabsTrigger>
+              <TabsTrigger value="rooms" title="Room Explorer"><Layout className="h-4 w-4" /></TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
-        <CardContent className="flex-1 p-0">
+        <CardContent className="flex-1 p-0 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-2 space-y-1">
-              {rooms.map(room => (
+              {sidebarTab === 'rooms' && (
+                <>
+                  <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rooms</div>
+                  {rooms.map(room => (
+                    <button
+                      key={room.id}
+                      onClick={() => { setSelectedRoom(room); }}
+                      className={`w-full text-left px-3 py-2 rounded-md transition-colors flex flex-col gap-0.5 ${
+                        selectedRoom?.id === room.id 
+                          ? "bg-primary text-primary-foreground shadow-sm" 
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      <span className="text-sm font-medium leading-none">{room.name}</span>
+                      <span className={`text-[10px] font-mono ${selectedRoom?.id === room.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                        {room.code}
+                      </span>
+                    </button>
+                  ))}
+                  {rooms.length === 0 && !wbsLoading && (
+                    <div className="p-4 text-center text-sm text-muted-foreground italic">No rooms found.</div>
+                  )}
+                </>
+              )}
+              {sidebarTab === 'boards' && (
                 <button
-                  key={room.id}
-                  onClick={() => setSelectedRoom(room)}
-                  className={`w-full text-left px-3 py-2 rounded-md transition-colors flex flex-col gap-0.5 ${
-                    selectedRoom?.id === room.id 
-                      ? "bg-primary text-primary-foreground shadow-sm" 
-                      : "hover:bg-muted"
+                  onClick={() => { setSelectedRoom(null); setSidebarTab('boards'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-2 ${
+                    !selectedRoom && sidebarTab === 'boards' ? "bg-accent text-accent-foreground" : "hover:bg-muted"
                   }`}
                 >
-                  <span className="text-sm font-medium leading-none">{room.name}</span>
-                  <span className={`text-[10px] font-mono ${selectedRoom?.id === room.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                    {room.code}
-                  </span>
+                  <Palette className="h-4 w-4" />
+                  <span className="text-sm font-medium">Project Material Boards</span>
                 </button>
-              ))}
-              {rooms.length === 0 && !wbsLoading && (
-                <div className="p-4 text-center text-sm text-muted-foreground italic">
-                  No rooms found in WBS.
-                </div>
+              )}
+              {sidebarTab === 'drawings' && (
+                <button
+                  onClick={() => { setSelectedRoom(null); setSidebarTab('drawings'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-2 ${
+                    !selectedRoom && sidebarTab === 'drawings' ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  <span className="text-sm font-medium">Architecture Drawing Register</span>
+                </button>
               )}
             </div>
           </ScrollArea>
         </CardContent>
       </Card>
 
-      {/* RDS Editor */}
+      {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col gap-4">
         {!selectedRoom ? (
-          <Card className="flex-1 flex items-center justify-center border-dashed">
-            <div className="text-center">
-              <DoorOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-              <p className="text-muted-foreground">Select a room from the explorer to manage its data.</p>
-            </div>
-          </Card>
+          sidebarTab === 'drawings' ? (
+            <DrawingRegisterView projectId={activeProject.id} wbsNodes={wbsNodes} />
+          ) : (
+            <MaterialBoardView projectId={activeProject.id} />
+          )
         ) : (
           <div className="flex flex-col h-full gap-4">
             <div className="flex items-center justify-between">
@@ -153,10 +192,13 @@ export default function Architecture() {
                 <h1 className="text-2xl font-bold tracking-tight">{selectedRoom.name}</h1>
                 <p className="text-sm text-muted-foreground">Room Data Sheet · {selectedRoom.code}</p>
               </div>
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Changes
-              </Button>
+              <div className="flex gap-2">
+                <DesignReview entityType="architecture_room" entityId={selectedRoom.id} projectId={activeProject.id} />
+                <Button onClick={handleSave} disabled={saving} className="gap-2">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Changes
+                </Button>
+              </div>
             </div>
 
             <Tabs defaultValue="finishes" className="flex-1 flex flex-col min-h-0">
@@ -239,6 +281,38 @@ export default function Architecture() {
                               onChange={e => setRoomData(prev => ({...prev!, cornice_finish: e.target.value}))}
                             />
                           </div>
+                          <div className="space-y-2">
+                            <Label>Acoustic Rating</Label>
+                            <Input 
+                              value={roomData?.acoustic_rating || ""} 
+                              onChange={e => setRoomData(prev => ({...prev!, acoustic_rating: e.target.value}))}
+                              placeholder="e.g. STC 45"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Fixtures & Ironmongery</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label>Sanitary Fixtures</Label>
+                          <Textarea 
+                            value={roomData?.sanitary_fixtures || ""} 
+                            onChange={e => setRoomData(prev => ({...prev!, sanitary_fixtures: e.target.value}))}
+                            placeholder="e.g. Wall-hung WC, Semi-recessed Basin"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Ironmongery Set</Label>
+                          <Input 
+                            value={roomData?.ironmongery_set || ""} 
+                            onChange={e => setRoomData(prev => ({...prev!, ironmongery_set: e.target.value}))}
+                            placeholder="e.g. Set A-01"
+                          />
                         </div>
                       </CardContent>
                     </Card>
@@ -318,6 +392,262 @@ export default function Architecture() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DrawingRegisterView({ projectId, wbsNodes }: { projectId: string; wbsNodes: WbsNode[] }) {
+  const [drawings, setDrawings] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [isAddOpen, setIsAddOpen] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [newDrawing, setNewDrawing] = React.useState({ wbs_node_id: "", drawing_number: "", title: "", revision: "0", status: "preliminary" });
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("architecture_drawings")
+      .select("*, wbs_nodes(name)")
+      .eq("project_id", projectId)
+      .order("drawing_number", { ascending: true });
+    setDrawings(data || []);
+    setLoading(false);
+  };
+
+  React.useEffect(() => { load(); }, [projectId]);
+
+  const handleAdd = async () => {
+    if (!newDrawing.drawing_number || !newDrawing.title) return toast.error("Number and Title required");
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("architecture_drawings").insert({
+        project_id: projectId,
+        ...newDrawing,
+        wbs_node_id: newDrawing.wbs_node_id || null
+      });
+      if (error) throw error;
+      toast.success("Drawing added");
+      setIsAddOpen(false);
+      load();
+    } catch (e: any) { toast.error(e.message); } finally { setSubmitting(false); }
+  };
+
+  return (
+    <div className="flex flex-col h-full gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Drawing Register</h1>
+          <p className="text-sm text-muted-foreground">Architectural sheets and revisions.</p>
+        </div>
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger asChild><Button className="gap-2"><Plus className="h-4 w-4" /> Add Drawing</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Architecture Drawing</DialogTitle></DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2"><Label>Drawing Number</Label><Input placeholder="ARC-GA-L01-001" value={newDrawing.drawing_number} onChange={e => setNewDrawing({...newDrawing, drawing_number: e.target.value})} /></div>
+              <div className="grid gap-2"><Label>Title</Label><Input placeholder="Level 01 Floor Plan" value={newDrawing.title} onChange={e => setNewDrawing({...newDrawing, title: e.target.value})} /></div>
+              <div className="grid gap-2"><Label>WBS Location</Label>
+                <Select value={newDrawing.wbs_node_id} onValueChange={v => setNewDrawing({...newDrawing, wbs_node_id: v})}>
+                  <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                  <SelectContent>{wbsNodes.map(n => <SelectItem key={n.id} value={n.id}>{n.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2"><Label>Revision</Label><Input value={newDrawing.revision} onChange={e => setNewDrawing({...newDrawing, revision: e.target.value})} /></div>
+                <div className="grid gap-2"><Label>Status</Label>
+                  <Select value={newDrawing.status} onValueChange={v => setNewDrawing({...newDrawing, status: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="preliminary">Preliminary</SelectItem>
+                      <SelectItem value="issued_for_construction">IFC</SelectItem>
+                      <SelectItem value="superseded">Superseded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            <DialogFooter><Button onClick={handleAdd} disabled={submitting}>Save Drawing</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card className="flex-1 min-h-0">
+        <CardContent className="p-0 overflow-auto h-full">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted/50 border-b sticky top-0">
+              <tr>
+                <th className="p-4 font-medium">Drawing #</th>
+                <th className="p-4 font-medium">Title</th>
+                <th className="p-4 font-medium">WBS</th>
+                <th className="p-4 font-medium">Rev</th>
+                <th className="p-4 font-medium">Status</th>
+                <th className="p-4 text-right">Review</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {drawings.map(d => (
+                <tr key={d.id} className="hover:bg-muted/30">
+                  <td className="p-4 font-mono font-bold text-primary">{d.drawing_number}</td>
+                  <td className="p-4 font-medium">{d.title}</td>
+                  <td className="p-4 text-xs text-muted-foreground">{d.wbs_nodes?.name || "—"}</td>
+                  <td className="p-4"><Badge variant="outline">REV {d.revision}</Badge></td>
+                  <td className="p-4"><Badge variant="secondary" className="capitalize">{d.status.replace(/_/g, ' ')}</Badge></td>
+                  <td className="p-4 text-right">
+                    <DesignReview entityType="architecture_drawing" entityId={d.id} projectId={projectId} trigger={<Button variant="ghost" size="icon"><MessageSquare className="h-4 w-4" /></Button>} />
+                  </td>
+                </tr>
+              ))}
+              {drawings.length === 0 && !loading && <tr><td colSpan={6} className="p-12 text-center text-muted-foreground italic">No drawings registered yet.</td></tr>}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function DesignReview({ entityType, entityId, projectId, trigger }: { entityType: string; entityId: string; projectId: string; trigger?: React.ReactNode }) {
+  const [comments, setComments] = React.useState<any[]>([]);
+  const [newComment, setNewComment] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  const load = async () => {
+    const { data } = await supabase
+      .from("design_review_comments")
+      .select("*")
+      .eq("entity_id", entityId)
+      .order("created_at", { ascending: false });
+    setComments(data || []);
+  };
+
+  const add = async () => {
+    if (!newComment) return;
+    setLoading(true);
+    const { error } = await supabase.from("design_review_comments").insert({
+      project_id: projectId,
+      entity_type: entityType,
+      entity_id: entityId,
+      comment: newComment
+    });
+    if (!error) { setNewComment(""); load(); }
+    setLoading(false);
+  };
+
+  return (
+    <Dialog onOpenChange={(open) => open && load()}>
+      <DialogTrigger asChild>
+        {trigger || <Button variant="outline" className="gap-2"><MessageSquare className="h-4 w-4" /> Review Comments</Button>}
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Design Review Comments</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="flex gap-2">
+            <Textarea placeholder="Add a comment..." value={newComment} onChange={e => setNewComment(e.target.value)} />
+            <Button onClick={add} disabled={loading} size="icon" className="h-auto px-4"><Plus className="h-4 w-4" /></Button>
+          </div>
+          <ScrollArea className="h-64 border rounded-md p-4">
+            <div className="space-y-4">
+              {comments.map(c => (
+                <div key={c.id} className="text-sm space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[10px] text-muted-foreground">User ID: {c.author_id?.slice(0,8) || "System"}</span>
+                    <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="bg-muted p-2 rounded-md">{c.comment}</div>
+                </div>
+              ))}
+              {comments.length === 0 && <div className="text-center py-8 text-muted-foreground italic">No comments yet.</div>}
+            </div>
+          </ScrollArea>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MaterialBoardView({ projectId }: { projectId: string }) {
+  const [boards, setBoards] = React.useState<MaterialBoard[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [adding, setAdding] = React.useState(false);
+
+  const load = async () => {
+    const { data } = await supabase
+      .from("architecture_material_boards")
+      .select("*")
+      .eq("project_id", projectId);
+    setBoards(data as MaterialBoard[] || []);
+    setLoading(false);
+  };
+
+  React.useEffect(() => { load(); }, [projectId]);
+
+  const add = async () => {
+    setAdding(true);
+    const { error } = await supabase.from("architecture_material_boards").insert({
+      project_id: projectId,
+      category: "Floor",
+      material_name: "New Material Sample",
+      status: "pending"
+    });
+    if (!error) load();
+    setAdding(false);
+  };
+
+  return (
+    <div className="flex flex-col h-full gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Material Boards</h1>
+          <p className="text-sm text-muted-foreground">Manage architectural samples and material approvals.</p>
+        </div>
+        <Button onClick={add} disabled={adding} className="gap-2">
+          <Plus className="h-4 w-4" /> Add Sample
+        </Button>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-4 p-1">
+          {boards.map(board => (
+            <Card key={board.id} className="overflow-hidden group">
+              <div className="aspect-square bg-muted flex items-center justify-center relative">
+                {board.photo_url ? (
+                  <img src={board.photo_url} alt={board.material_name} className="object-cover w-full h-full" />
+                ) : (
+                  <ImageIcon className="h-10 w-10 text-muted-foreground/20" />
+                )}
+                <Badge className="absolute top-2 right-2 capitalize" variant={board.status === 'approved' ? 'default' : 'secondary'}>
+                  {board.status}
+                </Badge>
+              </div>
+              <CardContent className="p-3 space-y-2">
+                <div>
+                  <div className="text-[10px] font-bold text-primary uppercase tracking-wider">{board.category}</div>
+                  <Input 
+                    className="h-7 text-sm font-semibold border-none px-0 focus-visible:ring-0" 
+                    defaultValue={board.material_name}
+                    onBlur={async (e) => {
+                      await supabase.from("architecture_material_boards").update({ material_name: e.target.value }).eq("id", board.id);
+                    }}
+                  />
+                </div>
+                <Input 
+                  className="h-6 text-[10px] border-none px-0 focus-visible:ring-0" 
+                  defaultValue={board.sample_reference || ""}
+                  placeholder="Ref: e.g. VIN-01"
+                  onBlur={async (e) => {
+                    await supabase.from("architecture_material_boards").update({ sample_reference: e.target.value }).eq("id", board.id);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          ))}
+          {boards.length === 0 && !loading && (
+            <div className="col-span-full py-12 text-center text-muted-foreground italic border-2 border-dashed rounded-lg">
+              No material samples added yet.
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -405,16 +735,81 @@ function DoorScheduleTab({ roomId }: { roomId: string }) {
 }
 
 function WindowScheduleTab({ roomId }: { roomId: string }) {
-  // Similar to DoorScheduleTab but for windows
+  const [windows, setWindows] = React.useState<WindowEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const load = async () => {
+    const { data } = await supabase.from("architecture_window_schedule").select("*").eq("wbs_node_id", roomId);
+    setWindows(data as WindowEntry[] || []);
+    setLoading(false);
+  };
+
+  React.useEffect(() => { load(); }, [roomId]);
+
+  const add = async () => {
+    const mark = `W-${(windows.length + 1).toString().padStart(2, '0')}`;
+    const { error } = await supabase.from("architecture_window_schedule").insert({
+      wbs_node_id: roomId,
+      mark_number: mark,
+      window_type: "Aluminium Frame Sliding"
+    });
+    if (!error) load();
+  };
+
+  const remove = async (id: string) => {
+    const { error } = await supabase.from("architecture_window_schedule").delete().eq("id", id);
+    if (!error) load();
+  };
+
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Window Schedule</CardTitle>
-        <CardDescription>Windows linked to this room.</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle className="text-base">Window Schedule</CardTitle>
+          <CardDescription>Windows linked to this room.</CardDescription>
+        </div>
+        <Button size="sm" variant="outline" onClick={add} className="gap-1">
+          <Plus className="h-4 w-4" /> Add Window
+        </Button>
       </CardHeader>
       <CardContent>
-        <div className="text-center py-4 text-xs text-muted-foreground italic">
-          Window schedule module coming soon...
+        <div className="space-y-2">
+          {windows.map(window => (
+            <div key={window.id} className="flex items-center gap-3 p-3 border rounded-lg">
+              <Badge variant="secondary" className="font-mono">{window.mark_number}</Badge>
+              <Input 
+                className="h-8 flex-1" 
+                defaultValue={window.window_type || ""} 
+                placeholder="Window Type"
+                onBlur={async (e) => {
+                  await supabase.from("architecture_window_schedule").update({ window_type: e.target.value }).eq("id", window.id);
+                }}
+              />
+              <div className="flex items-center gap-1">
+                <Input 
+                  className="h-8 w-20 text-center" 
+                  defaultValue={window.width_mm || ""} 
+                  placeholder="W" 
+                  onBlur={async (e) => {
+                    await supabase.from("architecture_window_schedule").update({ width_mm: Number(e.target.value) }).eq("id", window.id);
+                  }}
+                />
+                <span className="text-muted-foreground">×</span>
+                <Input 
+                  className="h-8 w-20 text-center" 
+                  defaultValue={window.height_mm || ""} 
+                  placeholder="H" 
+                  onBlur={async (e) => {
+                    await supabase.from("architecture_window_schedule").update({ height_mm: Number(e.target.value) }).eq("id", window.id);
+                  }}
+                />
+              </div>
+              <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => remove(window.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {windows.length === 0 && <div className="text-center py-4 text-xs text-muted-foreground italic">No windows assigned to this room.</div>}
         </div>
       </CardContent>
     </Card>
