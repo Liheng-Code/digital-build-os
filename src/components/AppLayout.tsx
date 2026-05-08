@@ -46,6 +46,7 @@ import {
   GitCompareArrows,
   TrendingUp,
   Calculator,
+  ChevronDown,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -177,6 +178,17 @@ function AppSidebar() {
   const { can } = usePermissions();
   const { totalTaskUnread } = useTaskUnread();
   const { totalApprovalUnread } = useApprovalUnread();
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(
+    () => new Set(NAV_GROUPS.length > 0 ? [NAV_GROUPS[0].label] : [])
+  );
+  const toggleGroup = (label: string) => {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
   
   const canSee = (item: NavItem) => {
     // If it has a module, check dynamic permissions
@@ -211,10 +223,25 @@ function AppSidebar() {
         {NAV_GROUPS.map((group) => {
           const items = group.items.filter(canSee);
           if (items.length === 0) return null;
+          const isOpen = openGroups.has(group.label);
           return (
             <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className="flex w-full items-center justify-between px-2 py-1.5 text-xs font-semibold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+              >
+                {group.label}
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                    isOpen ? "" : "-rotate-90"
+                  }`}
+                />
+              </button>
+              <SidebarGroupContent
+                className={`overflow-hidden transition-all duration-200 ${
+                  isOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
                 <SidebarMenu>
                   {items.map((item) => {
                     const count = badgeFor(item.to);
