@@ -63,6 +63,7 @@ import { toast } from "sonner";
 import { WbsNodePicker } from "@/components/wbs/WbsNodePicker";
 import { WbsTreeNode } from "@/lib/wbsMeta";
 import type { Json } from "@/integrations/supabase/types";
+import { diffValues, recordAuditEventSafe } from "@/services/auditService";
 
 interface TaskRow {
   id: string;
@@ -318,6 +319,19 @@ export default function Tasks() {
       return;
     }
     toast.success("Task updated");
+    await recordAuditEventSafe({
+      moduleCode: "TASK",
+      entityType: "task",
+      entityId: editingTask.id,
+      actionType: "UPDATE",
+      actionLabel: "Task Updated",
+      projectId: activeProject.id,
+      wbsNodeId: canPlan ? editForm.wbs_node_id : editingTask.wbs_node_id,
+      oldValues: editingTask as unknown as Json,
+      newValues: (canPlan ? plannerPatch : limitedPatch) as unknown as Json,
+      changedFields: diffValues(editingTask as unknown as Record<string, unknown>, canPlan ? plannerPatch : limitedPatch),
+      severity: "medium"
+    });
     setEditingTask(null);
     await load();
   };
@@ -332,6 +346,17 @@ export default function Tasks() {
       return;
     }
     toast.success("Task deleted");
+    await recordAuditEventSafe({
+      moduleCode: "TASK",
+      entityType: "task",
+      entityId: deletingTask.id,
+      actionType: "DELETE",
+      actionLabel: "Task Deleted",
+      projectId: activeProject.id,
+      wbsNodeId: deletingTask.wbs_node_id,
+      oldValues: deletingTask as unknown as Json,
+      severity: "critical"
+    });
     setDeletingTask(null);
     await load();
   };

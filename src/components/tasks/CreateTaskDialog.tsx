@@ -30,6 +30,7 @@ import {
   TaskWorkflowType, TaskCategory,
   TASK_WORKFLOW_LABELS, TASK_CATEGORY_LABELS, CATEGORIES_BY_WORKFLOW,
 } from "@/lib/taskCategoryMeta";
+import { recordAuditEventSafe } from "@/services/auditService";
 
 const taskSchema = z.object({
   title: z.string().trim().min(2).max(200),
@@ -109,7 +110,7 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("tasks").insert({
+    const taskPayload = {
       project_id: activeProject.id,
       title: parsed.data.title,
       description: parsed.data.description || null,
@@ -127,13 +128,25 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
       planned_end: parsed.data.planned_end || null,
       estimated_hours: parsed.data.estimated_hours ? Number(parsed.data.estimated_hours) : 0,
       created_by: user?.id,
-    });
+    };
+    const { data: createdTask, error } = await supabase.from("tasks").insert(taskPayload).select("id").single();
     setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
     toast.success("Task created");
+    await recordAuditEventSafe({
+      moduleCode: "TASK",
+      entityType: "task",
+      entityId: createdTask?.id ?? parsed.data.title,
+      actionType: "CREATE",
+      actionLabel: "Task Created",
+      projectId: activeProject.id,
+      wbsNodeId,
+      newValues: taskPayload,
+      severity: "medium"
+    });
     setOpen(false);
     setWbsNodeId(null);
     setWbsNode(null);

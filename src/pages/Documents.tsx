@@ -44,6 +44,7 @@ import { useWbsTree } from "@/hooks/useWbsTree";
 import { flattenTree, buildWbsTree } from "@/lib/wbsMeta";
 import { DOCUMENT_DISCIPLINES } from "@/lib/documentMeta";
 import { fetchDocumentTypes } from "@/services/adminConfigService";
+import { recordAuditEventSafe } from "@/services/auditService";
 
 interface DocRow {
   id: string;
@@ -193,6 +194,24 @@ export default function Documents() {
       if (verErr) throw verErr;
 
       toast.success("Document uploaded");
+      await recordAuditEventSafe({
+        moduleCode: "DOC",
+        entityType: "document",
+        entityId: doc.id,
+        actionType: "UPLOAD",
+        actionLabel: "Document Uploaded",
+        projectId: activeProject.id,
+        wbsNodeId,
+        newValues: {
+          title: title.trim(),
+          category,
+          discipline,
+          document_number: docNumber.trim() || null,
+          file_name: file.name,
+          size_bytes: file.size
+        },
+        severity: "medium"
+      });
       setOpenCreate(false);
       setTitle("");
       setDescription("");
@@ -242,6 +261,22 @@ export default function Documents() {
       if (docErr) throw docErr;
 
       toast.success(`Version ${nextVersion} uploaded`);
+      await recordAuditEventSafe({
+        moduleCode: "DOC",
+        entityType: "document",
+        entityId: activeDoc.id,
+        actionType: "UPLOAD",
+        actionLabel: "Document Version Uploaded",
+        projectId: activeProject?.id ?? null,
+        wbsNodeId: activeDoc.wbs_node_id,
+        newValues: {
+          version: nextVersion,
+          file_name: newVersionFile.name,
+          size_bytes: newVersionFile.size,
+          change_note: versionNote.trim() || null
+        },
+        severity: "medium"
+      });
       setNewVersionFile(null);
       setVersionNote("");
       const updated = { ...activeDoc, current_version: nextVersion };
@@ -267,6 +302,16 @@ export default function Documents() {
     a.download = fileName;
     a.target = "_blank";
     a.click();
+    await recordAuditEventSafe({
+      moduleCode: "DOC",
+      entityType: "document_version",
+      entityId: path,
+      actionType: "DOWNLOAD",
+      actionLabel: "Document Downloaded",
+      projectId: activeProject?.id ?? null,
+      newValues: { storage_path: path, file_name: fileName },
+      severity: "high"
+    });
   };
 
   const formatBytes = (n: number | null) => {

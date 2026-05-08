@@ -14,6 +14,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Pencil, Loader2, Trash2 } from "lucide-react";
+import { recordAuditEventSafe } from "@/services/auditService";
+import type { Json } from "@/integrations/supabase/types";
 
 type AdminFormValue = string | number | boolean;
 type AdminForm = Record<string, AdminFormValue>;
@@ -112,13 +114,39 @@ export function AdminDataTable({ title, description, tableName, columns, orderBy
     setSaving(true);
     const payload = { ...form };
     if (editId) {
+      const before = items.find((item) => String(item[idField]) === editId) ?? null;
       const { error } = await adminDb.from(tableName).update(payload).eq(idField, editId);
       if (error) toast.error(error.message);
-      else toast.success("Updated");
+      else {
+        toast.success("Updated");
+        await recordAuditEventSafe({
+          moduleCode: "ADMIN",
+          entityType: tableName,
+          entityId: editId,
+          actionType: "CONFIG_CHANGE",
+          actionLabel: `Updated ${title}`,
+          oldValues: before as unknown as Json,
+          newValues: payload as unknown as Json,
+          changedFields: Object.keys(payload),
+          severity: tableName.includes("notification") || tableName.includes("approval") ? "high" : "medium"
+        });
+      }
     } else {
       const { error } = await adminDb.from(tableName).insert(payload);
       if (error) toast.error(error.message);
-      else toast.success("Created");
+      else {
+        toast.success("Created");
+        await recordAuditEventSafe({
+          moduleCode: "ADMIN",
+          entityType: tableName,
+          entityId: String(payload.code ?? payload.name ?? tableName),
+          actionType: "CONFIG_CHANGE",
+          actionLabel: `Created ${title}`,
+          newValues: payload as unknown as Json,
+          changedFields: Object.keys(payload),
+          severity: tableName.includes("notification") || tableName.includes("approval") ? "high" : "medium"
+        });
+      }
     }
     setSaving(false);
     setOpen(false);
@@ -133,9 +161,22 @@ export function AdminDataTable({ title, description, tableName, columns, orderBy
   };
 
   const remove = async (id: string) => {
+    const before = items.find((item) => String(item[idField]) === id) ?? null;
     const { error } = await adminDb.from(tableName).delete().eq(idField, id);
     if (error) toast.error(error.message);
-    else { toast.success("Deleted"); load(); }
+    else {
+      toast.success("Deleted");
+      await recordAuditEventSafe({
+        moduleCode: "ADMIN",
+        entityType: tableName,
+        entityId: id,
+        actionType: "DELETE",
+        actionLabel: `Deleted ${title}`,
+        oldValues: before as unknown as Json,
+        severity: "critical"
+      });
+      load();
+    }
   };
 
   return (

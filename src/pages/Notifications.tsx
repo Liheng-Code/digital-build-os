@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   NOTIFICATION_ICON,
@@ -16,16 +18,32 @@ import {
 import { cn } from "@/lib/utils";
 
 type Tab = "all" | "unread" | "tasks" | "timesheets";
+type CoreTab = "all" | "unread" | "action_required" | "critical";
 
 export default function Notifications() {
   const navigate = useNavigate();
   const { notifications, unreadCount, markRead, markAllRead, remove } = useNotifications(50);
-  const [tab, setTab] = React.useState<Tab>("all");
+  const [tab, setTab] = React.useState<CoreTab>("all");
+  const [moduleFilter, setModuleFilter] = React.useState("all");
+  const [legacyTypeFilter, setLegacyTypeFilter] = React.useState<Tab>("all");
+  const [search, setSearch] = React.useState("");
+
+  const modules = React.useMemo(
+    () => Array.from(new Set(notifications.map((n) => n.module_code).filter(Boolean) as string[])).sort(),
+    [notifications],
+  );
 
   const filtered = notifications.filter((n) => {
     if (tab === "unread") return !n.read_at;
-    if (tab === "tasks") return n.type.startsWith("task_");
-    if (tab === "timesheets") return n.type.startsWith("timesheet_");
+    if (tab === "action_required") return n.notification_kind === "action_required";
+    if (tab === "critical") return n.priority === "critical";
+    if (moduleFilter !== "all" && n.module_code !== moduleFilter) return false;
+    if (legacyTypeFilter === "tasks" && !n.type.startsWith("task_")) return false;
+    if (legacyTypeFilter === "timesheets" && !n.type.startsWith("timesheet_")) return false;
+    if (search) {
+      const haystack = `${n.title} ${n.body ?? ""} ${n.event_code ?? ""}`.toLowerCase();
+      if (!haystack.includes(search.toLowerCase())) return false;
+    }
     return true;
   });
 
@@ -61,15 +79,41 @@ export default function Notifications() {
         </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as CoreTab)}>
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="unread">
             Unread{unreadCount > 0 ? ` (${unreadCount})` : ""}
           </TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
+          <TabsTrigger value="action_required">Action Required</TabsTrigger>
+          <TabsTrigger value="critical">Critical</TabsTrigger>
         </TabsList>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search notifications..."
+            className="w-full sm:w-64"
+          />
+          <Select value={moduleFilter} onValueChange={setModuleFilter}>
+            <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All modules</SelectItem>
+              {modules.map((module) => (
+                <SelectItem key={module} value={module}>{module}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={legacyTypeFilter} onValueChange={(value) => setLegacyTypeFilter(value as Tab)}>
+            <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="tasks">Tasks</SelectItem>
+              <SelectItem value="timesheets">Timesheets</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <TabsContent value={tab} className="mt-4">
           <Card>
@@ -118,6 +162,8 @@ export default function Notifications() {
                         )}
                         <div className="text-[11px] text-muted-foreground mt-1">
                           {formatRelativeTime(n.created_at)}
+                          {n.module_code ? ` / ${n.module_code}` : ""}
+                          {n.notification_kind ? ` / ${n.notification_kind.replace(/_/g, " ")}` : ""}
                         </div>
                       </button>
                       <div className="flex items-start gap-1 shrink-0">
