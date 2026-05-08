@@ -86,7 +86,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "People",
+    label: "HR Management",
     items: [
       { to: "/hr", label: "HR Dashboard", icon: Activity, module: "hr" },
       { to: "/hr/leave", label: "Leave", icon: Calendar, module: "hr" },
