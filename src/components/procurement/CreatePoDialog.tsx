@@ -20,7 +20,7 @@ export function CreatePoDialog() {
   const [open, setOpen] = useState(false);
   const [mrId, setMrId] = useState<string>('');
   const [saving, setSaving] = useState(false);
-  
+
   const { data: mrs } = useMaterialRequests(activeProject?.id || '');
   const selectedMr = useMemo(() => mrs?.find(m => m.id === mrId), [mrs, mrId]);
 
@@ -42,7 +42,7 @@ export function CreatePoDialog() {
         supplier_name,
         po_date: new Date().toISOString().split('T')[0],
         status: 'issued',
-        total_amount: 0 // Will be updated by items
+        total_amount: 0
       })
       .select()
       .single();
@@ -60,13 +60,12 @@ export function CreatePoDialog() {
       material_name: item.material_name,
       uom: item.uom,
       order_qty: item.requested_qty,
-      unit_price: 0 // User would normally fill this
+      unit_price: 0
     }));
 
     const { error: itemsError } = await supabase.from('purchase_order_items').insert(poItems);
-    
+
     if (!itemsError) {
-      // Update MR status to 'ordered'
       await supabase.from('material_requests').update({ status: 'ordered' }).eq('id', mrId);
       toast.success(`PO ${po_number} created from ${selectedMr.request_number}`);
       setOpen(false);

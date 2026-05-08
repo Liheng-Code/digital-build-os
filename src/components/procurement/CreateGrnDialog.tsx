@@ -24,8 +24,7 @@ export function CreateGrnDialog() {
   const [pos, setPos] = useState<any[]>([]);
   const [poItems, setPoItems] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
-  
-  // Fetch POs
+
   useEffect(() => {
     if (open && activeProject) {
       supabase.from('purchase_orders')
@@ -36,7 +35,6 @@ export function CreateGrnDialog() {
     }
   }, [open, activeProject]);
 
-  // Fetch Items when PO selected
   useEffect(() => {
     if (poId) {
       supabase.from('purchase_order_items')
@@ -57,7 +55,6 @@ export function CreateGrnDialog() {
     const grn_number = fd.get('grn_number') as string;
     const delivery_note_ref = fd.get('delivery_note_ref') as string;
 
-    // 1. Create GRN
     const { data: grn, error: grnError } = await supabase
       .from('grns')
       .insert({
@@ -77,7 +74,6 @@ export function CreateGrnDialog() {
       return;
     }
 
-    // 2. Create GRN Items (Receiving full quantity for simplicity)
     const grnItems = poItems.map(item => ({
       grn_id: grn.id,
       po_item_id: item.id,
@@ -89,9 +85,8 @@ export function CreateGrnDialog() {
     }));
 
     const { error: itemsError } = await supabase.from('grn_items').insert(grnItems);
-    
+
     if (!itemsError) {
-      // Update PO status to 'completed' (simplified)
       await supabase.from('purchase_orders').update({ status: 'completed' }).eq('id', poId);
       toast.success(`GRN ${grn_number} recorded. Stock updated.`);
       setOpen(false);

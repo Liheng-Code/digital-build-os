@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 export function BoqManager() {
   const { activeProject } = useProjects();
   const { data: boq, isLoading, refetch } = useBoqItems(activeProject?.id || '');
-  
+
   const [saving, setSaving] = useState(false);
   const [newItems, setNewItems] = useState<any[]>([]);
 
@@ -29,7 +29,7 @@ export function BoqManager() {
   const handleSave = async () => {
     if (!activeProject || newItems.length === 0) return;
     setSaving(true);
-    
+
     const itemsToInsert = newItems.map(item => ({
       project_id: activeProject.id,
       material_name: item.material_name,
@@ -39,13 +39,13 @@ export function BoqManager() {
     }));
 
     const { error } = await supabase.from('boq_items').insert(itemsToInsert);
-    
+
     setSaving(false);
     if (error) {
       toast.error('Failed to save BOQ: ' + error.message);
       return;
     }
-    
+
     toast.success('BOQ updated successfully');
     setNewItems([]);
     refetch();
@@ -99,33 +99,33 @@ export function BoqManager() {
                 {newItems.map((item, index) => (
                   <tr key={index} className="bg-primary/5">
                     <td className="p-2">
-                      <Input 
-                        className="h-8" 
-                        placeholder="Material name..." 
+                      <Input
+                        className="h-8"
+                        placeholder="Material name..."
                         value={item.material_name}
                         onChange={(e) => updateNewItem(index, 'material_name', e.target.value)}
                       />
                     </td>
                     <td className="p-2">
-                      <Input 
-                        className="h-8 w-20" 
-                        placeholder="UOM" 
+                      <Input
+                        className="h-8 w-20"
+                        placeholder="UOM"
                         value={item.uom}
                         onChange={(e) => updateNewItem(index, 'uom', e.target.value)}
                       />
                     </td>
                     <td className="p-2">
-                      <Input 
-                        className="h-8 w-24 text-right" 
-                        type="number" 
+                      <Input
+                        className="h-8 w-24 text-right"
+                        type="number"
                         value={item.planned_qty}
                         onChange={(e) => updateNewItem(index, 'planned_qty', e.target.value)}
                       />
                     </td>
                     <td className="p-2">
-                      <Input 
-                        className="h-8 w-24 text-right" 
-                        type="number" 
+                      <Input
+                        className="h-8 w-24 text-right"
+                        type="number"
                         value={item.unit_cost}
                         onChange={(e) => updateNewItem(index, 'unit_cost', e.target.value)}
                       />

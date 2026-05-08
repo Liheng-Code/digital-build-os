@@ -40,7 +40,7 @@ import Notifications from "./pages/Notifications";
 import Wbs from "./pages/Wbs";
 import DailyReports from "./pages/DailyReports";
 import DailyReportDetail from "./pages/DailyReportDetail";
-import MaterialsProcurement from "./pages/MaterialsProcurement";
+
 import QualityControl from "./pages/QualityControl";
 import FinancialControl from "./pages/FinancialControl";
 import ProgressClaims from "./pages/ProgressClaims";
@@ -258,22 +258,32 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/procurement/inventory"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Inventory />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/procurement/subcontractors"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Subcontractors />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route 
                   path="/hse" 
                   element={
                     <ProtectedRoute>
                       <AppLayout>
                         <HSE />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/subcontractors" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Subcontractors />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
@@ -398,16 +408,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/materials"
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <MaterialsProcurement />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+                {/* Materials merged into Procurement dashboard */}
                 <Route 
                   path="/quality" 
                   element={
@@ -538,16 +539,7 @@ const App = () => (
                     </ProtectedRoute>
                   } 
                 />
-                <Route 
-                  path="/inventory" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Inventory />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  } 
-                />
+                {/* Inventory moved to /procurement/inventory */}
                 {/* Cross-Module Integration Routes */}
                 <Route 
                   path="/construction/material-usage" 
@@ -559,8 +551,8 @@ const App = () => (
                           <p className="text-muted-foreground mb-4">
                             Construction material usage linked to Procurement POs and Inventory stock issues.
                           </p>
-                          <a href="/materials" className="text-primary hover:underline">
-                            ← Go to Materials & Procurement Module
+                          <a href="/procurement" className="text-primary hover:underline">
+                            ← Go to Procurement Module
                           </a>
                         </div>
                       </AppLayout>

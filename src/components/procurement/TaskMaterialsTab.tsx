@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Package, Plus } from 'lucide-react';
-import { IssueMaterialDialog } from '@/components/materials/IssueMaterialDialog';
+import { IssueMaterialDialog } from '@/components/procurement/IssueMaterialDialog';
 
 export function TaskMaterialsTab({ taskId, projectId }: { taskId: string; projectId: string }) {
   const { data: issues, isLoading } = useMaterialIssues(projectId, taskId);

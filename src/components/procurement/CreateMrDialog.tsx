@@ -26,7 +26,7 @@ export function CreateMrDialog() {
   const [items, setItems] = useState<LineItem[]>([
     { id: crypto.randomUUID(), material_name: '', uom: '', requested_qty: 0 }
   ]);
-  
+
   const createMutation = useCreateMaterialRequest();
 
   const addItem = () => {
@@ -110,14 +110,14 @@ export function CreateMrDialog() {
                 <Plus className="h-3 w-3 mr-1" /> Add Item
               </Button>
             </div>
-            
+
             <div className="space-y-2 border rounded-lg p-4 bg-muted/20">
               {items.map((item, index) => (
                 <div key={item.id} className="grid grid-cols-12 gap-2 items-end pb-2 border-b last:border-0 last:pb-0">
                   <div className="col-span-6 space-y-1">
                     {index === 0 && <Label className="text-[10px] text-muted-foreground uppercase">Material Description</Label>}
-                    <Input 
-                      placeholder="e.g. Cement, Grade 43" 
+                    <Input
+                      placeholder="e.g. Cement, Grade 43"
                       value={item.material_name}
                       onChange={(e) => updateItem(item.id, 'material_name', e.target.value)}
                       required
@@ -125,8 +125,8 @@ export function CreateMrDialog() {
                   </div>
                   <div className="col-span-2 space-y-1">
                     {index === 0 && <Label className="text-[10px] text-muted-foreground uppercase">UOM</Label>}
-                    <Input 
-                      placeholder="Bags" 
+                    <Input
+                      placeholder="Bags"
                       value={item.uom}
                       onChange={(e) => updateItem(item.id, 'uom', e.target.value)}
                       required
@@ -134,20 +134,20 @@ export function CreateMrDialog() {
                   </div>
                   <div className="col-span-3 space-y-1">
                     {index === 0 && <Label className="text-[10px] text-muted-foreground uppercase">Quantity</Label>}
-                    <Input 
-                      type="number" 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      placeholder="0"
                       value={item.requested_qty || ''}
                       onChange={(e) => updateItem(item.id, 'requested_qty', e.target.value)}
                       required
                     />
                   </div>
                   <div className="col-span-1 pb-1">
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-destructive h-9 w-9" 
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive h-9 w-9"
                       onClick={() => removeItem(item.id)}
                       disabled={items.length === 1}
                     >

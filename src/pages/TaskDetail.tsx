@@ -36,7 +36,7 @@ import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { Department } from "@/lib/departmentMeta";
 import { DepartmentBadge } from "@/components/DepartmentBadge";
 import { TaskQaQcTab } from "@/components/qaqc/TaskQaQcTab";
-import { TaskMaterialsTab } from "@/components/materials/TaskMaterialsTab";
+import { TaskMaterialsTab } from "@/components/procurement/TaskMaterialsTab";
 import { TaskFinancialsTab } from "@/components/financials/TaskFinancialsTab";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 

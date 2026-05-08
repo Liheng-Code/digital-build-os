@@ -24,11 +24,11 @@ export function IssueMaterialDialog() {
   const [taskId, setTaskId] = useState<string>('');
   const [stockId, setStockId] = useState<string>('');
   const [qty, setQty] = useState<string>('');
-  
+
   const { nodes } = useWbsTree(activeProject?.id);
   const { tasks } = useWbsSchedule(activeProject?.id, nodes);
   const { data: stock } = useStockBalances(activeProject?.id || '');
-  
+
   const issueMutation = useIssueMaterial();
 
   const selectedStock = useMemo(() => stock?.find(s => s.id === stockId), [stock, stockId]);
@@ -105,10 +105,10 @@ export function IssueMaterialDialog() {
               <div className="space-y-2">
                 <Label>Quantity to Issue *</Label>
                 <div className="flex items-center gap-2">
-                  <Input 
-                    type="number" 
-                    value={qty} 
-                    onChange={(e) => setQty(e.target.value)} 
+                  <Input
+                    type="number"
+                    value={qty}
+                    onChange={(e) => setQty(e.target.value)}
                     max={selectedStock.qty_on_hand}
                     min={0.01}
                     step="any"
