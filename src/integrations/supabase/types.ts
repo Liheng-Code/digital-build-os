@@ -2218,6 +2218,106 @@ export type Database = {
           },
         ]
       }
+      kpi_alert_events: {
+        Row: {
+          actual_value: number
+          created_at: string
+          id: string
+          kpi_category: string
+          kpi_name: string
+          message: string
+          operator: string
+          project_id: string
+          read_at: string | null
+          severity: string
+          threshold_value: number
+        }
+        Insert: {
+          actual_value: number
+          created_at?: string
+          id?: string
+          kpi_category: string
+          kpi_name: string
+          message: string
+          operator: string
+          project_id: string
+          read_at?: string | null
+          severity: string
+          threshold_value: number
+        }
+        Update: {
+          actual_value?: number
+          created_at?: string
+          id?: string
+          kpi_category?: string
+          kpi_name?: string
+          message?: string
+          operator?: string
+          project_id?: string
+          read_at?: string | null
+          severity?: string
+          threshold_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_alert_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpi_alert_thresholds: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          kpi_category: string
+          kpi_name: string
+          label: string
+          operator: string
+          project_id: string
+          severity: string
+          threshold_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kpi_category: string
+          kpi_name: string
+          label: string
+          operator: string
+          project_id: string
+          severity: string
+          threshold_value: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kpi_category?: string
+          kpi_name?: string
+          label?: string
+          operator?: string
+          project_id?: string
+          severity?: string
+          threshold_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_alert_thresholds_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       labor_rates: {
         Row: {
           created_at: string
@@ -4248,6 +4348,62 @@ export type Database = {
             columns: ["wbs_node_id"]
             isOneToOne: false
             referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_schedules: {
+        Row: {
+          created_at: string
+          day_of_month: number | null
+          day_of_week: number | null
+          enabled: boolean
+          format: string
+          frequency: string
+          id: string
+          label: string
+          last_sent_at: string | null
+          project_id: string
+          recipients: string[]
+          report_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          enabled?: boolean
+          format: string
+          frequency: string
+          id?: string
+          label: string
+          last_sent_at?: string | null
+          project_id: string
+          recipients?: string[]
+          report_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          enabled?: boolean
+          format?: string
+          frequency?: string
+          id?: string
+          label?: string
+          last_sent_at?: string | null
+          project_id?: string
+          recipients?: string[]
+          report_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_schedules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
