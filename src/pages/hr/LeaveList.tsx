@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import type { LeaveRequest, LeaveStatus, LeaveType } from "@/lib/hrMeta";
 import { LEAVE_STATUS_LABELS, LEAVE_STATUS_TONE } from "@/lib/hrMeta";
 import { cn } from "@/lib/utils";
+import { updateLeaveStatus, cancelLeaveRequest } from "@/services/leaveService";
 
 export default function LeaveList() {
   const { user, roles } = useAuth();
@@ -43,27 +44,43 @@ export default function LeaveList() {
   const ltMap = new Map(leaveTypes.map((lt) => [lt.id, lt]));
 
   const approve = async (id: string) => {
+    if (!user?.id) return;
     setBusy(id);
-    const { error } = await sb.from("leave_requests").update({ status: "approved", approved_by: user?.id, approved_at: new Date().toISOString() }).eq("id", id);
-    setBusy(null);
-    if (error) toast.error(error.message);
-    else { toast.success("Leave approved"); load(); }
+    try {
+      await updateLeaveStatus(id, "approved", user.id);
+      toast.success("Leave approved");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to approve leave");
+    } finally {
+      setBusy(null);
+    }
   };
 
   const reject = async (id: string) => {
+    if (!user?.id) return;
     const reason = window.prompt("Rejection reason:");
     if (!reason) return;
     setBusy(id);
-    const { error } = await sb.from("leave_requests").update({ status: "rejected", rejection_reason: reason, approved_by: user?.id, approved_at: new Date().toISOString() }).eq("id", id);
-    setBusy(null);
-    if (error) toast.error(error.message);
-    else { toast.success("Leave rejected"); load(); }
+    try {
+      await updateLeaveStatus(id, "rejected", user.id, reason);
+      toast.success("Leave rejected");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to reject leave");
+    } finally {
+      setBusy(null);
+    }
   };
 
   const cancel = async (id: string) => {
-    const { error } = await sb.from("leave_requests").update({ status: "cancelled" }).eq("id", id);
-    if (error) toast.error(error.message);
-    else { toast.success("Leave cancelled"); load(); }
+    try {
+      await cancelLeaveRequest(id);
+      toast.success("Leave cancelled");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to cancel leave");
+    }
   };
 
   const myRequests = requests.filter((r) => r.user_id === user?.id);

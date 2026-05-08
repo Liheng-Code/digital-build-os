@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { LeaveRequest, LeaveType, LeaveBalance } from "@/lib/hrMeta";
+import { openModuleApproval, closeModuleApproval } from "@/services/moduleApprovalService";
+import { recordAuditEventSafe } from "@/services/auditService";
 
 export const fetchLeaveTypes = async (): Promise<LeaveType[]> => {
   const { data, error } = await supabase
@@ -70,10 +72,25 @@ export const createLeaveRequest = async (req: {
 }): Promise<LeaveRequest> => {
   const { data, error } = await supabase
     .from("leave_requests")
-    .insert(req)
+    .insert({ ...req, status: "pending" })
     .select("*, leave_type:leave_types(*)")
     .single();
   if (error) throw error;
+  const row = data as unknown as LeaveRequest;
+  await openModuleApproval({
+    moduleCode: "HR",
+    entityType: "leave_request",
+    entityId: row.id,
+    title: `${row.leave_type?.name ?? "Leave"} ${row.start_date} to ${row.end_date}`,
+    requestedBy: row.user_id,
+    approverRoles: ["project_manager", "supervisor", "admin"],
+    metadata: {
+      leave_type_id: row.leave_type_id,
+      start_date: row.start_date,
+      end_date: row.end_date,
+      total_days: row.total_days
+    }
+  });
   return data as unknown as LeaveRequest;
 };
 
@@ -83,10 +100,35 @@ export const updateLeaveStatus = async (
   approvedBy: string,
   rejectionReason?: string,
 ): Promise<void> => {
-  const updates: any = { status, approved_by: approvedBy, approved_at: new Date().toISOString() };
+  const before = (await supabase
+    .from("leave_requests")
+    .select("*")
+    .eq("id", id)
+    .single()).data as unknown as LeaveRequest | null;
+  const updates: Partial<LeaveRequest> = { status, approved_by: approvedBy, approved_at: new Date().toISOString() };
   if (rejectionReason) updates.rejection_reason = rejectionReason;
   const { error } = await supabase.from("leave_requests").update(updates).eq("id", id);
   if (error) throw error;
+  await closeModuleApproval({
+    moduleCode: "HR",
+    entityType: "leave_request",
+    entityId: id,
+    actorId: approvedBy,
+    decision: status,
+    comment: rejectionReason ?? null
+  });
+  if (!before) {
+    await recordAuditEventSafe({
+      moduleCode: "HR",
+      entityType: "leave_request",
+      entityId: id,
+      actionType: status === "approved" ? "APPROVE" : "REJECT",
+      actionLabel: status === "approved" ? "Leave Approved" : "Leave Rejected",
+      statusTo: status,
+      comment: rejectionReason ?? null,
+      severity: "high"
+    });
+  }
 };
 
 export const cancelLeaveRequest = async (id: string): Promise<void> => {

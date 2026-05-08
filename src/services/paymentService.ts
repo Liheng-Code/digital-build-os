@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentRequest, PaymentRequestItem, PaymentRequestStatus, PaymentRequestType } from "@/lib/financialMeta";
+import { openModuleApproval, closeModuleApproval } from "@/services/moduleApprovalService";
+import { recordAuditEventSafe } from "@/services/auditService";
 
 export const fetchPaymentRequests = async (projectId: string): Promise<PaymentRequest[]> => {
   const { data, error } = await supabase
@@ -46,7 +48,8 @@ export const updatePaymentRequestStatus = async (
   userId: string,
   rejectionReason?: string,
 ): Promise<void> => {
-  const updates: any = { status };
+  const before = await fetchPaymentRequestById(id);
+  const updates: Partial<PaymentRequest> = { status };
   if (status === "approved") {
     updates.approved_by = userId;
     updates.approved_at = new Date().toISOString();
@@ -57,6 +60,57 @@ export const updatePaymentRequestStatus = async (
   if (rejectionReason) updates.rejection_reason = rejectionReason;
   const { error } = await supabase.from("payment_requests").update(updates).eq("id", id);
   if (error) throw error;
+
+  if (status === "submitted") {
+    await openModuleApproval({
+      projectId: before.project_id,
+      moduleCode: "ACC",
+      entityType: "payment_request",
+      entityId: id,
+      title: `${before.request_number} - ${before.payee_name}`,
+      requestedBy: userId || before.requested_by,
+      approverRoles: ["accountant", "project_manager", "admin"],
+      metadata: {
+        request_number: before.request_number,
+        request_type: before.request_type,
+        payee_name: before.payee_name,
+        amount: before.amount,
+        currency: before.currency
+      }
+    });
+  } else if (status === "approved") {
+    await closeModuleApproval({
+      moduleCode: "ACC",
+      entityType: "payment_request",
+      entityId: id,
+      actorId: userId,
+      decision: "approved"
+    });
+  } else if (status === "cancelled") {
+    await closeModuleApproval({
+      moduleCode: "ACC",
+      entityType: "payment_request",
+      entityId: id,
+      actorId: userId,
+      decision: "rejected",
+      comment: rejectionReason ?? "Cancelled"
+    });
+  } else {
+    await recordAuditEventSafe({
+      moduleCode: "ACC",
+      entityType: "payment_request",
+      entityId: id,
+      actionType: "STATUS_CHANGE",
+      actionLabel: "Payment Request Status Changed",
+      projectId: before.project_id,
+      oldValues: { status: before.status },
+      newValues: { status },
+      changedFields: ["status"],
+      statusFrom: before.status,
+      statusTo: status,
+      severity: "medium"
+    });
+  }
 };
 
 export const addPaymentRequestItem = async (item: {

@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { QueryFunctionContext } from "@tanstack/react-query";
+import { openModuleApproval, closeModuleApproval } from "@/services/moduleApprovalService";
+import { recordAuditEventSafe } from "@/services/auditService";
 
 export interface PurchaseOrder {
   id: string;
@@ -127,7 +129,8 @@ export const createPO = async (po: {
 
 // Update PO status (for workflow)
 export const updatePOStatus = async (id: string, status: PurchaseOrder['status']): Promise<PurchaseOrder> => {
-  const updateData: any = { status };
+  const before = await fetchPOById(id);
+  const updateData: Partial<PurchaseOrder> = { status };
 
   
   if (status === 'finance_approved') {
@@ -149,6 +152,58 @@ export const updatePOStatus = async (id: string, status: PurchaseOrder['status']
     .single();
 
   if (error) throw error;
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (status === "submitted") {
+    await openModuleApproval({
+      projectId: before.project_id,
+      moduleCode: "PROC",
+      entityType: "purchase_order",
+      entityId: id,
+      title: `PO ${before.po_number}`,
+      requestedBy: userData.user?.id ?? before.created_by ?? null,
+      approverRoles: ["accountant", "project_manager", "admin"],
+      metadata: {
+        po_number: before.po_number,
+        supplier_id: before.supplier_id,
+        total_amount: before.total_amount,
+        currency: before.currency ?? "USD"
+      }
+    });
+  } else if (status === "finance_approved") {
+    await closeModuleApproval({
+      moduleCode: "PROC",
+      entityType: "purchase_order",
+      entityId: id,
+      actorId: userData.user?.id ?? null,
+      decision: "approved"
+    });
+  } else if (status === "cancelled" && ["submitted", "review"].includes(before.status)) {
+    await closeModuleApproval({
+      moduleCode: "PROC",
+      entityType: "purchase_order",
+      entityId: id,
+      actorId: userData.user?.id ?? null,
+      decision: "rejected",
+      comment: "Cancelled during approval"
+    });
+  } else {
+    await recordAuditEventSafe({
+      moduleCode: "PROC",
+      entityType: "purchase_order",
+      entityId: id,
+      actionType: "STATUS_CHANGE",
+      actionLabel: "Purchase Order Status Changed",
+      projectId: before.project_id,
+      oldValues: { status: before.status },
+      newValues: { status },
+      changedFields: ["status"],
+      statusFrom: before.status,
+      statusTo: status,
+      severity: "medium"
+    });
+  }
+
   return data;
 };
 

@@ -25,6 +25,7 @@ import { ChevronLeft, ChevronRight, Plus, Send, Trash2, AlertTriangle, Loader2, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { openModuleApproval } from "@/services/moduleApprovalService";
 
 interface Entry {
   id: string;
@@ -333,14 +334,39 @@ export default function Timesheets() {
   };
 
   const submitAll = async () => {
-    const draftIds = entries.filter((e) => e.status === "draft" || e.status === "rejected").map((e) => e.id);
+    const draftEntries = entries.filter((e) => e.status === "draft" || e.status === "rejected");
+    const draftIds = draftEntries.map((e) => e.id);
     if (draftIds.length === 0) { toast.info("No draft entries to submit"); return; }
     const { error } = await supabase
       .from("timesheet_entries")
       .update({ status: "submitted" })
       .in("id", draftIds);
-    if (error) toast.error(error.message);
-    else { toast.success(`${draftIds.length} entries submitted`); load(); }
+    if (error) {
+      toast.error(error.message);
+    } else {
+      for (const entry of draftEntries) {
+        try {
+          await openModuleApproval({
+            projectId: entry.project_id,
+            moduleCode: "HR",
+            entityType: "timesheet_entry",
+            entityId: entry.id,
+            title: `Timesheet ${entry.work_date}`,
+            requestedBy: entry.user_id,
+            approverRoles: ["supervisor", "project_manager", "admin"],
+            metadata: {
+              work_date: entry.work_date,
+              regular_hours: entry.regular_hours,
+              overtime_hours: entry.overtime_hours
+            }
+          });
+        } catch (approvalError) {
+          console.error("Failed to open timesheet approval", approvalError);
+        }
+      }
+      toast.success(`${draftIds.length} entries submitted`);
+      load();
+    }
   };
 
   return (

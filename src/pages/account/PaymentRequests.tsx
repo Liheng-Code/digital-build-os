@@ -30,6 +30,7 @@ import {
   type PaymentRequest,
   type PaymentRequestStatus,
 } from "@/lib/financialMeta";
+import { updatePaymentRequestStatus } from "@/services/paymentService";
 
 export default function PaymentRequests() {
   const { activeProject } = useProjects();
@@ -96,19 +97,17 @@ export default function PaymentRequests() {
   };
 
   const updateStatus = async (id: string, status: PaymentRequestStatus) => {
+    if (!user) return;
     setBusy(id);
-    const updates: any = { status };
-    if (status === "approved" && user) {
-      updates.approved_by = user.id;
-      updates.approved_at = new Date().toISOString();
+    try {
+      await updatePaymentRequestStatus(id, status, user.id, status === "cancelled" ? "Rejected from payment review" : undefined);
+      toast.success(`Request ${status}`);
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update request");
+    } finally {
+      setBusy(null);
     }
-    if (status === "paid") {
-      updates.paid_at = new Date().toISOString();
-    }
-    const { error } = await supabase.from("payment_requests").update(updates).eq("id", id) as any;
-    setBusy(null);
-    if (error) toast.error(error.message);
-    else { toast.success(`Request ${status}`); load(); }
   };
 
   if (!activeProject) {

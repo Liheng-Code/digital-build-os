@@ -7,6 +7,8 @@ import type {
   PurchaseOrder,
   Supplier,
 } from "@/lib/procurementMeta";
+import { openModuleApproval, closeModuleApproval } from "@/services/moduleApprovalService";
+import { recordAuditEventSafe } from "@/services/auditService";
 
 // ─── Purchase Requisitions ───────────────────────────────────
 
@@ -76,11 +78,54 @@ export const createPRItems = async (items: {
 };
 
 export const updatePRStatus = async (id: string, status: string): Promise<void> => {
+  const before = await fetchPRById(id);
   const { error } = await supabase
     .from("purchase_requisitions")
     .update({ status })
     .eq("id", id);
   if (error) throw error;
+
+  if (status === "submitted") {
+    const { data: userData } = await supabase.auth.getUser();
+    await openModuleApproval({
+      projectId: before.project_id,
+      moduleCode: "PROC",
+      entityType: "purchase_requisition",
+      entityId: id,
+      title: before.pr_number ? `${before.pr_number} - ${before.subject}` : before.subject,
+      requestedBy: userData.user?.id ?? before.created_by,
+      approverRoles: ["project_manager", "supervisor", "admin"],
+      metadata: {
+        pr_number: before.pr_number,
+        subject: before.subject,
+        total_estimate: before.total_estimate
+      }
+    });
+  } else if (status === "approved" || status === "rejected") {
+    const { data: userData } = await supabase.auth.getUser();
+    await closeModuleApproval({
+      moduleCode: "PROC",
+      entityType: "purchase_requisition",
+      entityId: id,
+      actorId: userData.user?.id ?? null,
+      decision: status
+    });
+  } else {
+    await recordAuditEventSafe({
+      moduleCode: "PROC",
+      entityType: "purchase_requisition",
+      entityId: id,
+      actionType: "STATUS_CHANGE",
+      actionLabel: "Purchase Requisition Status Changed",
+      projectId: before.project_id,
+      oldValues: { status: before.status },
+      newValues: { status },
+      changedFields: ["status"],
+      statusFrom: before.status,
+      statusTo: status,
+      severity: "medium"
+    });
+  }
 };
 
 // ─── Material Catalog ────────────────────────────────────────

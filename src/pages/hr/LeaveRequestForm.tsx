@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import type { LeaveType, LeaveBalance } from "@/lib/hrMeta";
+import { createLeaveRequest } from "@/services/leaveService";
 
 export default function LeaveRequestForm() {
   const { user } = useAuth();
@@ -61,18 +62,23 @@ export default function LeaveRequestForm() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("leave_requests").insert({
-      user_id: user?.id,
-      leave_type_id: leaveTypeId,
-      start_date: startDate,
-      end_date: endDate,
-      total_days: totalDays,
-      reason,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Leave request submitted");
-    navigate("/hr/leave");
+    try {
+      if (!user?.id) throw new Error("User session is required");
+      await createLeaveRequest({
+        user_id: user.id,
+        leave_type_id: leaveTypeId,
+        start_date: startDate,
+        end_date: endDate,
+        total_days: totalDays,
+        reason
+      });
+      toast.success("Leave request submitted");
+      navigate("/hr/leave");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit leave request");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

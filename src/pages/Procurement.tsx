@@ -36,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { updatePRStatus } from "@/services/procurementService";
 
 export default function Procurement() {
   const { activeProject } = useProjects();
@@ -45,6 +46,7 @@ export default function Procurement() {
   const [activeTab, setActiveTab] = React.useState("dashboard");
   const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
   const [isCreatePrOpen, setIsCreatePrOpen] = React.useState(false);
+  const [prBusy, setPrBusy] = React.useState<string | null>(null);
 
   const loadData = async () => {
     if (!activeProject) return;
@@ -74,6 +76,19 @@ export default function Procurement() {
   React.useEffect(() => {
     loadData();
   }, [activeProject]);
+
+  const changePrStatus = async (id: string, status: string) => {
+    setPrBusy(id);
+    try {
+      await updatePRStatus(id, status);
+      toast.success(`PR ${status}`);
+      loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update PR");
+    } finally {
+      setPrBusy(null);
+    }
+  };
 
   if (!activeProject) {
     return <div className="p-8 text-muted-foreground">Select a project to view procurement.</div>;
@@ -200,7 +215,23 @@ export default function Procurement() {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold">${(pr.total_estimate || 0).toLocaleString()}</div>
-                      <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px]">View Details</Button>
+                      <div className="flex justify-end gap-1 mt-1">
+                        {pr.status === "draft" && (
+                          <Button variant="outline" size="sm" className="h-8 px-2 text-[10px]" disabled={prBusy === pr.id} onClick={() => changePrStatus(pr.id, "submitted")}>
+                            Submit
+                          </Button>
+                        )}
+                        {pr.status === "submitted" && (
+                          <>
+                            <Button variant="outline" size="sm" className="h-8 px-2 text-[10px]" disabled={prBusy === pr.id} onClick={() => changePrStatus(pr.id, "rejected")}>
+                              Reject
+                            </Button>
+                            <Button size="sm" className="h-8 px-2 text-[10px]" disabled={prBusy === pr.id} onClick={() => changePrStatus(pr.id, "approved")}>
+                              Approve
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -558,7 +589,7 @@ function CreatePrForm({ projectId, catalog, onSuccess }: any) {
         .select("*", { count: "exact", head: true })
         .eq("project_id", projectId);
       
-      const prNum = `PR-${(count || 0 + 1).toString().padStart(3, '0')}`;
+      const prNum = `PR-${((count || 0) + 1).toString().padStart(3, '0')}`;
 
       // 2. Create PR
       const { data: pr, error: prErr } = await supabase
