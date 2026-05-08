@@ -101,6 +101,13 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         roles: ["admin", "project_manager", "supervisor", "accountant", "qaqc_inspector"] },
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
+      { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
+      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
+    ],
+  },
+  {
+    label: "Procurement",
+    items: [
       { to: "/procurement", label: "Procurement & MTO", icon: ShoppingCart, module: "procurement" },
       { to: "/procurement/rfqs", label: "RFQs", icon: FileText, module: "procurement" },
       { to: "/procurement/pos", label: "Purchase Orders", icon: ClipboardList, module: "procurement" },
@@ -109,16 +116,13 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "procurement" },
       { to: "/procurement/inventory", label: "Inventory / Stock", icon: Package, module: "inventory" },
       { to: "/procurement/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
-      { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
-      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
     ],
   },
   {
     label: "Finance",
     items: [
       { to: "/financials", label: "Financial Control", icon: BarChart3, module: "financials" },
-      { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "financials" },
-      { to: "/procurement/invoices", label: "Supplier Invoices", icon: FileText, module: "financials" },
+
       { to: "/account/client-invoices", label: "Client Invoices", icon: Receipt, module: "financials" },
       { to: "/account/payment-requests", label: "Payment Requests", icon: ClipboardList, module: "financials" },
       { to: "/account/variation-orders", label: "Variation Orders", icon: GitCompareArrows, module: "financials" },
