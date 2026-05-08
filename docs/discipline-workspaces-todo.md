@@ -49,6 +49,6 @@ This document outlines the detailed tasks required to enhance the Architecture, 
     - [ ] Add "T&C" tab to start capturing site testing data.
 
 ## 4. Cross-Module Coordination & Core Engines
-- [ ] **File Storage Integration:** Ensure all registers support actual file uploads to Supabase Storage.
+- [x] **File Storage Integration:** Enabled actual file uploads to Supabase Storage for Drawings, Calculation Notes, and Schematics.
 - [ ] **Notification Engine Integration:** Trigger alerts for design reviews.
 - [ ] **Approval Engine Integration:** Link critical registers to multi-step approval workflow.

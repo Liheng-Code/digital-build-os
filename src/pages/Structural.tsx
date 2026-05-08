@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { storageService } from "@/services/storageService";
 import { 
   Dialog, 
   DialogContent, 
@@ -68,6 +69,7 @@ export default function Structural() {
   const [isLoadSummaryOpen, setIsLoadSummaryOpen] = React.useState(false);
   const [isRebarReviewOpen, setIsRebarReviewOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [file, setFile] = React.useState<File | null>(null);
 
   const [newDrawing, setNewDrawing] = React.useState({ wbs_node_id: "", drawing_number: "", title: "", revision: "0", status: "issued_for_construction" });
   const [newBbs, setNewBbs] = React.useState({ wbs_node_id: "", drawing_id: "", member_mark: "", bar_mark: "", diameter_mm: "", shape_code: "", total_length_mm: "", quantity: "" });
@@ -125,6 +127,34 @@ export default function Structural() {
       const { error } = await supabase.from("structural_rebar_schedules").insert({ project_id: activeProject!.id, ...newBbs });
       if (error) throw error;
       toast.success("BBS Entry added"); setIsBbsOpen(false); loadData();
+    } catch (e: any) { toast.error(e.message); } finally { setSubmitting(false); }
+  };
+
+  const handleAddCalc = async () => {
+    if (!newCalc.reference_number || !newCalc.title) return toast.error("Fill required fields");
+    setSubmitting(true);
+    try {
+      let fileUrl = "";
+      if (file) {
+        const { path } = await storageService.uploadFile(file, {
+          bucket: "design-files",
+          projectId: activeProject!.id,
+          folder: "structural/calculations"
+        });
+        fileUrl = path;
+      }
+
+      const { error } = await supabase.from("structural_calculation_notes").insert({
+        project_id: activeProject!.id,
+        ...newCalc,
+        file_url: fileUrl || null,
+        wbs_node_id: newCalc.wbs_node_id || null
+      });
+      if (error) throw error;
+      toast.success("Calculation Note added");
+      setIsCalcOpen(false);
+      setFile(null);
+      loadData();
     } catch (e: any) { toast.error(e.message); } finally { setSubmitting(false); }
   };
 
@@ -259,8 +289,20 @@ export default function Structural() {
         </TabsContent>
 
         <TabsContent value="calc">
-          <Card><CardContent className="pt-6"><table className="w-full text-sm text-left"><thead><tr className="border-b"><th className="p-2">Reference</th><th className="p-2">Title</th><th className="p-2">Rev</th><th className="p-2">Status</th></tr></thead><tbody>
-            {calcNotes.map(c => <tr key={c.id} className="border-b"><td className="p-2 font-mono">{c.reference_number}</td><td className="p-2 font-medium">{c.title}</td><td className="p-2">{c.revision}</td><td className="p-2"><Badge variant="outline">{c.status}</Badge></td></tr>)}
+          <Card><CardContent className="pt-6"><table className="w-full text-sm text-left"><thead><tr className="border-b"><th className="p-2">Reference</th><th className="p-2">Title</th><th className="p-2">Rev</th><th className="p-2">Status</th><th className="p-4 text-right">Actions</th></tr></thead><tbody>
+            {calcNotes.map(c => <tr key={c.id} className="border-b">
+              <td className="p-2 font-mono">{c.reference_number}</td>
+              <td className="p-2 font-medium">{c.title}</td>
+              <td className="p-2">{c.revision}</td>
+              <td className="p-2"><Badge variant="outline">{c.status}</Badge></td>
+              <td className="p-4 text-right">
+                {c.file_url && (
+                  <Button variant="ghost" size="icon" onClick={() => storageService.downloadFile("design-files", c.file_url, `${c.reference_number}.pdf`)}>
+                    <Download className="h-4 w-4" />
+                  </Button>
+                )}
+              </td>
+            </tr>)}
           </tbody></table></CardContent></Card>
         </TabsContent>
         
@@ -270,6 +312,18 @@ export default function Structural() {
           </tbody></table></CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      {/* Calc Dialog */}
+      <Dialog open={isCalcOpen} onOpenChange={setIsCalcOpen}>
+        <DialogContent><DialogHeader><DialogTitle>Add Calculation Note</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2"><Label>Ref Number</Label><Input placeholder="STR-CALC-001" value={newCalc.reference_number} onChange={e => setNewCalc({...newCalc, reference_number: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>Title</Label><Input placeholder="Foundation Design" value={newCalc.title} onChange={e => setNewCalc({...newCalc, title: e.target.value})} /></div>
+            <div className="grid gap-2"><Label>File (PDF)</Label><Input type="file" onChange={e => setFile(e.target.files?.[0] || null)} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAddCalc} disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Legacy Dialogs kept for compatibility or updated to same simple style ... */}
       <Dialog open={isDrawingOpen} onOpenChange={setIsDrawingOpen}>

@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, FileText, Zap, Layers, AlertCircle, Loader2, CheckCircle2, ClipboardCheck, Settings } from "lucide-react";
+import { Plus, FileText, Zap, Layers, AlertCircle, Loader2, CheckCircle2, ClipboardCheck, Settings, Download } from "lucide-react";
 import { toast } from "sonner";
+import { storageService } from "@/services/storageService";
 
 const DISCIPLINES = ["M","E","P","FF","ELV","HVAC","DR"];
 const DISC_LABEL: Record<string,string> = { M:"Mechanical", E:"Electrical", P:"Plumbing", FF:"Fire Fighting", ELV:"ELV", HVAC:"HVAC", DR:"Drainage" };
@@ -26,6 +27,7 @@ export default function MEP() {
   const [wbsNodes, setWbsNodes] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
+  const [file, setFile] = React.useState<File | null>(null);
   const [activeTab, setActiveTab] = React.useState("dashboard");
 
   const [drawingOpen, setDrawingOpen] = React.useState(false);
@@ -115,11 +117,29 @@ export default function MEP() {
                 <div className="grid gap-2"><Label>Type</Label><Select value={newSchematic.system_type} onValueChange={v => setNewSchematic({...newSchematic, system_type: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="SLD">SLD</SelectItem><SelectItem value="Riser">Riser Diagram</SelectItem><SelectItem value="PID">P&ID</SelectItem></SelectContent></Select></div>
                 <div className="grid gap-2"><Label>Ref No.</Label><Input value={newSchematic.reference_number} onChange={e => setNewSchematic({...newSchematic, reference_number: e.target.value})} /></div>
                 <div className="grid gap-2"><Label>Title</Label><Input value={newSchematic.title} onChange={e => setNewSchematic({...newSchematic, title: e.target.value})} /></div>
+                <div className="grid gap-2"><Label>File (PDF/IMG)</Label><Input type="file" onChange={e => setFile(e.target.files?.[0] || null)} /></div>
               </div>
               <DialogFooter><Button onClick={async () => {
-                const { error } = await supabase.from("mep_system_schematics").insert({...newSchematic, project_id: activeProject.id});
-                if (!error) { toast.success("Schematic saved"); setSchematicOpen(false); loadData(); }
-              }}>Save</Button></DialogFooter>
+                setSubmitting(true);
+                try {
+                  let fileUrl = "";
+                  if (file) {
+                    const { path } = await storageService.uploadFile(file, {
+                      bucket: "design-files",
+                      projectId: activeProject.id,
+                      folder: "mep/schematics"
+                    });
+                    fileUrl = path;
+                  }
+                  const { error } = await supabase.from("mep_system_schematics").insert({
+                    ...newSchematic, 
+                    project_id: activeProject.id,
+                    file_url: fileUrl || null
+                  });
+                  if (error) throw error;
+                  toast.success("Schematic saved"); setSchematicOpen(false); setFile(null); loadData();
+                } catch (e: any) { toast.error(e.message); } finally { setSubmitting(false); }
+              }} disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save</Button></DialogFooter>
             </DialogContent>
           </Dialog>
 
@@ -183,8 +203,20 @@ export default function MEP() {
         </TabsContent>
 
         <TabsContent value="schematics">
-          <Card><CardContent className="pt-6"><table className="w-full text-sm text-left"><thead><tr className="border-b"><th className="p-2">Type</th><th className="p-2">Ref No.</th><th className="p-2">Title</th><th className="p-2">Rev</th></tr></thead><tbody>
-            {schematics.map(s => <tr key={s.id} className="border-b"><td className="p-2"><Badge variant="secondary">{s.system_type}</Badge></td><td className="p-2 font-mono font-bold">{s.reference_number}</td><td className="p-2">{s.title}</td><td className="p-2">{s.revision}</td></tr>)}
+          <Card><CardContent className="pt-6"><table className="w-full text-sm text-left"><thead><tr className="border-b"><th className="p-2">Type</th><th className="p-2">Ref No.</th><th className="p-2">Title</th><th className="p-2">Rev</th><th className="p-4 text-right">Actions</th></tr></thead><tbody>
+            {schematics.map(s => <tr key={s.id} className="border-b">
+              <td className="p-2"><Badge variant="secondary">{s.system_type}</Badge></td>
+              <td className="p-2 font-mono font-bold">{s.reference_number}</td>
+              <td className="p-2">{s.title}</td>
+              <td className="p-2">{s.revision}</td>
+              <td className="p-4 text-right">
+                {s.file_url && (
+                  <Button variant="ghost" size="icon" onClick={() => storageService.downloadFile("design-files", s.file_url, `${s.reference_number}.pdf`)}>
+                    <Download className="h-4 w-4" />
+                  </Button>
+                )}
+              </td>
+            </tr>)}
           </tbody></table></CardContent></Card>
         </TabsContent>
 

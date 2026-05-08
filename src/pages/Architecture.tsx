@@ -34,6 +34,7 @@ import { RoomData, DoorEntry, WindowEntry, MaterialBoard, COMMON_FINISHES } from
 import { WbsNode } from "@/lib/wbsMeta";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { storageService } from "@/services/storageService";
 
 export default function Architecture() {
   const { activeProject } = useProjects();
@@ -401,6 +402,7 @@ function DrawingRegisterView({ projectId, wbsNodes }: { projectId: string; wbsNo
   const [loading, setLoading] = React.useState(true);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [file, setFile] = React.useState<File | null>(null);
   const [newDrawing, setNewDrawing] = React.useState({ wbs_node_id: "", drawing_number: "", title: "", revision: "0", status: "preliminary" });
 
   const load = async () => {
@@ -420,14 +422,26 @@ function DrawingRegisterView({ projectId, wbsNodes }: { projectId: string; wbsNo
     if (!newDrawing.drawing_number || !newDrawing.title) return toast.error("Number and Title required");
     setSubmitting(true);
     try {
+      let fileUrl = "";
+      if (file) {
+        const { path } = await storageService.uploadFile(file, {
+          bucket: "design-files",
+          projectId,
+          folder: "architecture/drawings"
+        });
+        fileUrl = path;
+      }
+
       const { error } = await supabase.from("architecture_drawings").insert({
         project_id: projectId,
         ...newDrawing,
+        file_url: fileUrl || null,
         wbs_node_id: newDrawing.wbs_node_id || null
       });
       if (error) throw error;
       toast.success("Drawing added");
       setIsAddOpen(false);
+      setFile(null);
       load();
     } catch (e: any) { toast.error(e.message); } finally { setSubmitting(false); }
   };
@@ -465,8 +479,12 @@ function DrawingRegisterView({ projectId, wbsNodes }: { projectId: string; wbsNo
                   </Select>
                 </div>
               </div>
+              <div className="grid gap-2">
+                <Label>Drawing File (PDF/DWG/IMG)</Label>
+                <Input type="file" onChange={e => setFile(e.target.files?.[0] || null)} />
+              </div>
             </div>
-            <DialogFooter><Button onClick={handleAdd} disabled={submitting}>Save Drawing</Button></DialogFooter>
+            <DialogFooter><Button onClick={handleAdd} disabled={submitting}>{submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Drawing</Button></DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -481,7 +499,7 @@ function DrawingRegisterView({ projectId, wbsNodes }: { projectId: string; wbsNo
                 <th className="p-4 font-medium">WBS</th>
                 <th className="p-4 font-medium">Rev</th>
                 <th className="p-4 font-medium">Status</th>
-                <th className="p-4 text-right">Review</th>
+                <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -492,7 +510,12 @@ function DrawingRegisterView({ projectId, wbsNodes }: { projectId: string; wbsNo
                   <td className="p-4 text-xs text-muted-foreground">{d.wbs_nodes?.name || "—"}</td>
                   <td className="p-4"><Badge variant="outline">REV {d.revision}</Badge></td>
                   <td className="p-4"><Badge variant="secondary" className="capitalize">{d.status.replace(/_/g, ' ')}</Badge></td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right flex justify-end gap-1">
+                    {d.file_url && (
+                      <Button variant="ghost" size="icon" onClick={() => storageService.downloadFile("design-files", d.file_url, `${d.drawing_number}.pdf`)}>
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    )}
                     <DesignReview entityType="architecture_drawing" entityId={d.id} projectId={projectId} trigger={<Button variant="ghost" size="icon"><MessageSquare className="h-4 w-4" /></Button>} />
                   </td>
                 </tr>
