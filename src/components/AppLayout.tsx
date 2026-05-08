@@ -152,7 +152,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "Disciplines",
+    label: "Design Management",
     items: [
       { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
       { to: "/structural", label: "Structural Engineering", icon: HardHat, module: "structural" },
@@ -160,7 +160,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "Site Execution",
+    label: "Construction Management",
     items: [
       { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
       { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
