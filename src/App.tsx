@@ -40,6 +40,9 @@ import Notifications from "./pages/Notifications";
 import Wbs from "./pages/Wbs";
 import DailyReports from "./pages/DailyReports";
 import DailyReportDetail from "./pages/DailyReportDetail";
+import EquipmentTracking from "./pages/EquipmentTracking";
+import Handover from "./pages/Handover";
+import DLP from "./pages/DLP";
 
 import QualityControl from "./pages/QualityControl";
 import FinancialControl from "./pages/FinancialControl";
@@ -410,6 +413,36 @@ const App = () => (
                     <ProtectedRoute>
                       <AppLayout>
                         <DailyReportDetail />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/equipment-tracking"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <EquipmentTracking />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/handover"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Handover />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/dlp"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <DLP />
                       </AppLayout>
                     </ProtectedRoute>
                   }

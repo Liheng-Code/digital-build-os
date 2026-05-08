@@ -124,8 +124,16 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
       { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
         roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
+      { to: "/equipment-tracking", label: "Equipment Tracking", icon: Truck, module: "construction" },
       { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck, module: "qaqc" },
       { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
+    ],
+  },
+  {
+    label: "Project Closure",
+    items: [
+      { to: "/handover", label: "Handover & Commissioning", icon: Package, module: "construction" },
+      { to: "/dlp", label: "Defect Liability (DLP)", icon: AlertTriangle, module: "construction" },
     ],
   },
   {
