@@ -1,37 +1,41 @@
 ## Problem
 
-The **Progress & Analytics** page reports different numbers than the **WBS Breakdown** tab for the same project.
+Pages **KPI Alerts** and **Report Schedules** crash with `Could not find the table 'public.kpi_alert_thresholds' in the schema cache`. The three backing tables were never created in the database, even though the frontend services and types already exist.
 
-**WBS Breakdown** (source: `src/components/wbs/WbsTree.tsx` + `src/hooks/useWbsTree.ts`)
-- Reads `tasks` directly and computes a **weighted average** progress per node:
-  `Σ(progress_pct × estimated_hours) / Σ(estimated_hours)` over the node + all descendants.
-- Always live — no sync needed.
-
-**Progress & Analytics** (source: `src/pages/ProgressAnalytics.tsx`)
-- Reads the stored column `wbs_nodes.progress_pct` (line 113, 130, 305, 313).
-- This value is only refreshed when the user clicks **Sync Progress** (RPC `sync_all_wbs_progress`), so it goes stale and may use a different formula than the live weighted roll-up.
-- Overall progress is a **simple unweighted average** of root nodes' stored `progress_pct` (line 129–132), which differs again from the WBS hierarchy roll-up.
-
-Result: numbers in the KPI cards, Building Progress bar chart, and WBS Node Performance grid don't match what the user sees in WBS Breakdown.
+Missing tables:
+- `public.kpi_alert_thresholds`
+- `public.kpi_alert_events`
+- `public.report_schedules`
 
 ## Fix
 
-Switch Progress & Analytics to the same live computation used by WBS Breakdown — `useWbsTree`'s `nodeStats` (weighted, descendant-inclusive) — and drop the dependency on the stored `progress_pct` column.
+Create one migration that adds the three tables with the exact columns expected by `src/lib/reportingMeta.ts` and the services in `src/services/kpiAlertService.ts` / `src/services/reportScheduleService.ts`. Enable RLS using the existing `has_role` / project-membership patterns already used elsewhere in this app.
 
-Changes in `src/pages/ProgressAnalytics.tsx`:
+### Schema
 
-1. Pull `nodeStats` from `useWbsTree` (already imported, just destructure it).
-2. Replace `(node as any).progress_pct` with `nodeStats.get(node.id)?.avgProgress ?? 0` everywhere:
-   - `buildingData` (line 113)
-   - WBS Node Performance grid (lines 305, 306, 307, 312, 313)
-3. Recompute **Overall Progress** the same way WBS Breakdown rolls up the project: weighted average across all tasks (or equivalently across root nodes weighted by their task hours). Simplest and exactly matching: compute it from the already-fetched `tasks` array using the same weighted formula.
-4. Remove the **Sync Progress** button and its `handleSync` / `sync_all_wbs_progress` call — no longer needed since the page is now live. (Keeps the page consistent with WBS Breakdown which has no such button.)
-5. Leave the S-Curve logic alone (it uses task-level fields, not node `progress_pct`), and leave Active/Completed/Critical KPI cards alone (they already use `tasks.progress_pct`, which matches).
+`kpi_alert_thresholds`
+- id uuid pk, project_id uuid (fk projects), kpi_name text, kpi_category text, operator text (gt|lt|gte|lte|eq), threshold_value numeric, severity text (info|warning|critical), enabled bool default true, label text, created_at, updated_at
+- Unique (project_id, kpi_name, operator) — matches `upsert ... onConflict` in service
 
-## Files
+`kpi_alert_events`
+- id uuid pk, project_id uuid, kpi_name text, kpi_category text, actual_value numeric, threshold_value numeric, operator text, severity text, message text, read_at timestamptz null, created_at
 
-- `src/pages/ProgressAnalytics.tsx` — only file changed. No DB / RPC / hook changes.
+`report_schedules`
+- id uuid pk, project_id uuid, report_type text, frequency text (daily|weekly|monthly|quarterly), day_of_week int null, day_of_month int null, recipients text[] default '{}', format text (pdf|csv|xlsx), enabled bool default true, label text, last_sent_at timestamptz null, created_at, updated_at
 
-## Out of scope
+### Security
 
-- The DB column `wbs_nodes.progress_pct` and the `sync_all_wbs_progress` RPC stay as-is; other consumers (if any) are untouched.
+- Enable RLS on all three.
+- SELECT/INSERT/UPDATE/DELETE: authenticated users who are members of the project (mirroring policies on other project-scoped tables) or have an admin role via `has_role`.
+- Add `update_updated_at_column` triggers on the two tables that carry `updated_at`.
+- Indexes on `project_id` and (events) `created_at desc`.
+
+### No frontend changes
+
+Service code, types and pages already match this schema, so once the migration runs both pages load normally.
+
+## Verification
+
+1. Run migration.
+2. Open `/kpi-alerts` and `/report-schedules` — error gone, empty lists render.
+3. Create one threshold and one schedule to confirm insert/update paths work.
