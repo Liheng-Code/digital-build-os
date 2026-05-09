@@ -22,6 +22,9 @@ import { WbsGantt } from "@/components/wbs/WbsGantt";
 import { TaskDependencyDialog, DependencyLink } from "@/components/wbs/TaskDependencyDialog";
 import { WbsFilterBar, WbsFilters, useWbsFilters } from "@/components/wbs/WbsFilterBar";
 import { SavedViewsMenu } from "@/components/wbs/SavedViewsMenu";
+import { BaselinePanel } from "@/components/wbs/BaselinePanel";
+import { CpmPanel } from "@/components/wbs/CpmPanel";
+import { CalendarsPanel } from "@/components/wbs/CalendarsPanel";
 import { DEPARTMENT_LABELS, Department } from "@/lib/departmentMeta";
 import { buildGanttRows, GanttRow } from "@/lib/wbsGanttRows";
 import {
