@@ -857,6 +857,91 @@ export type Database = {
           },
         ]
       }
+      calendar_exceptions: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          exception_date: string
+          hours: number | null
+          id: string
+          is_working: boolean
+          label: string | null
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          exception_date: string
+          hours?: number | null
+          id?: string
+          is_working?: boolean
+          label?: string | null
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          exception_date?: string
+          hours?: number | null
+          id?: string
+          is_working?: boolean
+          label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_exceptions_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendars: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          hours_per_day: number
+          id: string
+          is_default: boolean
+          name: string
+          project_id: string
+          timezone: string
+          updated_at: string
+          working_days: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          hours_per_day?: number
+          id?: string
+          is_default?: boolean
+          name: string
+          project_id: string
+          timezone?: string
+          updated_at?: string
+          working_days?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          hours_per_day?: number
+          id?: string
+          is_default?: boolean
+          name?: string
+          project_id?: string
+          timezone?: string
+          updated_at?: string
+          working_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendars_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklist_templates: {
         Row: {
           category: string
@@ -6672,6 +6757,55 @@ export type Database = {
           },
         ]
       }
+      task_constraints: {
+        Row: {
+          calendar_id: string | null
+          constraint_date: string | null
+          constraint_type: Database["public"]["Enums"]["schedule_constraint_type"]
+          deadline_date: string | null
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_id?: string | null
+          constraint_date?: string | null
+          constraint_type?: Database["public"]["Enums"]["schedule_constraint_type"]
+          deadline_date?: string | null
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_id?: string | null
+          constraint_date?: string | null
+          constraint_type?: Database["public"]["Enums"]["schedule_constraint_type"]
+          deadline_date?: string | null
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_constraints_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "calendars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_constraints_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_constraints_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_predecessors: {
         Row: {
           id: string
@@ -6726,6 +6860,67 @@ export type Database = {
             foreignKeyName: "task_predecessors_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_schedule_calc: {
+        Row: {
+          calculated_at: string
+          early_finish: string | null
+          early_start: string | null
+          free_float: number | null
+          is_critical: boolean
+          late_finish: string | null
+          late_start: string | null
+          project_id: string
+          task_id: string
+          total_float: number | null
+        }
+        Insert: {
+          calculated_at?: string
+          early_finish?: string | null
+          early_start?: string | null
+          free_float?: number | null
+          is_critical?: boolean
+          late_finish?: string | null
+          late_start?: string | null
+          project_id: string
+          task_id: string
+          total_float?: number | null
+        }
+        Update: {
+          calculated_at?: string
+          early_finish?: string | null
+          early_start?: string | null
+          free_float?: number | null
+          is_critical?: boolean
+          late_finish?: string | null
+          late_start?: string | null
+          project_id?: string
+          task_id?: string
+          total_float?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_schedule_calc_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_schedule_calc_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_schedule_calc_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
@@ -7367,6 +7562,96 @@ export type Database = {
           },
         ]
       }
+      wbs_baseline_tasks: {
+        Row: {
+          baseline_id: string
+          estimated_hours: number | null
+          id: string
+          planned_end: string | null
+          planned_start: string | null
+          progress_pct: number | null
+          task_id: string
+        }
+        Insert: {
+          baseline_id: string
+          estimated_hours?: number | null
+          id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          progress_pct?: number | null
+          task_id: string
+        }
+        Update: {
+          baseline_id?: string
+          estimated_hours?: number | null
+          id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          progress_pct?: number | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wbs_baseline_tasks_baseline_id_fkey"
+            columns: ["baseline_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_baselines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wbs_baseline_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "wbs_baseline_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wbs_baselines: {
+        Row: {
+          captured_at: string
+          captured_by: string | null
+          id: string
+          is_active: boolean
+          label: string
+          notes: string | null
+          project_id: string
+        }
+        Insert: {
+          captured_at?: string
+          captured_by?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          notes?: string | null
+          project_id: string
+        }
+        Update: {
+          captured_at?: string
+          captured_by?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          notes?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wbs_baselines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wbs_node_types: {
         Row: {
           code: string
@@ -7462,6 +7747,53 @@ export type Database = {
           },
           {
             foreignKeyName: "wbs_nodes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wbs_saved_views: {
+        Row: {
+          columns: Json
+          created_at: string
+          filters: Json
+          id: string
+          is_shared: boolean
+          name: string
+          project_id: string
+          updated_at: string
+          user_id: string
+          zoom: string | null
+        }
+        Insert: {
+          columns?: Json
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_shared?: boolean
+          name: string
+          project_id: string
+          updated_at?: string
+          user_id: string
+          zoom?: string | null
+        }
+        Update: {
+          columns?: Json
+          created_at?: string
+          filters?: Json
+          id?: string
+          is_shared?: boolean
+          name?: string
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+          zoom?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wbs_saved_views_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -7591,6 +7923,14 @@ export type Database = {
       }
     }
     Functions: {
+      add_working_days: {
+        Args: { _calendar_id: string; _days: number; _start: string }
+        Returns: string
+      }
+      capture_baseline: {
+        Args: { _label: string; _notes?: string; _project_id: string }
+        Returns: string
+      }
       check_budget_available: {
         Args: {
           p_budget_code: string
@@ -7613,6 +7953,7 @@ export type Database = {
         Args: { _period_id: string }
         Returns: undefined
       }
+      cpm_recalc: { Args: { _project_id: string }; Returns: undefined }
       create_notification: {
         Args: {
           _actor_id?: string
@@ -7660,6 +8001,10 @@ export type Database = {
       }
       is_dsr_approver: { Args: { _uid: string }; Returns: boolean }
       is_dsr_editor: { Args: { _uid: string }; Returns: boolean }
+      is_working_day: {
+        Args: { _calendar_id: string; _d: string }
+        Returns: boolean
+      }
       post_task_progress_update: {
         Args: {
           _hours_worked: number
@@ -7733,6 +8078,10 @@ export type Database = {
         Returns: string
       }
       seed_demo_run: { Args: never; Returns: Json }
+      set_active_baseline: {
+        Args: { _baseline_id: string }
+        Returns: undefined
+      }
       sync_all_wbs_progress: {
         Args: { v_project_id: string }
         Returns: undefined
@@ -8111,6 +8460,15 @@ export type Database = {
         | "rejected"
         | "expired"
         | "closed"
+      schedule_constraint_type:
+        | "ASAP"
+        | "ALAP"
+        | "SNET"
+        | "SNLT"
+        | "FNET"
+        | "FNLT"
+        | "MSO"
+        | "MFO"
       site_issue_severity: "low" | "medium" | "high" | "critical"
       site_issue_status: "open" | "in_progress" | "resolved" | "closed"
       stakeholder_type:
@@ -8600,6 +8958,16 @@ export const Constants = {
         "rejected",
         "expired",
         "closed",
+      ],
+      schedule_constraint_type: [
+        "ASAP",
+        "ALAP",
+        "SNET",
+        "SNLT",
+        "FNET",
+        "FNLT",
+        "MSO",
+        "MFO",
       ],
       site_issue_severity: ["low", "medium", "high", "critical"],
       site_issue_status: ["open", "in_progress", "resolved", "closed"],
