@@ -48,6 +48,7 @@ import {
   Calculator,
   ChevronDown,
   AlertTriangle,
+  Truck,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
