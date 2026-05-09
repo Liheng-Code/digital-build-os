@@ -27,7 +27,7 @@ export function useWbsSchedule(projectId: string | null | undefined, nodes: WbsN
     setLoading(true);
     const { data, error } = await supabase
       .from("tasks")
-      .select("id, title, code, wbs_node_id, planned_start, planned_end, actual_start, actual_end, progress_pct, estimated_hours, status")
+      .select("id, title, code, wbs_node_id, planned_start, planned_end, actual_start, actual_end, progress_pct, estimated_hours, status, constraint_type, constraint_date, deadline_date")
       .eq("project_id", projectId);
     if (!error) {
       setTasks((data ?? []) as unknown as ScheduleTask[]);

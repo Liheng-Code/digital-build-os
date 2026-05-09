@@ -1,5 +1,39 @@
 // Scheduling helpers for WBS Phase 1
-import { differenceInCalendarDays, parseISO, isValid, addDays, format } from "date-fns";
+import { differenceInCalendarDays, parseISO, isValid, addDays, format, startOfDay } from "date-fns";
+
+export type ConstraintType = "ASAP" | "ALAP" | "SNET" | "SNLT" | "FNET" | "FNLT" | "MSO" | "MFO";
+
+export const CONSTRAINT_TYPE_LABELS: Record<ConstraintType, string> = {
+  ASAP: "As Soon As Possible",
+  ALAP: "As Late As Possible",
+  SNET: "Start No Earlier Than",
+  SNLT: "Start No Later Than",
+  FNET: "Finish No Earlier Than",
+  FNLT: "Finish No Later Than",
+  MSO: "Mandatory Start",
+  MFO: "Mandatory Finish",
+};
+
+export interface CpmTask {
+  id: string;
+  planned_start: string | null;
+  planned_end: string | null;
+  constraint_type?: ConstraintType | null;
+  constraint_date?: string | null;
+  deadline_date?: string | null;
+}
+
+export interface CpmResult {
+  es: Date;
+  ef: Date;
+  ls: Date;
+  lf: Date;
+  totalFloat: number;
+  freeFloat: number;
+  isCritical: boolean;
+}
+
+export type CpmMap = Map<string, CpmResult>;
 
 export type DepRelation = "FS" | "SS" | "FF" | "SF";
 export const DEP_RELATION_LABELS: Record<DepRelation, string> = {
@@ -45,6 +79,9 @@ export interface TaskScheduleLite {
   progress_pct: number;
   estimated_hours: number | null;
   status?: string;
+  constraint_type?: ConstraintType | null;
+  constraint_date?: string | null;
+  deadline_date?: string | null;
 }
 
 export interface NodeRollup {

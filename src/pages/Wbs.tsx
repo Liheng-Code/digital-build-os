@@ -20,9 +20,9 @@ import { WbsScheduleCard } from "@/components/wbs/WbsScheduleCard";
 import { WbsGanttTree } from "@/components/wbs/WbsGanttTree";
 import { WbsGantt } from "@/components/wbs/WbsGantt";
 import { TaskDependencyDialog, DependencyLink } from "@/components/wbs/TaskDependencyDialog";
-import { BaselinePanel } from "@/components/wbs/BaselinePanel";
-import { CpmPanel } from "@/components/wbs/CpmPanel";
-import { CalendarsPanel } from "@/components/wbs/CalendarsPanel";
+import { WbsFilterBar, WbsFilters, useWbsFilters } from "@/components/wbs/WbsFilterBar";
+import { SavedViewsMenu } from "@/components/wbs/SavedViewsMenu";
+import { DEPARTMENT_LABELS, Department } from "@/lib/departmentMeta";
 import { buildGanttRows, GanttRow } from "@/lib/wbsGanttRows";
 import {
   Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare, Activity,
@@ -30,7 +30,8 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WBS_NODE_TYPE_LABELS, WbsNodeType } from "@/lib/wbsMeta";
 import { supabase } from "@/integrations/supabase/client";
-import { DepRelation } from "@/lib/scheduleMeta";
+import { DepRelation, CpmMap } from "@/lib/scheduleMeta";
+import { computeCpm, cascade } from "@/lib/schedule";
 import { toast } from "sonner";
 import { fetchWbsNodeTypes } from "@/services/adminConfigService";
 
@@ -57,7 +58,7 @@ export default function WbsPage() {
   const { roles } = useAuth();
   const projectId = activeProject?.id ?? null;
   const { nodes, tree, nodeStats, loading, refresh } = useWbsTree(projectId);
-  const { tasks, rollupByNode, projectRollup } = useWbsSchedule(projectId, nodes);
+  const { tasks, rollupByNode, projectRollup, refresh: refreshSchedule } = useWbsSchedule(projectId, nodes);
   const { dateSet: holidaySet } = useProjectHolidays(projectId);
 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -73,6 +74,9 @@ export default function WbsPage() {
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null);
   const [secondTaskId, setSecondTaskId] = React.useState<string | null>(null);
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
+  const [editMode, setEditMode] = React.useState(false);
+  const [filters, setFilters] = useWbsFilters();
+  const [currentZoom, setCurrentZoom] = React.useState("week");
   const [editLink, setEditLink] = React.useState<DependencyLink | null>(null);
   const [editRelation, setEditRelation] = React.useState<DepRelation>("FS");
   const [editLag, setEditLag] = React.useState("0");
@@ -144,6 +148,43 @@ export default function WbsPage() {
       setSuccessors(succResult.data ?? []);
     });
   }, [projectId, tasks]);
+
+  const cpmMap = React.useMemo<CpmMap>(() => {
+    if (tasks.length === 0 || predecessors.length === 0) return new Map();
+    return computeCpm(tasks, predecessors);
+  }, [tasks, predecessors]);
+
+  const filteredTasks = React.useMemo(() => {
+    let result = tasks;
+    if (filters.status && filters.status.length > 0) {
+      result = result.filter(t => filters.status!.includes(t.status ?? ""));
+    }
+    if (filters.department && filters.department.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      result = result.filter(t => filters.department!.includes((t as any).department ?? ""));
+    }
+    if (filters.critical) {
+      const criticalIds = new Set<string>();
+      for (const [id, r] of cpmMap) {
+        if (r.isCritical) criticalIds.add(id);
+      }
+      result = result.filter(t => criticalIds.has(t.id));
+    }
+    if (filters.overdue) {
+      const today = new Date();
+      result = result.filter(t => t.planned_end && new Date(t.planned_end) < today && t.status !== "completed" && t.status !== "closed");
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(t => (t.title?.toLowerCase() ?? "").includes(q) || (t.code?.toLowerCase() ?? "").includes(q));
+    }
+    return result;
+  }, [tasks, filters, cpmMap]);
+
+  const filteredRows = React.useMemo(() => {
+    const filteredTaskIds = new Set(filteredTasks.map(t => t.id));
+    return rows.filter(row => row.kind !== "task" || filteredTaskIds.has(row.id));
+  }, [rows, filteredTasks]);
 
   const toggleTree = () => {
     const next = !treeOpen;
@@ -261,6 +302,64 @@ export default function WbsPage() {
     setSecondTaskId(null);
   };
 
+  const handleProposeShift = async (shift: { taskId: string; title: string; code: string | null; planned_start: string; planned_end: string }) => {
+    if (!projectId) return;
+    // Fetch current dates for undo
+    const { data: current } = await supabase
+      .from("tasks")
+      .select("planned_start, planned_end")
+      .eq("id", shift.taskId)
+      .single();
+    const oldStart = current?.planned_start;
+    const oldEnd = current?.planned_end;
+
+    // Apply the shift
+    const { error } = await supabase
+      .from("tasks")
+      .update({ planned_start: shift.planned_start, planned_end: shift.planned_end })
+      .eq("id", shift.taskId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`"${shift.title}" rescheduled`, {
+      action: oldStart || oldEnd ? {
+        label: "Undo",
+        onClick: async () => {
+          await supabase
+            .from("tasks")
+            .update({ planned_start: oldStart, planned_end: oldEnd })
+            .eq("id", shift.taskId);
+          await refreshSchedule();
+        },
+      } : undefined,
+    });
+    // Cascade to successors
+    const allTasks = tasks;
+    const proposed = new Map<string, { planned_start: string; planned_end: string }>();
+    proposed.set(shift.taskId, { planned_start: shift.planned_start, planned_end: shift.planned_end });
+    const shifted = cascade(allTasks, predecessors, proposed);
+    for (const s of shifted) {
+      if (s.id === shift.taskId) continue;
+      await supabase
+        .from("tasks")
+        .update({ planned_start: s.newStart, planned_end: s.newEnd })
+        .eq("id", s.id);
+    }
+    if (shifted.length > 1) {
+      toast.info(`${shifted.length - 1} successor${shifted.length - 1 !== 1 ? "s" : ""} also shifted`);
+    }
+    // Refresh
+    const ids = tasks.map((t) => t.id);
+    const [predResult, succResult] = await Promise.all([
+      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("task_id", ids),
+      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("predecessor_id", ids),
+    ]);
+    setPredecessors(predResult.data ?? []);
+    setSuccessors(succResult.data ?? []);
+    await refreshSchedule();
+  };
+
   if (!activeProject) {
     return (
       <div className="space-y-4">
@@ -315,6 +414,15 @@ export default function WbsPage() {
             </Button>
           </div>
 
+          {mainView === "gantt" && projectId && (
+            <SavedViewsMenu
+              projectId={projectId}
+              currentFilters={filters}
+              currentZoom={currentZoom}
+              onLoadView={(f, z) => { setFilters(f); setCurrentZoom(z); }}
+            />
+          )}
+
           {mainView === "tree" && (
             <Button variant="outline" size="sm" onClick={toggleTree}>
               {treeOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
@@ -363,10 +471,15 @@ export default function WbsPage() {
                 </Button>
               </div>
             )}
+            <WbsFilterBar
+              filters={filters}
+              onChange={setFilters}
+              departmentOptions={Object.entries(DEPARTMENT_LABELS).map(([value, label]) => ({ value, label }))}
+            />
             <ResizablePanelGroup direction="horizontal" className="h-full">
               <ResizablePanel defaultSize={40} minSize={20} className="min-h-0 overflow-hidden">
                 <WbsGanttTree
-                  rows={rows}
+                  rows={filteredRows}
                   collapsed={collapsed}
                   onToggle={toggleCollapse}
                   holidaySet={holidaySet}
@@ -381,10 +494,10 @@ export default function WbsPage() {
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={60} minSize={40} className="min-h-0 overflow-hidden">
                 <WbsGantt
-                  rows={rows}
+                  rows={filteredRows}
                   collapsed={collapsed}
                   onToggle={toggleCollapse}
-                  tasks={tasks}
+                  tasks={filteredTasks}
                   predecessors={predecessors}
                   holidaySet={holidaySet}
                   rollupByNode={rollupByNode}
@@ -399,6 +512,10 @@ export default function WbsPage() {
                     setEditRelation(link.relation_type);
                     setEditLag(String(link.lag_days ?? 0));
                   }}
+                  cpmMap={cpmMap}
+                  editMode={editMode}
+                  onEditModeChange={setEditMode}
+                  onProposeShift={handleProposeShift}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>

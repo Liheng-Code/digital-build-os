@@ -31,6 +31,7 @@ import {
   TASK_WORKFLOW_LABELS, TASK_CATEGORY_LABELS, CATEGORIES_BY_WORKFLOW,
 } from "@/lib/taskCategoryMeta";
 import { recordAuditEventSafe } from "@/services/auditService";
+import { ConstraintType, CONSTRAINT_TYPE_LABELS } from "@/lib/scheduleMeta";
 
 const taskSchema = z.object({
   title: z.string().trim().min(2).max(200),
@@ -56,6 +57,8 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
   const [meta, setMeta] = useState<Record<string, string>>({});
   const [workflowType, setWorkflowType] = useState<TaskWorkflowType | "">("");
   const [category, setCategory] = useState<TaskCategory | "">("");
+  const [constraintType, setConstraintType] = useState<ConstraintType | "">("");
+  const [constraintDate, setConstraintDate] = useState("");
 
   const updatePlannedHours = (start: string, end: string) => {
     setPlannedStart(start);
@@ -127,9 +130,12 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
       planned_start: parsed.data.planned_start || null,
       planned_end: parsed.data.planned_end || null,
       estimated_hours: parsed.data.estimated_hours ? Number(parsed.data.estimated_hours) : 0,
+      constraint_type: constraintType || null,
+      constraint_date: constraintDate || null,
       created_by: user?.id,
     };
-    const { data: createdTask, error } = await supabase.from("tasks").insert(taskPayload).select("id").single();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: createdTask, error } = await supabase.from("tasks").insert(taskPayload as any).select("id").single();
     setSaving(false);
     if (error) {
       toast.error(error.message);
@@ -157,6 +163,8 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
     setPlannedStart("");
     setPlannedEnd("");
     setEstimatedHours("");
+    setConstraintType("");
+    setConstraintDate("");
     onCreated?.();
   };
 
@@ -310,6 +318,30 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
                 className="bg-muted/60"
               />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Scheduling constraint</Label>
+              <Select value={constraintType} onValueChange={(v) => setConstraintType(v as ConstraintType)}>
+                <SelectTrigger><SelectValue placeholder="None (ASAP)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None (ASAP)</SelectItem>
+                  {(Object.keys(CONSTRAINT_TYPE_LABELS) as ConstraintType[]).map((ct) => (
+                    <SelectItem key={ct} value={ct}>{CONSTRAINT_TYPE_LABELS[ct]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {constraintType && constraintType !== "ASAP" && constraintType !== "ALAP" && (
+              <div>
+                <Label>Constraint date</Label>
+                <Input
+                  type="date"
+                  value={constraintDate}
+                  onChange={(e) => setConstraintDate(e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

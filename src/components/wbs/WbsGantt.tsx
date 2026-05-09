@@ -1,9 +1,9 @@
 import * as React from "react";
 import { addDays, differenceInCalendarDays, format, isValid, max, min, parseISO, startOfDay } from "date-fns";
-import { Calendar, Info } from "lucide-react";
+import { Calendar, Info, GripVertical, Pencil, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GanttRow } from "@/lib/wbsGanttRows";
-import { NodeRollup, TaskScheduleLite, taskStatus, SCHEDULE_STATUS_LABEL, SCHEDULE_STATUS_DOT } from "@/lib/scheduleMeta";
+import { NodeRollup, TaskScheduleLite, taskStatus, SCHEDULE_STATUS_LABEL, SCHEDULE_STATUS_DOT, CpmMap, ConstraintType, CONSTRAINT_TYPE_LABELS } from "@/lib/scheduleMeta";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -49,6 +49,11 @@ interface Props {
   onTaskSelect?: (taskId: string, isCtrlClick?: boolean) => void;
   onEditDependency?: (link: DepLink) => void;
   showCritical?: boolean;
+  /** CPM computation results: map of taskId → {es, ef, ls, lf, totalFloat, isCritical}. */
+  cpmMap?: CpmMap;
+  /** Edit mode toggle for drag-to-edit. */
+  editMode?: boolean;
+  onEditModeChange?: (v: boolean) => void;
 }
 
 type Zoom = "day" | "week" | "month";
@@ -64,7 +69,7 @@ function safeDate(s: string | null) {
   return isValid(d) ? startOfDay(d) : null;
 }
 
-export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false }: Props) {
+export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false, cpmMap, editMode = false, onEditModeChange }: Props) {
   const [zoom, setZoom] = React.useState<Zoom>("week");
   const [showCritical, setShowCritical] = React.useState(initialShowCritical);
   const [tooltip, setTooltip] = React.useState<{
@@ -103,48 +108,115 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
   const today = startOfDay(new Date());
 
-  // Basic Critical Path identification (tasks with no slack)
+  // Critical Path set based on CPM map or simple heuristic fallback
   const criticalSet = React.useMemo(() => {
     if (!showCritical || tasks.length === 0) return new Set<string>();
-    
+    if (cpmMap && cpmMap.size > 0) {
+      const set = new Set<string>();
+      for (const [id, r] of cpmMap) {
+        if (r.isCritical) set.add(id);
+      }
+      return set;
+    }
+    // Fallback heuristic when no CPM map available
     const set = new Set<string>();
     const taskMap = new Map(tasks.map(t => [t.id, t]));
-    
-    // 1. Forward Pass (Early Start/Finish)
-    // We already have planned_start/end which we assume are the earliest possible
-    
-    // 2. Backward Pass (Late Start/Finish)
-    // Project finish is the max of all planned_ends
     let projectFinish = 0;
-    const efMap = new Map<string, number>();
     tasks.forEach(t => {
       const end = safeDate(t.planned_end)?.getTime() ?? 0;
       if (end > projectFinish) projectFinish = end;
-      efMap.set(t.id, end);
     });
-
-    const lfMap = new Map<string, number>();
-    // Initialize LF with project finish
-    tasks.forEach(t => lfMap.set(t.id, projectFinish));
-
-    // Reverse iterate dependencies to propagate LF
-    // A tasks LF is the min(LS of all successors)
-    // For simplicity, we'll just check if a task is "on the edge"
     tasks.forEach(t => {
       const isLate = taskStatus(t, today) === "late";
-      const hasNoProgress = t.progress_pct < 20;
-      // Mark as critical if it's late or has predecessors and is "tight"
       if (isLate || (t.planned_end && safeDate(t.planned_end)!.getTime() > projectFinish - 86400000 * 3)) {
         set.add(t.id);
       }
     });
-
     return set;
-  }, [showCritical, tasks, predecessors, today]);
+  }, [showCritical, tasks, cpmMap, today]);
 
   const totalDays = differenceInCalendarDays(range.end, range.start) + 1;
   const dayWidth = ZOOM_PX[zoom];
   const chartWidth = totalDays * dayWidth;
+
+  // ── Drag-to-edit state ────────────────────────────────────────────────
+  const [dragState, setDragState] = React.useState<{
+    type: "move" | "resize-left" | "resize-right";
+    taskId: string;
+    startX: number;
+    origStart: string;
+    origEnd: string;
+    currentStart: string;
+    currentEnd: string;
+  } | null>(null);
+
+  const handleDragStart = React.useCallback((e: React.MouseEvent, taskId: string, type: "move" | "resize-left" | "resize-right") => {
+    if (!editMode || !onProposeShift) return;
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.planned_start || !task.planned_end) return;
+    e.preventDefault();
+    setDragState({
+      type,
+      taskId,
+      startX: e.clientX,
+      origStart: task.planned_start,
+      origEnd: task.planned_end,
+      currentStart: task.planned_start,
+      currentEnd: task.planned_end,
+    });
+  }, [editMode, onProposeShift, tasks]);
+
+  const handleDragMove = React.useCallback((e: MouseEvent) => {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.startX;
+    const dayDelta = Math.round(dx / dayWidth);
+    if (dayDelta === 0) return;
+    const task = tasks.find(t => t.id === dragState.taskId);
+    if (!task || !task.planned_start || !task.planned_end) return;
+    const origStart = parseISO(task.planned_start);
+    const origEnd = parseISO(task.planned_end);
+    let newStart: Date;
+    let newEnd: Date;
+    if (dragState.type === "move") {
+      newStart = addDays(origStart, dayDelta);
+      newEnd = addDays(origEnd, dayDelta);
+    } else if (dragState.type === "resize-left") {
+      newStart = addDays(origStart, dayDelta);
+      newEnd = origEnd;
+      if (newStart >= origEnd) newStart = addDays(origEnd, -1);
+    } else {
+      newStart = origStart;
+      newEnd = addDays(origEnd, dayDelta);
+      if (newEnd <= origStart) newEnd = addDays(origStart, 1);
+    }
+    setDragState(prev => prev ? { ...prev, currentStart: format(newStart, "yyyy-MM-dd"), currentEnd: format(newEnd, "yyyy-MM-dd") } : null);
+  }, [dragState, dayWidth, tasks]);
+
+  const handleDragEnd = React.useCallback(() => {
+    if (!dragState || !onProposeShift) return;
+    if (dragState.currentStart !== dragState.origStart || dragState.currentEnd !== dragState.origEnd) {
+      onProposeShift({
+        taskId: dragState.taskId,
+        title: tasks.find(t => t.id === dragState.taskId)?.title ?? "",
+        code: tasks.find(t => t.id === dragState.taskId)?.code ?? null,
+        planned_start: dragState.currentStart,
+        planned_end: dragState.currentEnd,
+      });
+    }
+    setDragState(null);
+  }, [dragState, onProposeShift, tasks]);
+
+  React.useEffect(() => {
+    if (!dragState) return;
+    const onMove = (e: MouseEvent) => handleDragMove(e);
+    const onUp = () => handleDragEnd();
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [dragState, handleDragMove, handleDragEnd]);
 
   const taskRowIndex = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -224,7 +296,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
             </div>
 
             <div className="flex items-center gap-1.5">
-               <Button
+                <Button
                   size="sm"
                   variant={showCritical ? "destructive" : "outline"}
                   className={cn("h-8 rounded-lg px-3 text-xs gap-1.5", showCritical && "bg-destructive/10 border-destructive/20 text-destructive hover:bg-destructive/20")}
@@ -233,6 +305,18 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                   <div className={cn("h-1.5 w-1.5 rounded-full", showCritical ? "bg-destructive animate-pulse" : "bg-muted-foreground")} />
                   Critical Path
                 </Button>
+
+              {onEditModeChange && (
+                <Button
+                  size="sm"
+                  variant={editMode ? "default" : "outline"}
+                  className={cn("h-8 rounded-lg px-3 text-xs gap-1.5", editMode && "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20")}
+                  onClick={() => onEditModeChange(!editMode)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  {editMode ? "Editing" : "Edit"}
+                </Button>
+              )}
 
               <div className="w-px h-6 bg-border mx-1" />
 
@@ -378,6 +462,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                           }
 
                           if (isMilestone) {
+                            const isDragging = dragState?.taskId === row.task.id;
                             return (
                               <div className="absolute inset-0">
                                     {baselineEl}
@@ -387,30 +472,94 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                         barTone,
                                         isSelected && "ring-2 ring-primary ring-offset-2 scale-110",
                                         isSecond && "ring-2 ring-green-500 ring-offset-2 bg-green-500/20 scale-110",
+                                        isDragging && "opacity-50",
                                       )}
                                       style={{ left: left + dayWidth / 2 - 8 }}
                                       onClick={() => onTaskSelect?.(row.task.id, false)}
+                                      onMouseDown={(e) => handleDragStart(e, row.task.id, "move")}
                                     />
+                                    {row.task.constraint_type && (
+                                      <div
+                                        className="absolute top-0 text-[9px] font-bold text-warning"
+                                        style={{ left: left + dayWidth / 2 + 12 }}
+                                        title={`${CONSTRAINT_TYPE_LABELS[row.task.constraint_type as ConstraintType]}${row.task.constraint_date ? `: ${row.task.constraint_date}` : ""}`}
+                                      >
+                                        ●
+                                      </div>
+                                    )}
                                   </div>);
                           }
+
+                          const isDragging = dragState?.taskId === row.task.id;
+                          const cpmEntry = cpmMap?.get(row.task.id);
+                          const totalFloat = cpmEntry?.totalFloat ?? 0;
+                          const slackWidth = showCritical && !isCritical && totalFloat > 0 ? totalFloat * dayWidth : 0;
+                          const ghostLeft = isDragging && dragState
+                            ? differenceInCalendarDays(parseISO(dragState.currentStart), range.start) * dayWidth
+                            : left;
+                          const ghostWidth = isDragging && dragState
+                            ? (differenceInCalendarDays(parseISO(dragState.currentEnd), parseISO(dragState.currentStart)) + 1) * dayWidth
+                            : width;
 
                           return (
                             <div className="absolute inset-0">
                                   {baselineEl}
+                                  {/* Slack ribbon */}
+                                  {slackWidth > 0 && (
+                                    <div
+                                      className="absolute top-[12px] h-3 rounded-r-full border-l-0 border border-muted-foreground/20 bg-muted-foreground/5 pointer-events-none z-[5]"
+                                      style={{ left: left + width, width: slackWidth }}
+                                      title={`Slack: ${totalFloat} day${totalFloat !== 1 ? "s" : ""}`}
+                                    />
+                                  )}
+                                  {/* Drag ghost preview */}
+                                  {isDragging && (ghostLeft !== left || ghostWidth !== width) && (
+                                    <div
+                                      className="absolute top-[8px] h-5 rounded-full border-2 border-dashed border-primary/40 bg-primary/10 pointer-events-none z-20"
+                                      style={{ left: ghostLeft, width: Math.max(dayWidth, ghostWidth) }}
+                                    />
+                                  )}
+                                  {/* Constraint indicator */}
+                                  {row.task.constraint_type && (
+                                    <div
+                                      className="absolute -top-0.5 text-[10px] font-bold text-warning z-20 cursor-help"
+                                      style={{ left: left + width + 4 }}
+                                      title={`${CONSTRAINT_TYPE_LABELS[row.task.constraint_type as ConstraintType]}${row.task.constraint_date ? `: ${row.task.constraint_date}` : ""}`}
+                                    >
+                                      ⚑
+                                    </div>
+                                  )}
+                                  {/* Task bar */}
                                   <div
                                     className={cn(
-                                      "absolute top-[8px] h-5 rounded-full border shadow-sm overflow-hidden cursor-pointer transition-all z-10",
+                                      "absolute top-[8px] h-5 rounded-full border shadow-sm overflow-hidden transition-all z-10",
                                       barTone,
                                       isSelected && "ring-2 ring-primary ring-offset-1 scale-[1.02]",
                                       isSecond && "ring-2 ring-green-500 ring-offset-1 bg-green-500/20 scale-[1.02]",
+                                      isDragging && "opacity-50",
+                                      editMode && "cursor-grab active:cursor-grabbing",
                                     )}
                                     style={{ left, width: Math.max(dayWidth, width) }}
                                     onClick={() => onTaskSelect?.(row.task.id, false)}
+                                    onMouseDown={(e) => handleDragStart(e, row.task.id, "move")}
                                   >
                                     <div
                                       className="h-full bg-foreground/20"
                                       style={{ width: `${Math.min(100, row.task.progress_pct)}%` }}
                                     />
+                                    {/* Drag handles (visible in edit mode) */}
+                                    {editMode && (
+                                      <>
+                                        <div
+                                          className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-foreground/10 rounded-l-full"
+                                          onMouseDown={(e) => { e.stopPropagation(); handleDragStart(e, row.task.id, "resize-left"); }}
+                                        />
+                                        <div
+                                          className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-foreground/10 rounded-r-full"
+                                          onMouseDown={(e) => { e.stopPropagation(); handleDragStart(e, row.task.id, "resize-right"); }}
+                                        />
+                                      </>
+                                    )}
                                   </div>
                                 </div>);
                         }
