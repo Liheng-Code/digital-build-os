@@ -324,7 +324,17 @@ export default function WbsPage() {
         </div>
       </div>
 
-        {mainView === "gantt" ? (
+        {mainView === "schedule" ? (
+          <div className="flex-1 min-h-0 overflow-auto p-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-5xl mx-auto">
+              <BaselinePanel projectId={projectId!} canEdit={canEdit} />
+              <CpmPanel projectId={projectId!} canEdit={canEdit} />
+              <div className="lg:col-span-2">
+                <CalendarsPanel projectId={projectId!} canEdit={canEdit} />
+              </div>
+            </div>
+          </div>
+        ) : mainView === "gantt" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full rounded-2xl border bg-card shadow-sm overflow-hidden">
             {/* Link Tasks Toolbar */}
