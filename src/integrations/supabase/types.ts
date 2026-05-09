@@ -279,41 +279,161 @@ export type Database = {
           },
         ]
       }
+      architecture_drawings: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          drawing_number: string
+          file_url: string | null
+          id: string
+          project_id: string | null
+          revision: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          drawing_number: string
+          file_url?: string | null
+          id?: string
+          project_id?: string | null
+          revision?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          drawing_number?: string
+          file_url?: string | null
+          id?: string
+          project_id?: string | null
+          revision?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architecture_drawings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "architecture_drawings_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      architecture_material_boards: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          material_name: string
+          photo_url: string | null
+          project_id: string | null
+          sample_reference: string | null
+          status: string | null
+          updated_at: string | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          material_name: string
+          photo_url?: string | null
+          project_id?: string | null
+          sample_reference?: string | null
+          status?: string | null
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          material_name?: string
+          photo_url?: string | null
+          project_id?: string | null
+          sample_reference?: string | null
+          status?: string | null
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architecture_material_boards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "architecture_material_boards_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       architecture_room_data: {
         Row: {
+          acoustic_rating: string | null
           ceiling_finish: string | null
           cornice_finish: string | null
           created_at: string
           floor_finish: string | null
           id: string
+          ironmongery_set: string | null
           mep_requirements: Json | null
           remarks: string | null
+          sanitary_fixtures: string | null
           skirting_finish: string | null
           updated_at: string
           wall_finish: string | null
           wbs_node_id: string
         }
         Insert: {
+          acoustic_rating?: string | null
           ceiling_finish?: string | null
           cornice_finish?: string | null
           created_at?: string
           floor_finish?: string | null
           id?: string
+          ironmongery_set?: string | null
           mep_requirements?: Json | null
           remarks?: string | null
+          sanitary_fixtures?: string | null
           skirting_finish?: string | null
           updated_at?: string
           wall_finish?: string | null
           wbs_node_id: string
         }
         Update: {
+          acoustic_rating?: string | null
           ceiling_finish?: string | null
           cornice_finish?: string | null
           created_at?: string
           floor_finish?: string | null
           id?: string
+          ironmongery_set?: string | null
           mep_requirements?: Json | null
           remarks?: string | null
+          sanitary_fixtures?: string | null
           skirting_finish?: string | null
           updated_at?: string
           wall_finish?: string | null
@@ -1497,6 +1617,50 @@ export type Database = {
         }
         Relationships: []
       }
+      design_review_comments: {
+        Row: {
+          author_id: string | null
+          comment: string
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          project_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          comment: string
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          comment?: string
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_review_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disciplines: {
         Row: {
           code: string
@@ -1526,6 +1690,79 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      dlp_defects: {
+        Row: {
+          contractor_id: string | null
+          created_at: string | null
+          description: string
+          due_date: string | null
+          file_url: string | null
+          fixed_at: string | null
+          id: string
+          priority: string | null
+          project_id: string | null
+          reported_by: string | null
+          status: string | null
+          updated_at: string | null
+          verified_at: string | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          contractor_id?: string | null
+          created_at?: string | null
+          description: string
+          due_date?: string | null
+          file_url?: string | null
+          fixed_at?: string | null
+          id?: string
+          priority?: string | null
+          project_id?: string | null
+          reported_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          contractor_id?: string | null
+          created_at?: string | null
+          description?: string
+          due_date?: string | null
+          file_url?: string | null
+          fixed_at?: string | null
+          id?: string
+          priority?: string | null
+          project_id?: string | null
+          reported_by?: string | null
+          status?: string | null
+          updated_at?: string | null
+          verified_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dlp_defects_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dlp_defects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dlp_defects_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_types: {
         Row: {
@@ -1926,6 +2163,94 @@ export type Database = {
             columns: ["received_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handover_items: {
+        Row: {
+          created_at: string | null
+          file_url: string | null
+          id: string
+          item_type: string
+          package_id: string | null
+          reference_id: string | null
+          remarks: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          item_type: string
+          package_id?: string | null
+          reference_id?: string | null
+          remarks?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          item_type?: string
+          package_id?: string | null
+          reference_id?: string | null
+          remarks?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handover_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "handover_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      handover_packages: {
+        Row: {
+          approved_at: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          submitted_at: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handover_packages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -2878,6 +3203,98 @@ export type Database = {
           },
         ]
       }
+      mep_load_schedules: {
+        Row: {
+          board_reference: string
+          connected_load_kw: number | null
+          created_at: string | null
+          discipline: string
+          id: string
+          project_id: string | null
+          status: string | null
+          total_load_kw: number | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          board_reference: string
+          connected_load_kw?: number | null
+          created_at?: string | null
+          discipline: string
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          total_load_kw?: number | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          board_reference?: string
+          connected_load_kw?: number | null
+          created_at?: string | null
+          discipline?: string
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          total_load_kw?: number | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_load_schedules_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mep_load_schedules_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mep_material_submittals: {
+        Row: {
+          created_at: string | null
+          discipline: string
+          id: string
+          item_description: string
+          manufacturer: string | null
+          model_number: string | null
+          project_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          discipline: string
+          id?: string
+          item_description: string
+          manufacturer?: string | null
+          model_number?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          discipline?: string
+          id?: string
+          item_description?: string
+          manufacturer?: string | null
+          model_number?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_material_submittals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mep_sleeve_openings: {
         Row: {
           arc_approved: boolean
@@ -2940,6 +3357,47 @@ export type Database = {
             columns: ["wbs_node_id"]
             isOneToOne: false
             referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mep_system_schematics: {
+        Row: {
+          created_at: string | null
+          id: string
+          project_id: string | null
+          reference_number: string
+          revision: string | null
+          status: string | null
+          system_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          reference_number: string
+          revision?: string | null
+          status?: string | null
+          system_type: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+          reference_number?: string
+          revision?: string | null
+          status?: string | null
+          system_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mep_system_schematics_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -5261,6 +5719,101 @@ export type Database = {
           },
         ]
       }
+      structural_calculation_notes: {
+        Row: {
+          author: string | null
+          created_at: string | null
+          file_url: string | null
+          id: string
+          project_id: string | null
+          reference_number: string
+          revision: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          author?: string | null
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          project_id?: string | null
+          reference_number: string
+          revision?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          author?: string | null
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          project_id?: string | null
+          reference_number?: string
+          revision?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_calculation_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_calculation_notes_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structural_design_criteria: {
+        Row: {
+          created_at: string | null
+          id: string
+          parameter_name: string
+          parameter_value: string
+          project_id: string | null
+          source: string | null
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          parameter_name: string
+          parameter_value: string
+          project_id?: string | null
+          source?: string | null
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          parameter_name?: string
+          parameter_value?: string
+          project_id?: string | null
+          source?: string | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_design_criteria_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       structural_drawings: {
         Row: {
           created_at: string
@@ -5375,6 +5928,143 @@ export type Database = {
           },
         ]
       }
+      structural_load_summaries: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          load_case: string
+          magnitude_kn_m2: number | null
+          project_id: string | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          load_case: string
+          magnitude_kn_m2?: number | null
+          project_id?: string | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          load_case?: string
+          magnitude_kn_m2?: number | null
+          project_id?: string | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_load_summaries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_load_summaries_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structural_model_register: {
+        Row: {
+          created_at: string | null
+          file_url: string | null
+          id: string
+          last_run_date: string | null
+          model_name: string
+          project_id: string | null
+          software: string
+          status: string | null
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          last_run_date?: string | null
+          model_name: string
+          project_id?: string | null
+          software: string
+          status?: string | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          last_run_date?: string | null
+          model_name?: string
+          project_id?: string | null
+          software?: string
+          status?: string | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_model_register_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structural_rebar_reviews: {
+        Row: {
+          created_at: string | null
+          drawing_reference: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          submittal_number: string
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          drawing_reference?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          submittal_number: string
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          drawing_reference?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          submittal_number?: string
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_rebar_reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_rebar_reviews_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       structural_rebar_schedules: {
         Row: {
           bar_mark: string
@@ -5435,6 +6125,60 @@ export type Database = {
           },
           {
             foreignKeyName: "structural_rebar_schedules_wbs_node_id_fkey"
+            columns: ["wbs_node_id"]
+            isOneToOne: false
+            referencedRelation: "wbs_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      structural_technical_queries: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          project_id: string | null
+          query_number: string
+          response: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+          wbs_node_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          query_number: string
+          response?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          query_number?: string
+          response?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+          wbs_node_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structural_technical_queries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "structural_technical_queries_wbs_node_id_fkey"
             columns: ["wbs_node_id"]
             isOneToOne: false
             referencedRelation: "wbs_nodes"
@@ -6530,6 +7274,63 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      warranty_register: {
+        Row: {
+          certificate_url: string | null
+          created_at: string | null
+          duration_months: number | null
+          end_date: string | null
+          id: string
+          item_name: string
+          project_id: string | null
+          provider_id: string | null
+          remarks: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          certificate_url?: string | null
+          created_at?: string | null
+          duration_months?: number | null
+          end_date?: string | null
+          id?: string
+          item_name: string
+          project_id?: string | null
+          provider_id?: string | null
+          remarks?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          certificate_url?: string | null
+          created_at?: string | null
+          duration_months?: number | null
+          end_date?: string | null
+          id?: string
+          item_name?: string
+          project_id?: string | null
+          provider_id?: string | null
+          remarks?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_register_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warranty_register_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "stakeholders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wbs_assignments: {
         Row: {
