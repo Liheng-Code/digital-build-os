@@ -36,9 +36,9 @@ export function WbsFilterBar({ filters, onChange, departmentOptions }: Props) {
     <div className="flex items-center gap-2 flex-wrap px-4 py-2 border-b bg-muted/20">
       {/* Status filter */}
       <Select
-        value={filters.status?.[0] ?? ""}
+        value={filters.status?.[0] ?? "__all__"}
         onValueChange={(v) => {
-          if (!v) {
+          if (v === "__all__") {
             const { status, ...rest } = filters;
             onChange(rest);
           } else {
@@ -50,7 +50,7 @@ export function WbsFilterBar({ filters, onChange, departmentOptions }: Props) {
           <SelectValue placeholder="All statuses" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All statuses</SelectItem>
+          <SelectItem value="__all__">All statuses</SelectItem>
           {(Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map((s) => (
             <SelectItem key={s} value={s}>{TASK_STATUS_LABELS[s]}</SelectItem>
           ))}
@@ -60,9 +60,9 @@ export function WbsFilterBar({ filters, onChange, departmentOptions }: Props) {
       {/* Department filter */}
       {departmentOptions && departmentOptions.length > 0 && (
         <Select
-          value={filters.department?.[0] ?? ""}
+          value={filters.department?.[0] ?? "__all__"}
           onValueChange={(v) => {
-            if (!v) {
+            if (v === "__all__") {
               const { department, ...rest } = filters;
               onChange(rest);
             } else {
@@ -74,7 +74,7 @@ export function WbsFilterBar({ filters, onChange, departmentOptions }: Props) {
             <SelectValue placeholder="All departments" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All departments</SelectItem>
+            <SelectItem value="__all__">All departments</SelectItem>
             {departmentOptions.map((d) => (
               <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
             ))}

@@ -322,10 +322,10 @@ export function CreateTaskDialog({ onCreated }: { onCreated?: () => void }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Scheduling constraint</Label>
-              <Select value={constraintType} onValueChange={(v) => setConstraintType(v as ConstraintType)}>
+              <Select value={constraintType || "__none__"} onValueChange={(v) => setConstraintType(v === "__none__" ? "" : v as ConstraintType)}>
                 <SelectTrigger><SelectValue placeholder="None (ASAP)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None (ASAP)</SelectItem>
+                  <SelectItem value="__none__">None (ASAP)</SelectItem>
                   {(Object.keys(CONSTRAINT_TYPE_LABELS) as ConstraintType[]).map((ct) => (
                     <SelectItem key={ct} value={ct}>{CONSTRAINT_TYPE_LABELS[ct]}</SelectItem>
                   ))}
