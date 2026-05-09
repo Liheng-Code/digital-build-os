@@ -188,7 +188,7 @@ export default function DLP() {
             <p className="text-lg font-medium">No defects reported.</p>
             <p className="text-sm">Great job! The project is clear of active snags.</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
