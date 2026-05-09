@@ -1,9 +1,13 @@
 -- WBS Phase 1: Scheduling Core (reduced scope: constraints, CPM, saved views)
 
 -- 1. Constraint type enum
-CREATE TYPE schedule_constraint_type AS ENUM (
-  'ASAP', 'ALAP', 'SNET', 'SNLT', 'FNET', 'FNLT', 'MSO', 'MFO'
-);
+DO $$ BEGIN
+  CREATE TYPE schedule_constraint_type AS ENUM (
+    'ASAP', 'ALAP', 'SNET', 'SNLT', 'FNET', 'FNLT', 'MSO', 'MFO'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- 2. Add constraint columns to tasks table
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS constraint_type schedule_constraint_type;
@@ -26,17 +30,29 @@ CREATE TABLE IF NOT EXISTS wbs_saved_views (
 ALTER TABLE wbs_saved_views ENABLE ROW LEVEL SECURITY;
 
 -- RLS: users can read own views + shared views; insert/update/delete own
-CREATE POLICY wbs_saved_views_select ON wbs_saved_views
-  FOR SELECT USING (user_id = auth.uid() OR is_shared = true);
+DO $$ BEGIN
+  CREATE POLICY wbs_saved_views_select ON wbs_saved_views
+    FOR SELECT USING (user_id = auth.uid() OR is_shared = true);
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY wbs_saved_views_insert ON wbs_saved_views
-  FOR INSERT WITH CHECK (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY wbs_saved_views_insert ON wbs_saved_views
+    FOR INSERT WITH CHECK (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY wbs_saved_views_update ON wbs_saved_views
-  FOR UPDATE USING (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY wbs_saved_views_update ON wbs_saved_views
+    FOR UPDATE USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY wbs_saved_views_delete ON wbs_saved_views
-  FOR DELETE USING (user_id = auth.uid());
+DO $$ BEGIN
+  CREATE POLICY wbs_saved_views_delete ON wbs_saved_views
+    FOR DELETE USING (user_id = auth.uid());
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_wbs_saved_views_project ON wbs_saved_views(project_id);
 CREATE INDEX IF NOT EXISTS idx_wbs_saved_views_user ON wbs_saved_views(user_id);
