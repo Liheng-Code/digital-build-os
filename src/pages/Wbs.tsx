@@ -20,9 +20,12 @@ import { WbsScheduleCard } from "@/components/wbs/WbsScheduleCard";
 import { WbsGanttTree } from "@/components/wbs/WbsGanttTree";
 import { WbsGantt } from "@/components/wbs/WbsGantt";
 import { TaskDependencyDialog, DependencyLink } from "@/components/wbs/TaskDependencyDialog";
+import { BaselinePanel } from "@/components/wbs/BaselinePanel";
+import { CpmPanel } from "@/components/wbs/CpmPanel";
+import { CalendarsPanel } from "@/components/wbs/CalendarsPanel";
 import { buildGanttRows, GanttRow } from "@/lib/wbsGanttRows";
 import {
-  Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare,
+  Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare, Activity,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WBS_NODE_TYPE_LABELS, WbsNodeType } from "@/lib/wbsMeta";
@@ -36,7 +39,7 @@ type EditMode =
   | { kind: "edit"; nodeId: string }
   | { kind: "create"; parentId: string | null };
 
-type MainView = "tree" | "gantt";
+type MainView = "tree" | "gantt" | "schedule";
 
 const STORAGE_KEY = "buildtrack.wbs.layout";
 
@@ -300,6 +303,15 @@ export default function WbsPage() {
             >
               <GanttChartSquare className="mr-1.5 h-3.5 w-3.5" />
               Gantt
+            </Button>
+            <Button
+              size="sm"
+              variant={mainView === "schedule" ? "secondary" : "ghost"}
+              className="h-8 rounded-lg px-3 text-xs"
+              onClick={() => setMainView("schedule")}
+            >
+              <Activity className="mr-1.5 h-3.5 w-3.5" />
+              Schedule
             </Button>
           </div>
 
