@@ -472,6 +472,8 @@ export default function TaskDetail() {
             </CardContent>
           </Card>
 
+          <TaskConstraintForm taskId={task.id} />
+
           <AssignmentsCard
             taskId={task.id}
             assignments={activeAssignees}
