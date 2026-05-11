@@ -7030,8 +7030,13 @@ export type Database = {
           baseline_start: string | null
           category: Database["public"]["Enums"]["task_category"] | null
           code: string | null
+          constraint_date: string | null
+          constraint_type:
+            | Database["public"]["Enums"]["schedule_constraint_type"]
+            | null
           created_at: string
           created_by: string | null
+          deadline_date: string | null
           department: Database["public"]["Enums"]["department"] | null
           dept_status: Database["public"]["Enums"]["dept_status"] | null
           description: string | null
@@ -7064,8 +7069,13 @@ export type Database = {
           baseline_start?: string | null
           category?: Database["public"]["Enums"]["task_category"] | null
           code?: string | null
+          constraint_date?: string | null
+          constraint_type?:
+            | Database["public"]["Enums"]["schedule_constraint_type"]
+            | null
           created_at?: string
           created_by?: string | null
+          deadline_date?: string | null
           department?: Database["public"]["Enums"]["department"] | null
           dept_status?: Database["public"]["Enums"]["dept_status"] | null
           description?: string | null
@@ -7098,8 +7108,13 @@ export type Database = {
           baseline_start?: string | null
           category?: Database["public"]["Enums"]["task_category"] | null
           code?: string | null
+          constraint_date?: string | null
+          constraint_type?:
+            | Database["public"]["Enums"]["schedule_constraint_type"]
+            | null
           created_at?: string
           created_by?: string | null
+          deadline_date?: string | null
           department?: Database["public"]["Enums"]["department"] | null
           dept_status?: Database["public"]["Enums"]["dept_status"] | null
           description?: string | null
@@ -8023,8 +8038,13 @@ export type Database = {
           baseline_start: string | null
           category: Database["public"]["Enums"]["task_category"] | null
           code: string | null
+          constraint_date: string | null
+          constraint_type:
+            | Database["public"]["Enums"]["schedule_constraint_type"]
+            | null
           created_at: string
           created_by: string | null
+          deadline_date: string | null
           department: Database["public"]["Enums"]["department"] | null
           dept_status: Database["public"]["Enums"]["dept_status"] | null
           description: string | null
@@ -8107,8 +8127,13 @@ export type Database = {
               baseline_start: string | null
               category: Database["public"]["Enums"]["task_category"] | null
               code: string | null
+              constraint_date: string | null
+              constraint_type:
+                | Database["public"]["Enums"]["schedule_constraint_type"]
+                | null
               created_at: string
               created_by: string | null
+              deadline_date: string | null
               department: Database["public"]["Enums"]["department"] | null
               dept_status: Database["public"]["Enums"]["dept_status"] | null
               description: string | null
@@ -8159,8 +8184,13 @@ export type Database = {
               baseline_start: string | null
               category: Database["public"]["Enums"]["task_category"] | null
               code: string | null
+              constraint_date: string | null
+              constraint_type:
+                | Database["public"]["Enums"]["schedule_constraint_type"]
+                | null
               created_at: string
               created_by: string | null
+              deadline_date: string | null
               department: Database["public"]["Enums"]["department"] | null
               dept_status: Database["public"]["Enums"]["dept_status"] | null
               description: string | null

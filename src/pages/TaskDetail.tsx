@@ -21,6 +21,7 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TaskConstraintForm } from "@/components/wbs/TaskConstraintForm";
 import {
   TaskStatus, TaskPriority, TaskType,
   TASK_PRIORITY_LABELS, TASK_PRIORITY_TONE, TASK_TYPE_LABELS, TASK_STATUS_LABELS,
@@ -470,6 +471,8 @@ export default function TaskDetail() {
               </div>
             </CardContent>
           </Card>
+
+          <TaskConstraintForm taskId={task.id} />
 
           <AssignmentsCard
             taskId={task.id}
