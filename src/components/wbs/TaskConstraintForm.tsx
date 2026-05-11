@@ -163,6 +163,27 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Schedule constraint
       </div>
+      {Object.keys(errors).length > 0 && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive"
+        >
+          <div className="font-semibold mb-1">
+            Please fix {Object.keys(errors).length} issue{Object.keys(errors).length > 1 ? "s" : ""} before saving:
+          </div>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {Object.entries(errors).map(([field, msg]) => {
+              const label =
+                field === "constraint_type" ? "Type"
+                : field === "constraint_date" ? "Constraint date"
+                : field === "deadline_date" ? "Deadline"
+                : field;
+              return <li key={field}><span className="font-medium">{label}:</span> {msg}</li>;
+            })}
+          </ul>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Type</Label>
