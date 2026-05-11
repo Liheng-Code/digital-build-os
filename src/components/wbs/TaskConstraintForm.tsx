@@ -1,4 +1,5 @@
 import * as React from "react";
+import { z } from "zod";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,80 @@ interface Props {
   onSaved?: () => void;
 }
 
+const CONSTRAINT_TYPES: ScheduleConstraintType[] = [
+  "ASAP", "ALAP", "SNET", "SNLT", "FNET", "FNLT", "MSO", "MFO",
+];
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const isoDate = z.string().regex(DATE_RE, "Use YYYY-MM-DD").refine(
+  (s) => !Number.isNaN(new Date(s + "T00:00:00").getTime()),
+  "Invalid date",
+);
+
+const baseSchema = z.object({
+  constraint_type: z.enum(CONSTRAINT_TYPES as [ScheduleConstraintType, ...ScheduleConstraintType[]]),
+  constraint_date: z.string().optional().nullable(),
+  deadline_date: z.string().optional().nullable(),
+});
+
+const schema = baseSchema.superRefine((val, ctx) => {
+  const needsDate = val.constraint_type !== "ASAP" && val.constraint_type !== "ALAP";
+  const cd = val.constraint_date?.trim() || null;
+  const dd = val.deadline_date?.trim() || null;
+
+  if (needsDate) {
+    if (!cd) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["constraint_date"],
+        message: `${val.constraint_type} requires a constraint date`,
+      });
+    } else {
+      const r = isoDate.safeParse(cd);
+      if (!r.success) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["constraint_date"], message: r.error.issues[0].message });
+      }
+    }
+  } else if (cd) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["constraint_date"],
+      message: `${val.constraint_type} must not have a constraint date`,
+    });
+  }
+
+  if (dd) {
+    const r = isoDate.safeParse(dd);
+    if (!r.success) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["deadline_date"], message: r.error.issues[0].message });
+    } else if (cd && DATE_RE.test(cd)) {
+      // Deadline must be on/after the constraint date for "start/finish no earlier" + Must-start/finish anchors
+      const startAnchored = val.constraint_type === "SNET" || val.constraint_type === "MSO" ||
+                            val.constraint_type === "FNET" || val.constraint_type === "MFO";
+      if (startAnchored && new Date(dd) < new Date(cd)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["deadline_date"],
+          message: "Deadline must be on or after the constraint date",
+        });
+      }
+      // For SNLT/FNLT, deadline before constraint date is suspicious but allowed only if >= constraint date
+      if ((val.constraint_type === "SNLT" || val.constraint_type === "FNLT") && new Date(dd) < new Date(cd)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["deadline_date"],
+          message: "Deadline cannot be earlier than the constraint date",
+        });
+      }
+    }
+  }
+});
+
 export function TaskConstraintForm({ taskId, onSaved }: Props) {
   const [type, setType] = React.useState<ScheduleConstraintType>("ASAP");
   const [date, setDate] = React.useState("");
   const [deadline, setDeadline] = React.useState("");
   const [loading, setLoading] = React.useState(true);
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     let cancelled = false;
@@ -38,7 +108,32 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
 
   const needsDate = type !== "ASAP" && type !== "ALAP";
 
+  // Live-clear constraint date when switching to ASAP/ALAP
+  React.useEffect(() => {
+    if (!needsDate && date) setDate("");
+  }, [needsDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const validate = () => {
+    const result = schema.safeParse({
+      constraint_type: type,
+      constraint_date: date || null,
+      deadline_date: deadline || null,
+    });
+    if (result.success) { setErrors({}); return true; }
+    const errs: Record<string, string> = {};
+    for (const issue of result.error.issues) {
+      const k = issue.path[0]?.toString() ?? "_";
+      if (!errs[k]) errs[k] = issue.message;
+    }
+    setErrors(errs);
+    return false;
+  };
+
   const save = async () => {
+    if (!validate()) {
+      toast.error("Please fix the highlighted fields");
+      return;
+    }
     try {
       await upsertConstraint({
         task_id: taskId,
@@ -55,7 +150,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
   const clear = async () => {
     try {
       await deleteConstraint(taskId);
-      setType("ASAP"); setDate(""); setDeadline("");
+      setType("ASAP"); setDate(""); setDeadline(""); setErrors({});
       toast.success("Constraint cleared");
       onSaved?.();
     } catch (e) { toast.error((e as Error).message); }
@@ -79,16 +174,35 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
               ))}
             </SelectContent>
           </Select>
+          {errors.constraint_type && (
+            <p className="text-xs text-destructive mt-1">{errors.constraint_type}</p>
+          )}
         </div>
         {needsDate && (
           <div>
             <Label className="text-xs">Constraint date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              aria-invalid={!!errors.constraint_date}
+            />
+            {errors.constraint_date && (
+              <p className="text-xs text-destructive mt-1">{errors.constraint_date}</p>
+            )}
           </div>
         )}
         <div>
           <Label className="text-xs">Deadline (optional)</Label>
-          <Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+          <Input
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            aria-invalid={!!errors.deadline_date}
+          />
+          {errors.deadline_date && (
+            <p className="text-xs text-destructive mt-1">{errors.deadline_date}</p>
+          )}
         </div>
       </div>
       <div className="flex gap-2 justify-end">
