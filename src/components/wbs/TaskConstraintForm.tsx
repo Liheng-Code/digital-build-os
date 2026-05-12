@@ -236,7 +236,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       </div>
       <div className="flex gap-2 justify-end">
         <Button variant="ghost" size="sm" onClick={clear}>Clear</Button>
-        <Button size="sm" onClick={save}>Save constraint</Button>
+        <Button size="sm" onClick={save} disabled={!isValid}>Save constraint</Button>
       </div>
     </div>
   );
