@@ -108,6 +108,14 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
 
   const needsDate = type !== "ASAP" && type !== "ALAP";
 
+  const isValid = React.useMemo(() => {
+    return schema.safeParse({
+      constraint_type: type,
+      constraint_date: date || null,
+      deadline_date: deadline || null,
+    }).success;
+  }, [type, date, deadline]);
+
   // Live-clear constraint date when switching to ASAP/ALAP
   React.useEffect(() => {
     if (!needsDate && date) setDate("");
