@@ -147,6 +147,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       return;
     }
     setSaving(true);
+    const toastId = toast.loading("Saving constraint…");
     try {
       await upsertConstraint({
         task_id: taskId,
@@ -155,10 +156,26 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
         deadline_date: deadline || null,
         calendar_id: null,
       } as TaskConstraint);
-      toast.success("Constraint saved");
+      toast.success("Constraint saved", { id: toastId });
       onSaved?.();
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) {
+      toast.error(`Failed to save constraint: ${(e as Error).message}`, { id: toastId });
+    }
     finally { setSaving(false); }
+  };
+
+  const clear = async () => {
+    setClearing(true);
+    const toastId = toast.loading("Clearing constraint…");
+    try {
+      await deleteConstraint(taskId);
+      setType("ASAP"); setDate(""); setDeadline(""); setErrors({});
+      toast.success("Constraint cleared", { id: toastId });
+      onSaved?.();
+    } catch (e) {
+      toast.error(`Failed to clear constraint: ${(e as Error).message}`, { id: toastId });
+    }
+    finally { setClearing(false); }
   };
 
   const clear = async () => {
