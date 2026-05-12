@@ -261,10 +261,26 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
         </div>
       </div>
       <div className="flex gap-2 justify-end">
-        <Button variant="ghost" size="sm" onClick={clear} disabled={busy}>
-          {clearing && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
-          Clear
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" disabled={busy}>
+              {clearing && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+              Clear
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear schedule constraint?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This removes the constraint from this task and resets the form to ASAP. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={clear} disabled={busy}>Clear constraint</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <Button size="sm" onClick={save} disabled={!isValid || busy}>
           {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
           {saving ? "Saving…" : "Save constraint"}
