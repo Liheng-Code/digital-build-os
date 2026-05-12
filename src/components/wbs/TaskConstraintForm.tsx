@@ -108,6 +108,14 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
 
   const needsDate = type !== "ASAP" && type !== "ALAP";
 
+  const isValid = React.useMemo(() => {
+    return schema.safeParse({
+      constraint_type: type,
+      constraint_date: date || null,
+      deadline_date: deadline || null,
+    }).success;
+  }, [type, date, deadline]);
+
   // Live-clear constraint date when switching to ASAP/ALAP
   React.useEffect(() => {
     if (!needsDate && date) setDate("");
@@ -228,7 +236,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       </div>
       <div className="flex gap-2 justify-end">
         <Button variant="ghost" size="sm" onClick={clear}>Clear</Button>
-        <Button size="sm" onClick={save}>Save constraint</Button>
+        <Button size="sm" onClick={save} disabled={!isValid}>Save constraint</Button>
       </div>
     </div>
   );
