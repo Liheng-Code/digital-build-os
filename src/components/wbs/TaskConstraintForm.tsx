@@ -92,6 +92,9 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
   const [deadline, setDeadline] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [saving, setSaving] = React.useState(false);
+  const [clearing, setClearing] = React.useState(false);
+  const busy = saving || clearing;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -143,6 +146,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       toast.error("Please fix the highlighted fields");
       return;
     }
+    setSaving(true);
     try {
       await upsertConstraint({
         task_id: taskId,
@@ -154,18 +158,25 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       toast.success("Constraint saved");
       onSaved?.();
     } catch (e) { toast.error((e as Error).message); }
+    finally { setSaving(false); }
   };
 
   const clear = async () => {
+    setClearing(true);
     try {
       await deleteConstraint(taskId);
       setType("ASAP"); setDate(""); setDeadline(""); setErrors({});
       toast.success("Constraint cleared");
       onSaved?.();
     } catch (e) { toast.error((e as Error).message); }
+    finally { setClearing(false); }
   };
 
-  if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (loading) return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+    </div>
+  );
 
   return (
     <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
