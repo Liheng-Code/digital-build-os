@@ -207,7 +207,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Type</Label>
-          <Select value={type} onValueChange={(v) => setType(v as ScheduleConstraintType)}>
+          <Select value={type} onValueChange={(v) => setType(v as ScheduleConstraintType)} disabled={busy}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {Object.entries(CONSTRAINT_TYPE_LABELS).map(([k, label]) => (
@@ -227,6 +227,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
               value={date}
               onChange={(e) => setDate(e.target.value)}
               aria-invalid={!!errors.constraint_date}
+              disabled={busy}
             />
             {errors.constraint_date && (
               <p className="text-xs text-destructive mt-1">{errors.constraint_date}</p>
@@ -240,6 +241,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
             aria-invalid={!!errors.deadline_date}
+            disabled={busy}
           />
           {errors.deadline_date && (
             <p className="text-xs text-destructive mt-1">{errors.deadline_date}</p>
@@ -247,8 +249,14 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
         </div>
       </div>
       <div className="flex gap-2 justify-end">
-        <Button variant="ghost" size="sm" onClick={clear}>Clear</Button>
-        <Button size="sm" onClick={save} disabled={!isValid}>Save constraint</Button>
+        <Button variant="ghost" size="sm" onClick={clear} disabled={busy}>
+          {clearing && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+          Clear
+        </Button>
+        <Button size="sm" onClick={save} disabled={!isValid || busy}>
+          {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+          {saving ? "Saving…" : "Save constraint"}
+        </Button>
       </div>
     </div>
   );
