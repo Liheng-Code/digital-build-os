@@ -1,5 +1,6 @@
 import * as React from "react";
 import { z } from "zod";
+import { Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,9 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
   const [deadline, setDeadline] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [saving, setSaving] = React.useState(false);
+  const [clearing, setClearing] = React.useState(false);
+  const busy = saving || clearing;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -142,6 +146,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       toast.error("Please fix the highlighted fields");
       return;
     }
+    setSaving(true);
     try {
       await upsertConstraint({
         task_id: taskId,
@@ -153,18 +158,25 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       toast.success("Constraint saved");
       onSaved?.();
     } catch (e) { toast.error((e as Error).message); }
+    finally { setSaving(false); }
   };
 
   const clear = async () => {
+    setClearing(true);
     try {
       await deleteConstraint(taskId);
       setType("ASAP"); setDate(""); setDeadline(""); setErrors({});
       toast.success("Constraint cleared");
       onSaved?.();
     } catch (e) { toast.error((e as Error).message); }
+    finally { setClearing(false); }
   };
 
-  if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
+  if (loading) return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+    </div>
+  );
 
   return (
     <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
@@ -195,7 +207,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Type</Label>
-          <Select value={type} onValueChange={(v) => setType(v as ScheduleConstraintType)}>
+          <Select value={type} onValueChange={(v) => setType(v as ScheduleConstraintType)} disabled={busy}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {Object.entries(CONSTRAINT_TYPE_LABELS).map(([k, label]) => (
@@ -215,6 +227,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
               value={date}
               onChange={(e) => setDate(e.target.value)}
               aria-invalid={!!errors.constraint_date}
+              disabled={busy}
             />
             {errors.constraint_date && (
               <p className="text-xs text-destructive mt-1">{errors.constraint_date}</p>
@@ -228,6 +241,7 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
             aria-invalid={!!errors.deadline_date}
+            disabled={busy}
           />
           {errors.deadline_date && (
             <p className="text-xs text-destructive mt-1">{errors.deadline_date}</p>
@@ -235,8 +249,14 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
         </div>
       </div>
       <div className="flex gap-2 justify-end">
-        <Button variant="ghost" size="sm" onClick={clear}>Clear</Button>
-        <Button size="sm" onClick={save} disabled={!isValid}>Save constraint</Button>
+        <Button variant="ghost" size="sm" onClick={clear} disabled={busy}>
+          {clearing && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+          Clear
+        </Button>
+        <Button size="sm" onClick={save} disabled={!isValid || busy}>
+          {saving && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+          {saving ? "Saving…" : "Save constraint"}
+        </Button>
       </div>
     </div>
   );
