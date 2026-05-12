@@ -178,16 +178,6 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
     finally { setClearing(false); }
   };
 
-  const clear = async () => {
-    setClearing(true);
-    try {
-      await deleteConstraint(taskId);
-      setType("ASAP"); setDate(""); setDeadline(""); setErrors({});
-      toast.success("Constraint cleared");
-      onSaved?.();
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setClearing(false); }
-  };
 
   if (loading) return (
     <div className="flex items-center gap-2 text-sm text-muted-foreground">
