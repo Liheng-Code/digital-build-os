@@ -270,9 +270,23 @@ export function TaskConstraintForm({ taskId, onSaved }: Props) {
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Clear schedule constraint?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This removes the constraint from this task and resets the form to ASAP. This action cannot be undone.
+              <AlertDialogTitle>Clear schedule constraint for this task?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2">
+                  <p>
+                    The saved constraint for this task will be deleted from the schedule. The CPM scheduler will treat this task
+                    as ASAP (no fixed anchor) on the next recalculation, which may shift its computed start and finish dates.
+                  </p>
+                  <p>The following fields will be reset:</p>
+                  <ul className="list-disc pl-5 text-sm">
+                    <li>Constraint type → ASAP</li>
+                    <li>Constraint date → empty</li>
+                    <li>Deadline date → empty</li>
+                  </ul>
+                  <p className="text-xs text-muted-foreground">
+                    Task dependencies, baseline, progress, and assignments are not affected. This cannot be undone.
+                  </p>
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
