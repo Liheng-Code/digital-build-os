@@ -168,10 +168,40 @@ export function TaskDependencyDialog({
               <Button size="sm" variant="outline" onClick={() => onEditChange(null)} className="text-sm">
                 Cancel
               </Button>
-              <Button size="sm" variant="destructive" onClick={handleDelete} disabled={saving} className="text-sm ml-auto">
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                Delete
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive" disabled={saving} className="text-sm ml-auto">
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remove this dependency?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {editLink && (
+                        <>
+                          This will permanently remove the{" "}
+                          <span className="font-mono font-semibold">{editLink.relation_type}</span> link from{" "}
+                          <span className="font-semibold">{getTaskById(tasks, editLink.predecessor_id)?.code ?? getTaskById(tasks, editLink.predecessor_id)?.title}</span>{" "}
+                          →{" "}
+                          <span className="font-semibold">{getTaskById(tasks, editLink.task_id)?.code ?? getTaskById(tasks, editLink.task_id)?.title}</span>.
+                          The successor's schedule may shift once the link is gone. Tasks, progress, baseline, and assignments are not changed.
+                        </>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Remove dependency
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </DialogContent>
