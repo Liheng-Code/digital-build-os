@@ -1,41 +1,58 @@
-## Problem
+# Drag-and-Drop Dependency Linking on Gantt
 
-Pages **KPI Alerts** and **Report Schedules** crash with `Could not find the table 'public.kpi_alert_thresholds' in the schema cache`. The three backing tables were never created in the database, even though the frontend services and types already exist.
+Replace the current "select two tasks → click Link Tasks (FS)" flow with a direct, MS Project-style drag from one task bar to another. The dependency relation type is determined by which **end** of each bar the user drags from and drops onto.
 
-Missing tables:
-- `public.kpi_alert_thresholds`
-- `public.kpi_alert_events`
-- `public.report_schedules`
+## Relation mapping (MS Project standard)
 
-## Fix
+| From end (predecessor) | To end (successor) | Relation |
+|---|---|---|
+| Finish (right) | Start (left)  | **FS** — Finish-to-Start |
+| Start (left)   | Start (left)  | **SS** — Start-to-Start |
+| Finish (right) | Finish (right)| **FF** — Finish-to-Finish |
+| Start (left)   | Finish (right)| **SF** — Start-to-Finish |
 
-Create one migration that adds the three tables with the exact columns expected by `src/lib/reportingMeta.ts` and the services in `src/services/kpiAlertService.ts` / `src/services/reportScheduleService.ts`. Enable RLS using the existing `has_role` / project-membership patterns already used elsewhere in this app.
+(The user listed FS twice; treating the duplicate as FF, which is the standard fourth MS Project type.)
 
-### Schema
+## UX
 
-`kpi_alert_thresholds`
-- id uuid pk, project_id uuid (fk projects), kpi_name text, kpi_category text, operator text (gt|lt|gte|lte|eq), threshold_value numeric, severity text (info|warning|critical), enabled bool default true, label text, created_at, updated_at
-- Unique (project_id, kpi_name, operator) — matches `upsert ... onConflict` in service
+- Each task bar in `WbsGantt.tsx` gets two small **circular connection handles** — one at the left edge (Start) and one at the right edge (Finish).
+- Handles are subtle by default and **highlight on row hover**; cursor becomes a crosshair over them.
+- **Mousedown on a handle** starts a linking drag:
+  - A dashed rubber-band SVG line follows the cursor from the source handle.
+  - Other task bars highlight their two handles as drop targets when the cursor enters them.
+- **Mouseup on another task's handle** creates the dependency with the relation derived from the table above (lag = 0).
+- Mouseup elsewhere cancels the drag (no toast spam).
+- Self-link and duplicate links are blocked with a single `toast.error`.
+- After successful insert: `toast.success("Linked: <PRED> → <SUCC> (FS|SS|FF|SF)")` and the predecessor list refreshes (same path the existing edit flow uses).
 
-`kpi_alert_events`
-- id uuid pk, project_id uuid, kpi_name text, kpi_category text, actual_value numeric, threshold_value numeric, operator text, severity text, message text, read_at timestamptz null, created_at
+## Interaction modes
 
-`report_schedules`
-- id uuid pk, project_id uuid, report_type text, frequency text (daily|weekly|monthly|quarterly), day_of_week int null, day_of_month int null, recipients text[] default '{}', format text (pdf|csv|xlsx), enabled bool default true, label text, last_sent_at timestamptz null, created_at, updated_at
+- Linking handles are active **whenever the user is not in "Edit" mode** (Edit mode is reserved for drag-to-shift bars). This avoids the conflict already noted in the Phase 1 plan between bar-drag and link-drag.
+- The existing **two-click "Link Tasks (FS)" toolbar** in `Wbs.tsx` (lines 452–476) is removed since drag-and-drop replaces it. `selectedTaskId` selection on bar click is preserved for highlighting / dependency-edit access.
 
-### Security
+## Files to change
 
-- Enable RLS on all three.
-- SELECT/INSERT/UPDATE/DELETE: authenticated users who are members of the project (mirroring policies on other project-scoped tables) or have an admin role via `has_role`.
-- Add `update_updated_at_column` triggers on the two tables that carry `updated_at`.
-- Indexes on `project_id` and (events) `created_at desc`.
+**`src/components/wbs/WbsGantt.tsx`**
+- Add a new prop `onCreateLink?: (predecessorId: string, taskId: string, relation: "FS"|"SS"|"FF"|"SF") => void`.
+- Add internal state `linkDrag: { fromTaskId, fromEnd: "start"|"finish", cursorX, cursorY } | null`.
+- Render two handle dots per task bar (skip milestones — single center handle that acts as both start & finish; map by horizontal direction of drop).
+- Add `onMouseDown` on each handle → start linking drag (stop propagation so it doesn't trigger move-drag).
+- Window `mousemove` updates cursor coords; window `mouseup` resolves drop:
+  - Use `document.elementFromPoint` (or hit-test against handle bounding rects we maintain in a ref map) to find target handle → resolve relation.
+- Render a dashed rubber-band `<line>` inside the existing SVG layer while dragging.
 
-### No frontend changes
+**`src/pages/Wbs.tsx`**
+- Remove the Link Tasks toolbar block (lines 452–476) and the `secondTaskId` plumbing for that toolbar (keep `selectedTaskId` for highlight only).
+- Implement `onCreateLink` handler: insert into `task_predecessors` (matches existing pattern in `TaskDependenciesSection.tsx`) and refresh the predecessors list using the same code already in the edit-dialog `onSave` (lines 549–562).
+- Pass `onCreateLink` to `<WbsGantt>`.
 
-Service code, types and pages already match this schema, so once the migration runs both pages load normally.
+## Out of scope
 
-## Verification
+- Lag editing during drag (still 0 on create; user edits via existing dependency dialog).
+- Dragging dependency endpoints to re-route an existing link (future).
+- Touch/pen support (mouse only, matches existing drag-to-shift).
 
-1. Run migration.
-2. Open `/kpi-alerts` and `/report-schedules` — error gone, empty lists render.
-3. Create one threshold and one schedule to confirm insert/update paths work.
+## Risks
+
+- Drop hit-testing on small 8px handles can feel finicky → use a 14px invisible hit area around each visible 8px dot.
+- Handles must not block bar-click selection → handles use `stopPropagation` on mousedown only when the user actually starts a link drag (>3px movement); a pure click on a handle falls through as a bar click.

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GanttRow } from "@/lib/wbsGanttRows";
 import { NodeRollup, TaskScheduleLite, taskStatus, SCHEDULE_STATUS_LABEL, SCHEDULE_STATUS_DOT, CpmMap, ConstraintType, CONSTRAINT_TYPE_LABELS } from "@/lib/scheduleMeta";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -54,7 +55,11 @@ interface Props {
   /** Edit mode toggle for drag-to-edit. */
   editMode?: boolean;
   onEditModeChange?: (v: boolean) => void;
+  /** Create a dependency link (drag-and-drop). Relation derived from drag-from-end → drop-on-end. */
+  onCreateLink?: (predecessorId: string, taskId: string, relation: "FS" | "SS" | "FF" | "SF") => void;
 }
+
+type LinkEnd = "start" | "finish";
 
 type Zoom = "day" | "week" | "month";
 
@@ -69,7 +74,7 @@ function safeDate(s: string | null) {
   return isValid(d) ? startOfDay(d) : null;
 }
 
-export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false, cpmMap, editMode = false, onEditModeChange }: Props) {
+export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false, cpmMap, editMode = false, onEditModeChange, onCreateLink }: Props) {
   const [zoom, setZoom] = React.useState<Zoom>("week");
   const [showCritical, setShowCritical] = React.useState(initialShowCritical);
   const [tooltip, setTooltip] = React.useState<{
@@ -217,6 +222,70 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
       window.removeEventListener("mouseup", onUp);
     };
   }, [dragState, handleDragMove, handleDragEnd]);
+
+  // ── Link drag-and-drop state ──────────────────────────────────────────
+  const chartRef = React.useRef<HTMLDivElement>(null);
+  const [linkDrag, setLinkDrag] = React.useState<{
+    fromTaskId: string;
+    fromEnd: LinkEnd;
+    fromX: number;
+    fromY: number;
+    cursorX: number;
+    cursorY: number;
+  } | null>(null);
+
+  const handleLinkStart = React.useCallback((e: React.MouseEvent, taskId: string, end: LinkEnd) => {
+    if (editMode || !onCreateLink) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const chart = chartRef.current;
+    if (!chart) return;
+    const rect = chart.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setLinkDrag({ fromTaskId: taskId, fromEnd: end, fromX: x, fromY: y, cursorX: x, cursorY: y });
+  }, [editMode, onCreateLink]);
+
+  React.useEffect(() => {
+    if (!linkDrag) return;
+    const onMove = (e: MouseEvent) => {
+      const chart = chartRef.current;
+      if (!chart) return;
+      const rect = chart.getBoundingClientRect();
+      setLinkDrag(prev => prev ? { ...prev, cursorX: e.clientX - rect.left, cursorY: e.clientY - rect.top } : null);
+    };
+    const onUp = (e: MouseEvent) => {
+      const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      const handle = target?.closest("[data-link-handle]") as HTMLElement | null;
+      const drag = linkDrag;
+      setLinkDrag(null);
+      if (!drag || !handle || !onCreateLink) return;
+      const toTaskId = handle.getAttribute("data-task-id");
+      const toEnd = handle.getAttribute("data-link-handle") as LinkEnd | null;
+      if (!toTaskId || !toEnd) return;
+      if (toTaskId === drag.fromTaskId) {
+        toast.error("Cannot link a task to itself");
+        return;
+      }
+      // Map (fromEnd, toEnd) → relation
+      // predecessor end → successor end
+      const map: Record<string, "FS" | "SS" | "FF" | "SF"> = {
+        "finish:start": "FS",
+        "start:start": "SS",
+        "finish:finish": "FF",
+        "start:finish": "SF",
+      };
+      const relation = map[`${drag.fromEnd}:${toEnd}`];
+      if (!relation) return;
+      onCreateLink(drag.fromTaskId, toTaskId, relation);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [linkDrag, onCreateLink]);
 
   const taskRowIndex = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -376,7 +445,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
           <div ref={bodyScrollRef} onScroll={onBodyScroll} className="flex-1 min-h-0 overflow-auto">
             <div ref={bodyHorizontalScrollRef} onScroll={syncHeaderScroll} className="overflow-x-auto overflow-y-hidden">
-              <div className="relative" style={{ width: chartWidth }}>
+              <div ref={chartRef} className="relative" style={{ width: chartWidth }}>
                 <div
                   className="border-b bg-muted/50"
                   style={{ height: 0 }}
@@ -487,6 +556,26 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                         ●
                                       </div>
                                     )}
+                                    {onCreateLink && !editMode && (
+                                      <>
+                                        <div
+                                          data-link-handle="start"
+                                          data-task-id={row.task.id}
+                                          title="Drag to link from start"
+                                          className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
+                                          style={{ left: left + dayWidth / 2 - 12, top: 12 }}
+                                          onMouseDown={(e) => handleLinkStart(e, row.task.id, "start")}
+                                        />
+                                        <div
+                                          data-link-handle="finish"
+                                          data-task-id={row.task.id}
+                                          title="Drag to link from finish"
+                                          className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
+                                          style={{ left: left + dayWidth / 2 + 6, top: 12 }}
+                                          onMouseDown={(e) => handleLinkStart(e, row.task.id, "finish")}
+                                        />
+                                      </>
+                                    )}
                                   </div>);
                           }
 
@@ -561,6 +650,27 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                       </>
                                     )}
                                   </div>
+                                  {/* Link handles (drag-to-create dependency) */}
+                                  {onCreateLink && !editMode && (
+                                    <>
+                                      <div
+                                        data-link-handle="start"
+                                        data-task-id={row.task.id}
+                                        title="Drag to link from start"
+                                        className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
+                                        style={{ left: left - 6, top: 12 }}
+                                        onMouseDown={(e) => handleLinkStart(e, row.task.id, "start")}
+                                      />
+                                      <div
+                                        data-link-handle="finish"
+                                        data-task-id={row.task.id}
+                                        title="Drag to link from finish"
+                                        className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
+                                        style={{ left: left + Math.max(dayWidth, width) - 6, top: 12 }}
+                                        onMouseDown={(e) => handleLinkStart(e, row.task.id, "finish")}
+                                      />
+                                    </>
+                                  )}
                                 </div>);
                         }
 
@@ -749,8 +859,20 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                            />
                          </g>
                        );
-                     })}
-                    </svg>
+                      })}
+                      {linkDrag && (
+                        <line
+                          x1={linkDrag.fromX}
+                          y1={linkDrag.fromY}
+                          x2={linkDrag.cursorX}
+                          y2={linkDrag.cursorY}
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          strokeDasharray="4 3"
+                          markerEnd="url(#wbs-gantt-arrow)"
+                        />
+                      )}
+                     </svg>
 
                     {/* Overlay divs for clicking dependency arrows */}
                     {predecessors.map((link, index) => {

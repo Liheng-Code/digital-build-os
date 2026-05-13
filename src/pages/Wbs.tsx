@@ -305,6 +305,47 @@ export default function WbsPage() {
     setSecondTaskId(null);
   };
 
+  const refreshDeps = async () => {
+    if (!projectId || tasks.length === 0) return;
+    const ids = tasks.map((t) => t.id);
+    const [predResult, succResult] = await Promise.all([
+      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("task_id", ids),
+      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("predecessor_id", ids),
+    ]);
+    setPredecessors(predResult.data ?? []);
+    setSuccessors(succResult.data ?? []);
+  };
+
+  const handleCreateLink = async (
+    predecessorId: string,
+    taskId: string,
+    relation: "FS" | "SS" | "FF" | "SF",
+  ) => {
+    if (!projectId) return;
+    // Block duplicates
+    const exists = predecessors.some(
+      (p) => p.task_id === taskId && p.predecessor_id === predecessorId,
+    );
+    if (exists) {
+      toast.error("These tasks are already linked");
+      return;
+    }
+    const { error } = await supabase.from("task_predecessors").insert({
+      task_id: taskId,
+      predecessor_id: predecessorId,
+      relation_type: relation,
+      lag_days: 0,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const pred = tasks.find((t) => t.id === predecessorId);
+    const succ = tasks.find((t) => t.id === taskId);
+    toast.success(`Linked ${pred?.code ?? "task"} → ${succ?.code ?? "task"} (${relation})`);
+    await refreshDeps();
+  };
+
   const handleProposeShift = async (shift: { taskId: string; title: string; code: string | null; planned_start: string; planned_end: string }) => {
     if (!projectId) return;
     // Fetch current dates for undo
@@ -448,30 +489,11 @@ export default function WbsPage() {
         ) : mainView === "gantt" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full rounded-2xl border bg-card shadow-sm overflow-hidden">
-            {/* Link Tasks Toolbar */}
-            {canEdit && (selectedTaskId || secondTaskId) && (
-              <div className="border-b p-2 flex items-center gap-2 bg-muted/30">
-                <span className="text-xs text-muted-foreground">
-                  {selectedTaskId && <span>Predecessor: {tasks.find(t => t.id === selectedTaskId)?.code || "Selected"}</span>}
-                  {selectedTaskId && secondTaskId && <span className="mx-2">→</span>}
-                  {secondTaskId && <span>Successor: {tasks.find(t => t.id === secondTaskId)?.code || "Selected"}</span>}
-                </span>
-                <Button
-                  size="sm"
-                  onClick={handleLinkTasks}
-                  disabled={!selectedTaskId || !secondTaskId}
-                  className="ml-auto text-xs h-7"
-                >
-                  Link Tasks (FS)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => { setSelectedTaskId(null); setSecondTaskId(null); }}
-                  className="text-xs h-7"
-                >
-                  Clear
-                </Button>
+            {/* Drag-to-link hint */}
+            {canEdit && (
+              <div className="border-b px-3 py-1.5 flex items-center gap-2 bg-muted/20 text-[11px] text-muted-foreground">
+                <span className="font-medium text-foreground">Tip:</span>
+                Drag from a task's <span className="inline-block h-2 w-2 rounded-full border border-primary bg-background mx-0.5" /> handle to another task to create a dependency. Start↔Finish handles set the relation type (FS, SS, FF, SF) automatically.
               </div>
             )}
             <WbsFilterBar
@@ -519,6 +541,7 @@ export default function WbsPage() {
                   editMode={editMode}
                   onEditModeChange={setEditMode}
                   onProposeShift={handleProposeShift}
+                  onCreateLink={canEdit ? handleCreateLink : undefined}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>
