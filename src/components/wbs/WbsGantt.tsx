@@ -54,7 +54,11 @@ interface Props {
   /** Edit mode toggle for drag-to-edit. */
   editMode?: boolean;
   onEditModeChange?: (v: boolean) => void;
+  /** Create a dependency link (drag-and-drop). Relation derived from drag-from-end → drop-on-end. */
+  onCreateLink?: (predecessorId: string, taskId: string, relation: "FS" | "SS" | "FF" | "SF") => void;
 }
+
+type LinkEnd = "start" | "finish";
 
 type Zoom = "day" | "week" | "month";
 
