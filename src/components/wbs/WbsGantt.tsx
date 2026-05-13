@@ -556,6 +556,26 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                         ●
                                       </div>
                                     )}
+                                    {onCreateLink && !editMode && (
+                                      <>
+                                        <div
+                                          data-link-handle="start"
+                                          data-task-id={row.task.id}
+                                          title="Drag to link from start"
+                                          className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
+                                          style={{ left: left + dayWidth / 2 - 12, top: 12 }}
+                                          onMouseDown={(e) => handleLinkStart(e, row.task.id, "start")}
+                                        />
+                                        <div
+                                          data-link-handle="finish"
+                                          data-task-id={row.task.id}
+                                          title="Drag to link from finish"
+                                          className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
+                                          style={{ left: left + dayWidth / 2 + 6, top: 12 }}
+                                          onMouseDown={(e) => handleLinkStart(e, row.task.id, "finish")}
+                                        />
+                                      </>
+                                    )}
                                   </div>);
                           }
 
