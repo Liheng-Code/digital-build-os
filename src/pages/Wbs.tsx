@@ -541,6 +541,7 @@ export default function WbsPage() {
                   editMode={editMode}
                   onEditModeChange={setEditMode}
                   onProposeShift={handleProposeShift}
+                  onCreateLink={canEdit ? handleCreateLink : undefined}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>
