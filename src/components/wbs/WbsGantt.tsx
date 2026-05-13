@@ -222,6 +222,70 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     };
   }, [dragState, handleDragMove, handleDragEnd]);
 
+  // ── Link drag-and-drop state ──────────────────────────────────────────
+  const chartRef = React.useRef<HTMLDivElement>(null);
+  const [linkDrag, setLinkDrag] = React.useState<{
+    fromTaskId: string;
+    fromEnd: LinkEnd;
+    fromX: number;
+    fromY: number;
+    cursorX: number;
+    cursorY: number;
+  } | null>(null);
+
+  const handleLinkStart = React.useCallback((e: React.MouseEvent, taskId: string, end: LinkEnd) => {
+    if (editMode || !onCreateLink) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const chart = chartRef.current;
+    if (!chart) return;
+    const rect = chart.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setLinkDrag({ fromTaskId: taskId, fromEnd: end, fromX: x, fromY: y, cursorX: x, cursorY: y });
+  }, [editMode, onCreateLink]);
+
+  React.useEffect(() => {
+    if (!linkDrag) return;
+    const onMove = (e: MouseEvent) => {
+      const chart = chartRef.current;
+      if (!chart) return;
+      const rect = chart.getBoundingClientRect();
+      setLinkDrag(prev => prev ? { ...prev, cursorX: e.clientX - rect.left, cursorY: e.clientY - rect.top } : null);
+    };
+    const onUp = (e: MouseEvent) => {
+      const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      const handle = target?.closest("[data-link-handle]") as HTMLElement | null;
+      const drag = linkDrag;
+      setLinkDrag(null);
+      if (!drag || !handle || !onCreateLink) return;
+      const toTaskId = handle.getAttribute("data-task-id");
+      const toEnd = handle.getAttribute("data-link-handle") as LinkEnd | null;
+      if (!toTaskId || !toEnd) return;
+      if (toTaskId === drag.fromTaskId) {
+        toast.error("Cannot link a task to itself");
+        return;
+      }
+      // Map (fromEnd, toEnd) → relation
+      // predecessor end → successor end
+      const map: Record<string, "FS" | "SS" | "FF" | "SF"> = {
+        "finish:start": "FS",
+        "start:start": "SS",
+        "finish:finish": "FF",
+        "start:finish": "SF",
+      };
+      const relation = map[`${drag.fromEnd}:${toEnd}`];
+      if (!relation) return;
+      onCreateLink(drag.fromTaskId, toTaskId, relation);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [linkDrag, onCreateLink]);
+
   const taskRowIndex = React.useMemo(() => {
     const map = new Map<string, number>();
     rows.forEach((row, index) => {
