@@ -859,8 +859,20 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                            />
                          </g>
                        );
-                     })}
-                    </svg>
+                      })}
+                      {linkDrag && (
+                        <line
+                          x1={linkDrag.fromX}
+                          y1={linkDrag.fromY}
+                          x2={linkDrag.cursorX}
+                          y2={linkDrag.cursorY}
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={2}
+                          strokeDasharray="4 3"
+                          markerEnd="url(#wbs-gantt-arrow)"
+                        />
+                      )}
+                     </svg>
 
                     {/* Overlay divs for clicking dependency arrows */}
                     {predecessors.map((link, index) => {
