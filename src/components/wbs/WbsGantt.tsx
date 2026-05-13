@@ -445,7 +445,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
           <div ref={bodyScrollRef} onScroll={onBodyScroll} className="flex-1 min-h-0 overflow-auto">
             <div ref={bodyHorizontalScrollRef} onScroll={syncHeaderScroll} className="overflow-x-auto overflow-y-hidden">
-              <div className="relative" style={{ width: chartWidth }}>
+              <div ref={chartRef} className="relative" style={{ width: chartWidth }}>
                 <div
                   className="border-b bg-muted/50"
                   style={{ height: 0 }}
