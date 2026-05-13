@@ -73,7 +73,7 @@ function safeDate(s: string | null) {
   return isValid(d) ? startOfDay(d) : null;
 }
 
-export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false, cpmMap, editMode = false, onEditModeChange }: Props) {
+export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false, cpmMap, editMode = false, onEditModeChange, onCreateLink }: Props) {
   const [zoom, setZoom] = React.useState<Zoom>("week");
   const [showCritical, setShowCritical] = React.useState(initialShowCritical);
   const [tooltip, setTooltip] = React.useState<{
