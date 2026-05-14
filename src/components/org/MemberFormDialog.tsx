@@ -27,7 +27,7 @@ interface Props {
 }
 
 const LEVELS = ["L1", "L2", "L3", "L4", "L5", "L6"];
-const STATUSES = ["active", "on_leave", "inactive", "terminated"];
+const STATUSES = ["active", "probation", "on_leave", "inactive", "terminated", "resigned"];
 
 export function MemberFormDialog({ open, onOpenChange, member, departments, members, onSaved, defaultDepartment, defaultReportTo }: Props) {
   const [form, setForm] = React.useState<Partial<OrgMemberRow>>({});
