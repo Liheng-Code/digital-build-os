@@ -4087,7 +4087,9 @@ export type Database = {
           hire_date: string | null
           id: string
           job_title: string | null
+          level: string | null
           phone: string | null
+          report_to_employee_id: string | null
           updated_at: string
         }
         Insert: {
@@ -4107,7 +4109,9 @@ export type Database = {
           hire_date?: string | null
           id: string
           job_title?: string | null
+          level?: string | null
           phone?: string | null
+          report_to_employee_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -4127,7 +4131,9 @@ export type Database = {
           hire_date?: string | null
           id?: string
           job_title?: string | null
+          level?: string | null
           phone?: string | null
+          report_to_employee_id?: string | null
           updated_at?: string
         }
         Relationships: [
