@@ -213,7 +213,7 @@ export default function Auth() {
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3 text-center">Password for all: <span className="font-mono font-medium text-foreground">DcosDemo#2026</span></p>
+                    <p className="text-xs text-muted-foreground mt-3 text-center">Password for all: <span className="font-mono font-medium text-foreground">{DEMO_PASSWORD}</span></p>
                   </div>
                 </TabsContent>
 
