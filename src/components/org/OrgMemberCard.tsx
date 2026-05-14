@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function OrgMemberCard({ member, onClick, compact, highlight, avatarUrl, onAddReport }: Props) {
-  const tone = ORG_DEPT_TONE[member.department];
+  const tone = ORG_DEPT_TONE[member.department] ?? ORG_DEPT_TONE.management;
   return (
     <button
       type="button"
