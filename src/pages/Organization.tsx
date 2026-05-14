@@ -145,9 +145,6 @@ export default function Organization() {
           <Button variant="outline" size="sm" onClick={() => setDeptDialogOpen(true)} className="gap-2">
             <Settings className="h-3.5 w-3.5" /> Departments
           </Button>
-          <Button size="sm" onClick={() => setAddMemberOpen(true)} className="gap-2">
-            <Plus className="h-3.5 w-3.5" /> Add Member
-          </Button>
           {seededCount < totalRegistry && (
             <Button onClick={onSeed} disabled={seeding} size="sm" className="gap-2">
               {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
