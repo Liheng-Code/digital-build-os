@@ -129,7 +129,10 @@ export function membersByDepartment(members: OrgMember[] = ORG_REGISTRY) {
   const grouped: Record<OrgDepartment, OrgMember[]> = {
     management: [], architecture: [], structural: [], procurement: [], construction: [], hr: [], accounting: [], mep: [],
   };
-  members.forEach((m) => grouped[m.department].push(m));
+  members.forEach((m) => {
+    const dept = (m.department && grouped[m.department as OrgDepartment]) ? (m.department as OrgDepartment) : "management";
+    grouped[dept].push(m);
+  });
   // Sort by level then employee_id
   Object.keys(grouped).forEach((d) =>
     grouped[d as OrgDepartment].sort((a, b) =>
