@@ -382,7 +382,7 @@ export default function Tasks() {
             <ClipboardList className="h-4 w-4" />
             Work tracking
           </div>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Tasks</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">Task Management</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{activeProject.code}</span>
             <span className="mx-2 text-muted-foreground/60">/</span>

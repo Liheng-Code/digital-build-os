@@ -1,0 +1,27 @@
+# BuildTrack
+
+> BuildTrack is a construction operating system for managing tasks, timesheets, approvals, procurement, QA/QC, HSE, financials, and reporting across construction projects end-to-end.
+
+BuildTrack helps project managers, engineers, supervisors, and accountants run job sites with audit-ready data. The platform spans WBS planning, daily reports, RFIs, variation orders, payroll, and executive dashboards.
+
+## Pages
+
+- [Dashboard](/): Project overview and KPIs.
+- [Projects](/projects): Directory of all construction projects.
+- [WBS](/wbs): Work breakdown structure and Gantt scheduling.
+- [Tasks](/tasks): Task management across all disciplines.
+- [Timesheets](/timesheets): Crew time tracking and approvals.
+- [Approvals](/approvals): Cross-module approval inbox.
+- [Procurement](/procurement): Materials, RFQs, POs, GRNs, and budgets.
+- [Construction](/construction): Site execution and equipment tracking.
+- [Quality](/quality): QA/QC inspections, NCRs, and punch lists.
+- [Safety & HSE](/hse): Health, safety, and environmental tracking.
+- [Financials](/financials): Cost control, claims, and reporting.
+- [Analytics](/analytics): Progress and performance dashboards.
+- [Reports](/reports): Operational and executive reports.
+- [HR](/hr): People, attendance, and leave management.
+- [Documents](/documents): Document register and transmittals.
+
+## Optional
+
+- [Sign in](/auth): Account access.

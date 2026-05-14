@@ -132,8 +132,11 @@ const Index = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">
-          {greeting()}, {profile?.full_name?.split(" ")[0] || "there"}
+          Project Dashboard
         </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {greeting()}, {profile?.full_name?.split(" ")[0] || "there"}
+        </p>
         <p className="text-muted-foreground">
           {activeProject
             ? <>Viewing <span className="font-medium text-foreground">{activeProject.code}</span> · {activeProject.name}</>
