@@ -69,7 +69,7 @@ export default function Auth() {
     const passwordInput = document.getElementById("signin-password") as HTMLInputElement;
     if (emailInput && passwordInput) {
       emailInput.value = email;
-      passwordInput.value = "DcosDemo#2026";
+      passwordInput.value = DEMO_PASSWORD;
       passwordInput.focus();
     }
   };
