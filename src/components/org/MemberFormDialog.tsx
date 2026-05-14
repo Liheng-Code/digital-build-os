@@ -22,12 +22,14 @@ interface Props {
   departments: OrgDepartmentRow[];
   members: OrgMemberRow[];
   onSaved: () => void;
+  defaultDepartment?: string;
+  defaultReportTo?: string;
 }
 
 const LEVELS = ["L1", "L2", "L3", "L4", "L5", "L6"];
 const STATUSES = ["active", "on_leave", "inactive", "terminated"];
 
-export function MemberFormDialog({ open, onOpenChange, member, departments, members, onSaved }: Props) {
+export function MemberFormDialog({ open, onOpenChange, member, departments, members, onSaved, defaultDepartment, defaultReportTo }: Props) {
   const [form, setForm] = React.useState<Partial<OrgMemberRow>>({});
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
@@ -38,10 +40,15 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
 
   React.useEffect(() => {
     if (member) setForm({ ...member });
-    else setForm({ employment_status: "active", level: "L6" });
+    else setForm({ 
+      employment_status: "active", 
+      level: "L6", 
+      department: defaultDepartment || undefined,
+      report_to_employee_id: defaultReportTo || undefined
+    });
     setCreatePassword("");
     setCreateRole("worker");
-  }, [member, open]);
+  }, [member, open, defaultDepartment, defaultReportTo]);
 
   const isCreate = !member;
 

@@ -49,6 +49,8 @@ export default function Organization() {
   const [deptDialogOpen, setDeptDialogOpen] = React.useState(false);
   const [editMember, setEditMember] = React.useState<OrgMemberRow | null>(null);
   const [addMemberOpen, setAddMemberOpen] = React.useState(false);
+  const [defaultDept, setDefaultDept] = React.useState<string | undefined>(undefined);
+  const [defaultReportTo, setDefaultReportTo] = React.useState<string | undefined>(undefined);
 
   const loadAll = React.useCallback(async () => {
     const [profilesRes, rolesRes, deptsData, membersData] = await Promise.all([
@@ -184,7 +186,21 @@ export default function Organization() {
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <OrgChart filterDepartment={dept} onMemberClick={setSelected} avatarMap={avatarMap} />
+              <OrgChart 
+                filterDepartment={dept} 
+                onMemberClick={setSelected} 
+                avatarMap={avatarMap} 
+                onAddMember={(d) => {
+                  setDefaultDept(d);
+                  setDefaultReportTo(undefined);
+                  setAddMemberOpen(true);
+                }}
+                onAddReport={(m) => {
+                  setDefaultDept(m.department);
+                  setDefaultReportTo(m.employee_id);
+                  setAddMemberOpen(true);
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -237,6 +253,8 @@ export default function Organization() {
         departments={departments}
         members={members}
         onSaved={loadAll}
+        defaultDepartment={defaultDept}
+        defaultReportTo={defaultReportTo}
       />
 
       {/* Org chart click → detail sheet */}

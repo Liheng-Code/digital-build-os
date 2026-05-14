@@ -7,7 +7,7 @@ export type OrgDepartment =
   | "procurement"
   | "construction"
   | "hr"
-  | "account";
+  | "accounting";
 
 export const ORG_DEPARTMENTS: OrgDepartment[] = [
   "management",
@@ -16,7 +16,7 @@ export const ORG_DEPARTMENTS: OrgDepartment[] = [
   "procurement",
   "construction",
   "hr",
-  "account",
+  "accounting",
 ];
 
 export const ORG_DEPT_LABELS: Record<OrgDepartment, string> = {
@@ -26,7 +26,7 @@ export const ORG_DEPT_LABELS: Record<OrgDepartment, string> = {
   procurement: "Procurement",
   construction: "Construction",
   hr: "HR",
-  account: "Account",
+  accounting: "Accounting",
 };
 
 /** Tailwind tone tokens per department (semantic, defined in index.css). */
@@ -40,7 +40,7 @@ export const ORG_DEPT_TONE: Record<
   procurement:  { headerBg: "bg-warning",            headerFg: "text-warning-foreground",     ringBg: "bg-warning/10",          chip: "bg-warning-soft text-warning",                  bar: "bg-warning" },
   construction: { headerBg: "bg-accent",             headerFg: "text-accent-foreground",      ringBg: "bg-accent/10",           chip: "bg-accent/15 text-accent-foreground",           bar: "bg-accent" },
   hr:           { headerBg: "bg-neutral-status",     headerFg: "text-neutral-status-foreground", ringBg: "bg-neutral-status/10", chip: "bg-neutral-status-soft text-neutral-status",    bar: "bg-neutral-status" },
-  account:      { headerBg: "bg-destructive",        headerFg: "text-destructive-foreground", ringBg: "bg-destructive/10",      chip: "bg-destructive-soft text-destructive",          bar: "bg-destructive" },
+  accounting:   { headerBg: "bg-destructive",        headerFg: "text-destructive-foreground", ringBg: "bg-destructive/10",      chip: "bg-destructive-soft text-destructive",          bar: "bg-destructive" },
 };
 
 export type OrgLevel = "L1" | "L2" | "L3" | "L4" | "L5" | "L6";
@@ -95,10 +95,10 @@ export const ORG_REGISTRY: OrgMember[] = [
   { employee_id: "C-0023", full_name: "Nalin",    position: "HR-01",                  department: "hr",           level: "L6", report_to: "C-0022", email: "nalin@dcos.com",    phone: "070555666", app_role: "worker" },
   { employee_id: "C-0024", full_name: "Kimly",    position: "HR-02",                  department: "hr",           level: "L6", report_to: "C-0022", email: "kimly@dcos.com",    phone: "070666777", app_role: "worker" },
 
-  // Account
-  { employee_id: "C-0025", full_name: "Sovanarith", position: "Account Manager",      department: "account",      level: "L4", report_to: "C-0002", email: "sovanarith@dcos.com", phone: "070777888", app_role: "accountant" },
-  { employee_id: "C-0026", full_name: "Sreymom",  position: "Account Senior",         department: "account",      level: "L5", report_to: "C-0025", email: "sreymom@dcos.com",  phone: "070888999", app_role: "accountant" },
-  { employee_id: "C-0027", full_name: "Rithy",    position: "Account",                department: "account",      level: "L6", report_to: "C-0025", email: "rithy@dcos.com",    phone: "070999000", app_role: "accountant" },
+  // Accounting
+  { employee_id: "C-0025", full_name: "Sovanarith", position: "Account Manager",      department: "accounting",   level: "L4", report_to: "C-0002", email: "sovanarith@dcos.com", phone: "070777888", app_role: "accountant" },
+  { employee_id: "C-0026", full_name: "Sreymom",  position: "Account Senior",         department: "accounting",   level: "L5", report_to: "C-0025", email: "sreymom@dcos.com",  phone: "070888999", app_role: "accountant" },
+  { employee_id: "C-0027", full_name: "Rithy",    position: "Account",                department: "accounting",   level: "L6", report_to: "C-0025", email: "rithy@dcos.com",    phone: "070999000", app_role: "accountant" },
 ];
 
 export const DEMO_PASSWORD = "DcosDemo#2026";
@@ -115,7 +115,7 @@ export function getInitials(name: string): string {
 
 export function membersByDepartment(members: OrgMember[] = ORG_REGISTRY) {
   const grouped: Record<OrgDepartment, OrgMember[]> = {
-    management: [], architecture: [], structural: [], procurement: [], construction: [], hr: [], account: [],
+    management: [], architecture: [], structural: [], procurement: [], construction: [], hr: [], accounting: [],
   };
   members.forEach((m) => grouped[m.department].push(m));
   // Sort by level then employee_id

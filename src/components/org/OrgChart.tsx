@@ -13,7 +13,7 @@ const DEPT_ICONS: Record<OrgDepartment, React.ComponentType<{ className?: string
   procurement: ShoppingCart,
   construction: HardHat,
   hr: Users,
-  account: Calculator,
+  accounting: Calculator,
 };
 
 interface Props {
@@ -23,15 +23,17 @@ interface Props {
   compact?: boolean;
   highlightId?: string | null;
   avatarMap?: Record<string, string | null | undefined>;
+  onAddMember?: (department: OrgDepartment) => void;
+  onAddReport?: (m: OrgMember) => void;
 }
 
-export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartment = "all", compact, highlightId, avatarMap = {} }: Props) {
+export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartment = "all", compact, highlightId, avatarMap = {}, onAddMember, onAddReport }: Props) {
   const visible = filterDepartment === "all" ? members : members.filter((m) => m.department === filterDepartment || m.department === "management");
   const grouped = membersByDepartment(visible);
 
   // Top management chain (L1 → L2 → L3)
   const mgmt = grouped.management;
-  const departments: OrgDepartment[] = ["architecture", "structural", "procurement", "construction", "hr", "account"];
+  const departments: OrgDepartment[] = ["architecture", "structural", "procurement", "construction", "hr", "accounting"];
   const visibleDepts = filterDepartment === "all"
     ? departments
     : departments.filter((d) => d === filterDepartment);
@@ -44,7 +46,7 @@ export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartme
           {mgmt.map((m, i) => (
             <React.Fragment key={m.employee_id}>
               <div className="w-full max-w-md">
-                <OrgMemberCard member={m} onClick={onMemberClick} compact={compact} highlight={highlightId === m.employee_id} avatarUrl={avatarMap[m.employee_id]} />
+                <OrgMemberCard member={m} onClick={onMemberClick} compact={compact} highlight={highlightId === m.employee_id} avatarUrl={avatarMap[m.employee_id]} onAddReport={onAddReport} />
               </div>
               {i < mgmt.length - 1 && <div className="h-4 w-px bg-border" aria-hidden />}
             </React.Fragment>
@@ -72,14 +74,25 @@ export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartme
                 <div className={cn("flex items-center gap-2 px-3 py-2.5", tone.headerBg, tone.headerFg)}>
                   <Icon className="h-4 w-4" />
                   <span className="text-sm font-bold tracking-wide">{ORG_DEPT_LABELS[dept]}</span>
-                  <span className="ml-auto text-xs opacity-80">{list.length}</span>
+                  <div className="ml-auto flex items-center gap-1">
+                    <span className="text-xs opacity-80">{list.length}</span>
+                    {onAddMember && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onAddMember(dept); }}
+                        className="p-1 hover:bg-white/20 rounded transition-colors"
+                        title={`Add member to ${ORG_DEPT_LABELS[dept]}`}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-1 space-y-2 p-2">
                   {list.length === 0 ? (
                     <div className="py-6 text-center text-xs text-muted-foreground">No members</div>
                   ) : (
                     list.map((m) => (
-                      <OrgMemberCard key={m.employee_id} member={m} onClick={onMemberClick} compact highlight={highlightId === m.employee_id} avatarUrl={avatarMap[m.employee_id]} />
+                      <OrgMemberCard key={m.employee_id} member={m} onClick={onMemberClick} compact highlight={highlightId === m.employee_id} avatarUrl={avatarMap[m.employee_id]} onAddReport={onAddReport} />
                     ))
                   )}
                 </div>

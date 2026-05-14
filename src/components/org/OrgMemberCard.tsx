@@ -8,9 +8,10 @@ interface Props {
   compact?: boolean;
   highlight?: boolean;
   avatarUrl?: string | null;
+  onAddReport?: (m: OrgMember) => void;
 }
 
-export function OrgMemberCard({ member, onClick, compact, highlight, avatarUrl }: Props) {
+export function OrgMemberCard({ member, onClick, compact, highlight, avatarUrl, onAddReport }: Props) {
   const tone = ORG_DEPT_TONE[member.department];
   return (
     <button
@@ -50,6 +51,15 @@ export function OrgMemberCard({ member, onClick, compact, highlight, avatarUrl }
             {member.full_name}
           </div>
         </div>
+        {onAddReport && (
+          <div 
+            onClick={(e) => { e.stopPropagation(); onAddReport(member); }}
+            className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-muted rounded-md transition-all cursor-pointer"
+            title={`Add report to ${member.full_name}`}
+          >
+            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
+        )}
       </div>
     </button>
   );
