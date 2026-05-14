@@ -187,6 +187,17 @@ export default function Organization() {
             </CardHeader>
             <CardContent className="p-6">
               <OrgChart 
+                members={members.map(m => ({
+                  employee_id: m.employee_id || "",
+                  full_name: m.full_name,
+                  position: m.job_title || "",
+                  department: m.department as OrgDepartment,
+                  level: (m.level as any) || "L6",
+                  report_to: m.report_to_employee_id,
+                  email: m.email || "",
+                  phone: m.phone || "",
+                  app_role: (m.roles[0] as any) || "worker"
+                }))}
                 filterDepartment={dept} 
                 onMemberClick={setSelected} 
                 avatarMap={avatarMap} 
