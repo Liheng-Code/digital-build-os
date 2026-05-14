@@ -23,7 +23,9 @@ import {
 import {
   fetchOrgDepartments, fetchOrgMembers, OrgDepartmentRow, OrgMemberRow,
 } from "@/services/organizationService";
-import Permissions from "./Permissions";
+import { LevelPermissionsMatrix } from "@/components/org/LevelPermissionsMatrix";
+import { getActionsForLevel, ORG_LEVEL_LABELS, OrgLevel, PERM_TONE } from "@/lib/permissionMatrix";
+import { cn } from "@/lib/utils";
 
 const ALL_ROLES: AppRole[] = [
   "admin", "project_manager", "engineer", "supervisor", "worker", "qaqc_inspector", "accountant",
