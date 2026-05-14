@@ -201,7 +201,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">— None —</SelectItem>
-                  {members.filter((m) => m.id !== member.id && m.employee_id).map((m) => (
+                  {members.filter((m) => (!member || m.id !== member.id) && m.employee_id).map((m) => (
                     <SelectItem key={m.id} value={m.employee_id!}>
                       {m.employee_id} · {m.full_name}
                     </SelectItem>
