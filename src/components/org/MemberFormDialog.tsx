@@ -33,12 +33,17 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
   const [uploading, setUploading] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
+  const [createRole, setCreateRole] = React.useState<string>("worker");
+  const [createPassword, setCreatePassword] = React.useState<string>("");
+
   React.useEffect(() => {
     if (member) setForm({ ...member });
-    else setForm({});
+    else setForm({ employment_status: "active", level: "L6" });
+    setCreatePassword("");
+    setCreateRole("worker");
   }, [member, open]);
 
-  if (!member) return null;
+  const isCreate = !member;
 
   const onPickFile = () => fileRef.current?.click();
 
