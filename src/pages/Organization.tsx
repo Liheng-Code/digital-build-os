@@ -203,7 +203,7 @@ export default function Organization() {
         </TabsContent>
 
         <TabsContent value="permissions" className="mt-4">
-          <Permissions />
+          <LevelPermissionsMatrix highlightLevel={selected ? (selected.level as OrgLevel) : null} />
         </TabsContent>
       </Tabs>
 
