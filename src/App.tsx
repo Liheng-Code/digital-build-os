@@ -29,13 +29,13 @@ import Tasks from "./pages/Tasks";
 import TaskDetail from "./pages/TaskDetail";
 import Approvals from "./pages/Approvals";
 import Workload from "./pages/Workload";
-import Permissions from "./pages/Permissions";
+import Organization from "./pages/Organization";
 import Timesheets from "./pages/Timesheets";
 import Payroll from "./pages/Payroll";
 import Documents from "./pages/Documents";
 import Reports from "./pages/Reports";
 import AuditLog from "./pages/AuditLog";
-import Team from "./pages/Team";
+
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
 import Wbs from "./pages/Wbs";
@@ -340,11 +340,21 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/organization"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Organization />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/team"
                   element={
                     <ProtectedRoute>
                       <AppLayout>
-                        <Team />
+                        <Organization />
                       </AppLayout>
                     </ProtectedRoute>
                   }
@@ -359,15 +369,15 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route 
-                  path="/permissions" 
+                <Route
+                  path="/permissions"
                   element={
                     <ProtectedRoute>
                       <AppLayout>
-                        <Permissions />
+                        <Organization />
                       </AppLayout>
                     </ProtectedRoute>
-                  } 
+                  }
                 />
                 <Route
                   path="/settings"

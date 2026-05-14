@@ -1,58 +1,79 @@
-# Drag-and-Drop Dependency Linking on Gantt
 
-Replace the current "select two tasks → click Link Tasks (FS)" flow with a direct, MS Project-style drag from one task bar to another. The dependency relation type is determined by which **end** of each bar the user drags from and drops onto.
+## Recommendation on scope
 
-## Relation mapping (MS Project standard)
+Your question — "what's the real practical use case?" My recommendation:
 
-| From end (predecessor) | To end (successor) | Relation |
-|---|---|---|
-| Finish (right) | Start (left)  | **FS** — Finish-to-Start |
-| Start (left)   | Start (left)  | **SS** — Start-to-Start |
-| Finish (right) | Finish (right)| **FF** — Finish-to-Finish |
-| Start (left)   | Finish (right)| **SF** — Start-to-Finish |
+**Merge into a single page: `Organization` (replaces Team & Roles)** with two tabs:
+- **Org Chart** — the visual hierarchy from your reference image (MD → GM → PM → 6 departments)
+- **Permissions Matrix** — the existing matrix, kept intact but rendered inside the same page
 
-(The user listed FS twice; treating the duplicate as FF, which is the standard fourth MS Project type.)
+Why: admins almost always toggle between "who is this person / what dept" and "what can their role do." Splitting them across two sidebar items forces context-switching. The standalone Permissions page becomes redundant and is removed from the sidebar.
 
-## UX
+## What gets built
 
-- Each task bar in `WbsGantt.tsx` gets two small **circular connection handles** — one at the left edge (Start) and one at the right edge (Finish).
-- Handles are subtle by default and **highlight on row hover**; cursor becomes a crosshair over them.
-- **Mousedown on a handle** starts a linking drag:
-  - A dashed rubber-band SVG line follows the cursor from the source handle.
-  - Other task bars highlight their two handles as drop targets when the cursor enters them.
-- **Mouseup on another task's handle** creates the dependency with the relation derived from the table above (lag = 0).
-- Mouseup elsewhere cancels the drag (no toast spam).
-- Self-link and duplicate links are blocked with a single `toast.error`.
-- After successful insert: `toast.success("Linked: <PRED> → <SUCC> (FS|SS|FF|SF)")` and the predecessor list refreshes (same path the existing edit flow uses).
+### 1. Seed 27 staff into the database
 
-## Interaction modes
+Migration + seed insert:
+- 27 rows in `profiles` with `employee_id` = `C-0001`…`C-0027`, `full_name`, `email`, `phone`, `job_title`, `department`
+- Add new columns to `profiles` if missing: `report_to_employee_id text`, `level text` (L1–L6), `avatar_seed text`
+- 27 corresponding `auth.users` (email + a shared demo password like `Demo1234!`) created via the existing `seed-demo-users` edge function pattern
+- 27 `user_roles` rows mapping department → app_role:
+  - Management (MD/GM/PM) → `admin` / `project_manager`
+  - Architecture, Structural → `engineer`
+  - Procurement → `project_manager` (for managers) / `engineer`
+  - Construction → `supervisor` / `engineer`
+  - HR → `admin` for HR Manager, else `worker`
+  - Account → `accountant`
 
-- Linking handles are active **whenever the user is not in "Edit" mode** (Edit mode is reserved for drag-to-shift bars). This avoids the conflict already noted in the Phase 1 plan between bar-drag and link-drag.
-- The existing **two-click "Link Tasks (FS)" toolbar** in `Wbs.tsx` (lines 452–476) is removed since drag-and-drop replaces it. `selectedTaskId` selection on bar click is preserved for highlighting / dependency-edit access.
+### 2. New page `src/pages/Organization.tsx` (replaces `Team.tsx`)
 
-## Files to change
+Tabs:
+- **Org Chart tab** — the hierarchy laid out exactly like your reference:
+  - Top: 3 stacked cards (MD → GM → PM) with vertical connectors
+  - Below: 6 department columns (Architecture / Structural / Procurement / Construction / HR / Account), each with a colored header (using existing `departmentMeta` tones) and member cards underneath
+  - Each card: ID badge (`C-0004`), avatar (initials in dept-colored circle), name, job title, role badge
+  - Click a card → opens `MemberDetailSheet` showing email, phone, roles, and an "Add/Remove role" inline editor (today's Team page functionality preserved)
+- **Permissions tab** — unchanged matrix from `Permissions.tsx`, embedded as a child component
+- Sidebar entries: keep "Organization", remove "Team & Roles" and "Permissions" links
 
-**`src/components/wbs/WbsGantt.tsx`**
-- Add a new prop `onCreateLink?: (predecessorId: string, taskId: string, relation: "FS"|"SS"|"FF"|"SF") => void`.
-- Add internal state `linkDrag: { fromTaskId, fromEnd: "start"|"finish", cursorX, cursorY } | null`.
-- Render two handle dots per task bar (skip milestones — single center handle that acts as both start & finish; map by horizontal direction of drop).
-- Add `onMouseDown` on each handle → start linking drag (stop propagation so it doesn't trigger move-drag).
-- Window `mousemove` updates cursor coords; window `mouseup` resolves drop:
-  - Use `document.elementFromPoint` (or hit-test against handle bounding rects we maintain in a ref map) to find target handle → resolve relation.
-- Render a dashed rubber-band `<line>` inside the existing SVG layer while dragging.
+### 3. Demo landing on `/auth`
 
-**`src/pages/Wbs.tsx`**
-- Remove the Link Tasks toolbar block (lines 452–476) and the `secondTaskId` plumbing for that toolbar (keep `selectedTaskId` for highlight only).
-- Implement `onCreateLink` handler: insert into `task_predecessors` (matches existing pattern in `TaskDependenciesSection.tsx`) and refresh the predecessors list using the same code already in the edit-dialog `onSave` (lines 549–562).
-- Pass `onCreateLink` to `<WbsGantt>`.
+When the user is signed out and on `/auth`, show a new **Demo Login** panel above (or replacing) the email/password form:
+- Heading: "Sign in as a demo user"
+- **Department dropdown filter** (All / Management / Architecture / Structural / Procurement / Construction / HR / Account)
+- Below it: org chart (compact version reusing the same component) filtered to selected department
+- Click any person card → auto-fills email + demo password and immediately calls `supabase.auth.signInWithPassword` → redirects to `/`
+- Existing manual email/password form stays below in a collapsed "Sign in manually" disclosure
 
-## Out of scope
+### 4. Photos
 
-- Lag editing during drag (still 0 on create; user edits via existing dependency dialog).
-- Dragging dependency endpoints to re-route an existing link (future).
-- Touch/pen support (mouse only, matches existing drag-to-shift).
+Your reference image uses stock photos that aren't licensed for embedding. Plan: **initials avatars in department-tinted circles** (matching the visual rhythm of the chart). The original org chart image is decorative and will appear as a hero banner on the Organization page only. If you prefer real photos later, you can upload individual headshots and we'll swap them in.
 
-## Risks
+## Technical bits
 
-- Drop hit-testing on small 8px handles can feel finicky → use a 14px invisible hit area around each visible 8px dot.
-- Handles must not block bar-click selection → handles use `stopPropagation` on mousedown only when the user actually starts a link drag (>3px movement); a pure click on a handle falls through as a bar click.
+```text
+Files added
+  src/pages/Organization.tsx           (new, replaces Team)
+  src/components/org/OrgChart.tsx      (visual hierarchy, reusable)
+  src/components/org/OrgMemberCard.tsx
+  src/components/org/DemoLoginPanel.tsx
+  supabase migration: add profiles.report_to_employee_id, level, avatar_seed
+  supabase insert: 27 profiles + user_roles
+  edge function call: seed 27 auth users with shared demo password
+
+Files edited
+  src/App.tsx                  swap /team route → /organization, drop /permissions
+  src/components/AppLayout.tsx sidebar: remove Team/Permissions, add Organization
+  src/pages/Auth.tsx           mount <DemoLoginPanel /> above the form
+  src/components/RouteHead.tsx add /organization metadata
+
+Files removed
+  src/pages/Team.tsx
+  src/pages/Permissions.tsx (logic folded into Organization tab)
+```
+
+Departments map to roles via a single `DEPT_TO_ROLE` table in `src/lib/orgMeta.ts` so the seed and UI stay consistent.
+
+## Open question before I build
+
+The 27 demo emails (`liheng@dcos.com`, etc.) — should I create them as **real auth users** with a shared password `Demo1234!` (so click-to-login works), or do you have a different password convention you want me to use? Reply with "Demo1234! is fine" or give me the password you want.

@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { HardHat, Loader2 } from "lucide-react";
+import { DemoLoginPanel } from "@/components/org/DemoLoginPanel";
 
 const signInSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -126,10 +127,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+    <div className="min-h-screen grid lg:grid-cols-[1fr_minmax(420px,560px)] bg-background">
       <h1 className="sr-only">BuildTrack — Sign in</h1>
-      {/* Brand panel */}
-      <div className="hidden lg:flex flex-col justify-between bg-gradient-primary text-primary-foreground p-12">
+      {/* Brand panel — now hosts the demo org chart */}
+      <div className="hidden lg:flex flex-col bg-gradient-primary text-primary-foreground p-8 overflow-y-auto">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
             <HardHat className="h-6 w-6" />
