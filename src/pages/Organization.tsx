@@ -11,19 +11,25 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Network, ShieldCheck, Mail, Phone, ArrowUp, Trash2, Plus, Sparkles } from "lucide-react";
+import { Loader2, Users, Network, ShieldCheck, Mail, Phone, ArrowUp, Trash2, Plus, Sparkles, List, Settings, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { OrgChart } from "@/components/org/OrgChart";
+import { StaffListView } from "@/components/org/StaffListView";
+import { DepartmentManagerDialog } from "@/components/org/DepartmentManagerDialog";
+import { MemberFormDialog } from "@/components/org/MemberFormDialog";
 import {
   ORG_REGISTRY, ORG_DEPARTMENTS, ORG_DEPT_LABELS, OrgDepartment, OrgMember, getInitials, ORG_DEPT_TONE,
 } from "@/lib/orgMeta";
+import {
+  fetchOrgDepartments, fetchOrgMembers, OrgDepartmentRow, OrgMemberRow,
+} from "@/services/organizationService";
 import Permissions from "./Permissions";
 
 const ALL_ROLES: AppRole[] = [
   "admin", "project_manager", "engineer", "supervisor", "worker", "qaqc_inspector", "accountant",
 ];
 
-type ProfileRow = { id: string; full_name: string; employee_id: string | null };
+type ProfileRow = { id: string; full_name: string; employee_id: string | null; avatar_url?: string | null };
 
 export default function Organization() {
   const { hasRole } = useAuth();
@@ -32,15 +38,21 @@ export default function Organization() {
   const [selected, setSelected] = React.useState<OrgMember | null>(null);
   const [seeding, setSeeding] = React.useState(false);
 
-  // Map employee_id -> auth user id (for role management)
   const [profileMap, setProfileMap] = React.useState<Record<string, ProfileRow>>({});
   const [rolesByUser, setRolesByUser] = React.useState<Record<string, AppRole[]>>({});
   const [newRole, setNewRole] = React.useState<AppRole>("worker");
 
-  const loadProfiles = React.useCallback(async () => {
-    const [profilesRes, rolesRes] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, employee_id").not("employee_id", "is", null),
+  const [departments, setDepartments] = React.useState<OrgDepartmentRow[]>([]);
+  const [members, setMembers] = React.useState<OrgMemberRow[]>([]);
+  const [deptDialogOpen, setDeptDialogOpen] = React.useState(false);
+  const [editMember, setEditMember] = React.useState<OrgMemberRow | null>(null);
+
+  const loadAll = React.useCallback(async () => {
+    const [profilesRes, rolesRes, deptsData, membersData] = await Promise.all([
+      (supabase as any).from("profiles").select("id, full_name, employee_id, avatar_url").not("employee_id", "is", null),
       supabase.from("user_roles").select("user_id, role"),
+      fetchOrgDepartments().catch(() => [] as OrgDepartmentRow[]),
+      fetchOrgMembers().catch(() => [] as OrgMemberRow[]),
     ]);
     const map: Record<string, ProfileRow> = {};
     (profilesRes.data ?? []).forEach((p: any) => { if (p.employee_id) map[p.employee_id] = p; });
@@ -50,12 +62,21 @@ export default function Organization() {
       roleMap[r.user_id] = [...(roleMap[r.user_id] ?? []), r.role];
     });
     setRolesByUser(roleMap);
+    setDepartments(deptsData);
+    setMembers(membersData);
   }, []);
 
-  React.useEffect(() => { loadProfiles(); }, [loadProfiles]);
+  React.useEffect(() => { loadAll(); }, [loadAll]);
 
   const seededCount = Object.keys(profileMap).length;
   const totalRegistry = ORG_REGISTRY.length;
+
+  // Avatar lookup by employee_id for the chart
+  const avatarMap = React.useMemo(() => {
+    const m: Record<string, string | null> = {};
+    Object.values(profileMap).forEach((p) => { if (p.employee_id) m[p.employee_id] = p.avatar_url ?? null; });
+    return m;
+  }, [profileMap]);
 
   const onSeed = async () => {
     setSeeding(true);
@@ -66,26 +87,27 @@ export default function Organization() {
       return;
     }
     toast.success(`Seeded ${(data as any).count} staff accounts`);
-    loadProfiles();
+    loadAll();
   };
 
   const selectedProfile = selected ? profileMap[selected.employee_id] : null;
   const selectedUserId = selectedProfile?.id;
   const selectedRoles = selectedUserId ? rolesByUser[selectedUserId] ?? [] : [];
+  const selectedMemberRow = selected ? members.find((m) => m.employee_id === selected.employee_id) ?? null : null;
 
   const onAddRole = async () => {
     if (!selectedUserId) return;
     if (selectedRoles.includes(newRole)) { toast.error("User already has this role"); return; }
     const { error } = await supabase.from("user_roles").insert({ user_id: selectedUserId, role: newRole });
     if (error) toast.error(error.message);
-    else { toast.success(`Added ${ROLE_LABELS[newRole]}`); loadProfiles(); }
+    else { toast.success(`Added ${ROLE_LABELS[newRole]}`); loadAll(); }
   };
 
   const onRemoveRole = async (role: AppRole) => {
     if (!selectedUserId) return;
     const { error } = await supabase.from("user_roles").delete().eq("user_id", selectedUserId).eq("role", role);
     if (error) toast.error(error.message);
-    else { toast.success(`Removed ${ROLE_LABELS[role]}`); loadProfiles(); }
+    else { toast.success(`Removed ${ROLE_LABELS[role]}`); loadAll(); }
   };
 
   const reportsTo = selected?.report_to ? ORG_REGISTRY.find((m) => m.employee_id === selected.report_to) : null;
@@ -108,13 +130,16 @@ export default function Organization() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Organization</h1>
           <p className="text-sm text-muted-foreground">
-            Internal organization chart, member roles, and module permissions.
+            Internal organization chart, staff directory, and module permissions.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="gap-1.5">
             <Users className="h-3 w-3" /> {seededCount}/{totalRegistry} seeded
           </Badge>
+          <Button variant="outline" size="sm" onClick={() => setDeptDialogOpen(true)} className="gap-2">
+            <Settings className="h-3.5 w-3.5" /> Departments
+          </Button>
           {seededCount < totalRegistry && (
             <Button onClick={onSeed} disabled={seeding} size="sm" className="gap-2">
               {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -127,6 +152,7 @@ export default function Organization() {
       <Tabs defaultValue="chart">
         <TabsList>
           <TabsTrigger value="chart" className="gap-2"><Network className="h-4 w-4" /> Org Chart</TabsTrigger>
+          <TabsTrigger value="list" className="gap-2"><List className="h-4 w-4" /> Staff List</TabsTrigger>
           <TabsTrigger value="permissions" className="gap-2"><ShieldCheck className="h-4 w-4" /> Permissions Matrix</TabsTrigger>
         </TabsList>
 
@@ -135,7 +161,7 @@ export default function Organization() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b bg-muted/20">
               <div>
                 <CardTitle className="text-base">Internal Organization Chart</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">Click a card to view contact info and edit roles.</p>
+                <p className="text-xs text-muted-foreground mt-1">Click a card to view contact info, edit roles, and upload a photo.</p>
               </div>
               <div className="w-56">
                 <Select value={dept} onValueChange={(v) => setDept(v as typeof dept)}>
@@ -152,7 +178,24 @@ export default function Organization() {
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <OrgChart filterDepartment={dept} onMemberClick={setSelected} />
+              <OrgChart filterDepartment={dept} onMemberClick={setSelected} avatarMap={avatarMap} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="list" className="mt-4">
+          <Card>
+            <CardHeader className="border-b bg-muted/20">
+              <CardTitle className="text-base">Staff Directory</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">All staff members with full information. Search, filter by department, and export to CSV.</p>
+            </CardHeader>
+            <CardContent className="p-4">
+              <StaffListView
+                members={members}
+                departments={departments}
+                canEdit={isAdmin}
+                onEdit={setEditMember}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -162,21 +205,49 @@ export default function Organization() {
         </TabsContent>
       </Tabs>
 
+      {/* Department CRUD */}
+      <DepartmentManagerDialog
+        open={deptDialogOpen}
+        onOpenChange={setDeptDialogOpen}
+        departments={departments}
+        onChanged={loadAll}
+      />
+
+      {/* Member edit (from list view) */}
+      <MemberFormDialog
+        open={!!editMember}
+        onOpenChange={(o) => !o && setEditMember(null)}
+        member={editMember}
+        departments={departments}
+        members={members}
+        onSaved={loadAll}
+      />
+
+      {/* Org chart click → detail sheet */}
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           {selected && (
             <>
               <SheetHeader>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-full font-bold ${ORG_DEPT_TONE[selected.department].chip}`}>
-                    {getInitials(selected.full_name)}
+                  <div className={`flex h-14 w-14 items-center justify-center overflow-hidden rounded-full font-bold ${!avatarMap[selected.employee_id] ? ORG_DEPT_TONE[selected.department].chip : ""}`}>
+                    {avatarMap[selected.employee_id] ? (
+                      <img src={avatarMap[selected.employee_id]!} alt={selected.full_name} className="h-full w-full object-cover" />
+                    ) : (
+                      getInitials(selected.full_name)
+                    )}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <SheetTitle className="text-left">{selected.full_name}</SheetTitle>
                     <SheetDescription className="text-left">
                       <span className="font-mono text-xs">{selected.employee_id}</span> · {selected.position}
                     </SheetDescription>
                   </div>
+                  {selectedMemberRow && (
+                    <Button size="sm" variant="outline" onClick={() => setEditMember(selectedMemberRow)} className="gap-1">
+                      <Pencil className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                  )}
                 </div>
               </SheetHeader>
 
