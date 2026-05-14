@@ -22,9 +22,10 @@ interface Props {
   filterDepartment?: OrgDepartment | "all";
   compact?: boolean;
   highlightId?: string | null;
+  avatarMap?: Record<string, string | null | undefined>;
 }
 
-export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartment = "all", compact, highlightId }: Props) {
+export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartment = "all", compact, highlightId, avatarMap = {} }: Props) {
   const visible = filterDepartment === "all" ? members : members.filter((m) => m.department === filterDepartment || m.department === "management");
   const grouped = membersByDepartment(visible);
 
