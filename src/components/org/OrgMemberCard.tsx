@@ -7,9 +7,10 @@ interface Props {
   onClick?: (m: OrgMember) => void;
   compact?: boolean;
   highlight?: boolean;
+  avatarUrl?: string | null;
 }
 
-export function OrgMemberCard({ member, onClick, compact, highlight }: Props) {
+export function OrgMemberCard({ member, onClick, compact, highlight, avatarUrl }: Props) {
   const tone = ORG_DEPT_TONE[member.department];
   return (
     <button
@@ -25,12 +26,16 @@ export function OrgMemberCard({ member, onClick, compact, highlight }: Props) {
       <div className="flex items-center gap-3 pl-1">
         <div
           className={cn(
-            "flex shrink-0 items-center justify-center rounded-full font-semibold uppercase",
-            tone.chip,
+            "flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold uppercase",
+            !avatarUrl && tone.chip,
             compact ? "h-9 w-9 text-xs" : "h-11 w-11 text-sm",
           )}
         >
-          {getInitials(member.full_name)}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={member.full_name} className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            getInitials(member.full_name)
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
