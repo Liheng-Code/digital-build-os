@@ -58,13 +58,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const results: Array<{ employee_id: string; email: string; status: string }> = [];
-
     const { data: existingList, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (listErr) throw listErr;
     const byEmail = new Map(existingList.users.map((u) => [u.email?.toLowerCase(), u]));
 
-    for (const u of ORG_USERS) {
+    const processOne = async (u: OrgUser) => {
       let userId: string;
       const existing = byEmail.get(u.email.toLowerCase());
 
