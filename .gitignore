@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .opencode
+
+# Temp files
+nul
+timestamp.txt

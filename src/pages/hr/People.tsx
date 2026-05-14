@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
 import { EMPLOYMENT_STATUS_LABELS, EmploymentStatus } from "@/lib/hrMeta";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OrgChart } from "@/components/hr/OrgChart";
 
 interface Person {
   id: string;
@@ -63,74 +65,91 @@ export default function People() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">People</h1>
-        <p className="text-muted-foreground">Employee directory</p>
+        <p className="text-muted-foreground">Employee directory and organization chart</p>
       </div>
 
-      <div className="relative w-full max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name, ID, title, department..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <Tabs defaultValue="directory">
+        <TabsList>
+          <TabsTrigger value="directory" className="flex items-center gap-2">
+            <Users className="h-4 w-4" /> Directory
+          </TabsTrigger>
+          <TabsTrigger value="org-chart" className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4" /> Org Chart
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-              <p className="font-medium">No employees found</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Employee ID</TableHead>
-                  <TableHead>Job Title</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Roles</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.full_name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{p.employee_id ?? "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{p.job_title ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{p.department ?? "—"}</TableCell>
-                    <TableCell>
-                      <span className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                        p.employment_status === "active" ? "bg-success-soft text-success" :
-                        p.employment_status === "probation" ? "bg-warning-soft text-warning" :
-                        "bg-muted text-muted-foreground",
-                      )}>
-                        {p.employment_status ? EMPLOYMENT_STATUS_LABELS[p.employment_status as EmploymentStatus] ?? p.employment_status : "Active"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {p.roles.map((r) => (
-                          <Badge key={r} variant="secondary" className="text-[10px]">
-                            {ROLE_LABELS[r as AppRole] ?? r}
-                          </Badge>
-                        ))}
-                        {p.roles.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="directory" className="space-y-6 mt-6">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, ID, title, department..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+              ) : filtered.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="font-medium">No employees found</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>Job Title</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Roles</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.full_name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{p.employee_id ?? "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{p.job_title ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{p.department ?? "—"}</TableCell>
+                        <TableCell>
+                          <span className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                            p.employment_status === "active" ? "bg-success-soft text-success" :
+                            p.employment_status === "probation" ? "bg-warning-soft text-warning" :
+                            "bg-muted text-muted-foreground",
+                          )}>
+                            {p.employment_status ? EMPLOYMENT_STATUS_LABELS[p.employment_status as EmploymentStatus] ?? p.employment_status : "Active"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {p.roles.map((r) => (
+                              <Badge key={r} variant="secondary" className="text-[10px]">
+                                {ROLE_LABELS[r as AppRole] ?? r}
+                              </Badge>
+                            ))}
+                            {p.roles.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="org-chart" className="mt-6">
+          <OrgChart />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

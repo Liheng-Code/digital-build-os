@@ -48,15 +48,16 @@ export function useWbsTree(projectId: string | null | undefined) {
       const taskData = tasksRes.data ?? [];
       const nodeRows = (nodesRes.data ?? []) as WbsNode[];
 
-      // Tasks grouped by direct WBS node id
-      const directByNode = new Map<string, typeof taskData>();
+      // 1. Group direct tasks by WBS node id
+      const directTasksByNode = new Map<string, typeof taskData>();
       taskData.forEach((t) => {
         if (!t.wbs_node_id) return;
-        if (!directByNode.has(t.wbs_node_id)) directByNode.set(t.wbs_node_id, []);
-        directByNode.get(t.wbs_node_id)!.push(t);
+        const arr = directTasksByNode.get(t.wbs_node_id) ?? [];
+        arr.push(t);
+        directTasksByNode.set(t.wbs_node_id, arr);
       });
 
-      // Children map for descendant traversal
+      // 2. Children map for bottom-up traversal
       const childrenOf = new Map<string | null, string[]>();
       for (const n of nodeRows) {
         const arr = childrenOf.get(n.parent_id) ?? [];
@@ -64,33 +65,38 @@ export function useWbsTree(projectId: string | null | undefined) {
         childrenOf.set(n.parent_id, arr);
       }
 
-      const gather = (nodeId: string): typeof taskData => {
-        const own = directByNode.get(nodeId) ?? [];
-        const kids = childrenOf.get(nodeId) ?? [];
-        const all = [...own];
-        for (const k of kids) all.push(...gather(k));
-        return all;
-      };
+      // 3. Aggregate task lists bottom-up
+      const aggregatedTasks = new Map<string, typeof taskData>();
+      const sortedNodes = [...nodeRows].sort((a, b) => b.depth - a.depth);
 
-      for (const n of nodeRows) {
-        const tasks = gather(n.id);
-        if (tasks.length === 0) continue;
-        let weighted = 0;
-        let totalW = 0;
-        for (const t of tasks) {
-          const w = Math.max(0.0001, Number(t.estimated_hours ?? 0)) || 1;
-          weighted += (Number(t.progress_pct) || 0) * w;
-          totalW += w;
+      for (const n of sortedNodes) {
+        const own = directTasksByNode.get(n.id) ?? [];
+        const kids = childrenOf.get(n.id) ?? [];
+        let all = [...own];
+        for (const k of kids) {
+          const childTasks = aggregatedTasks.get(k) ?? [];
+          all = all.concat(childTasks);
         }
-        const avgProgress = totalW > 0 ? Math.round(weighted / totalW) : 0;
-        const starts = tasks.map((t) => t.planned_start).filter(Boolean) as string[];
-        const ends = tasks.map((t) => t.planned_end).filter(Boolean) as string[];
-        statsMap.set(n.id, {
-          avgProgress,
-          taskCount: tasks.length,
-          minStart: starts.length ? [...starts].sort()[0] : null,
-          maxEnd: ends.length ? [...ends].sort().at(-1)! : null,
-        });
+        aggregatedTasks.set(n.id, all);
+
+        if (all.length > 0) {
+          let weighted = 0;
+          let totalW = 0;
+          for (const t of all) {
+            const w = Math.max(0.0001, Number(t.estimated_hours ?? 0)) || 1;
+            weighted += (Number(t.progress_pct) || 0) * w;
+            totalW += w;
+          }
+          const avgProgress = totalW > 0 ? Math.round(weighted / totalW) : 0;
+          const starts = all.map((t) => t.planned_start).filter(Boolean) as string[];
+          const ends = all.map((t) => t.planned_end).filter(Boolean) as string[];
+          statsMap.set(n.id, {
+            avgProgress,
+            taskCount: all.length,
+            minStart: starts.length ? [...starts].sort()[0] : null,
+            maxEnd: ends.length ? [...ends].sort().at(-1)! : null,
+          });
+        }
       }
 
       setNodeStats(statsMap);

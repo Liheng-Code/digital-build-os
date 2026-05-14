@@ -25,6 +25,10 @@ import { SavedViewsMenu } from "@/components/wbs/SavedViewsMenu";
 import { BaselinePanel } from "@/components/wbs/BaselinePanel";
 import { CpmPanel } from "@/components/wbs/CpmPanel";
 import { CalendarsPanel } from "@/components/wbs/CalendarsPanel";
+import { LaborCatalogPanel } from "@/components/wbs/LaborCatalogPanel";
+import { ManpowerHistogramPanel } from "@/components/wbs/ManpowerHistogramPanel";
+import { SCurvePanel } from "@/components/wbs/SCurvePanel";
+import { ImportTemplateDialog } from "@/components/wbs/ImportTemplateDialog";
 import { DEPARTMENT_LABELS, Department } from "@/lib/departmentMeta";
 import { buildGanttRows, GanttRow } from "@/lib/wbsGanttRows";
 import {
@@ -89,9 +93,8 @@ export default function WbsPage() {
     Object.keys(WBS_NODE_TYPE_LABELS) as WbsNodeType[],
   );
 
-  const leftGanttBodyRef = React.useRef<HTMLDivElement>(null);
-  const rightGanttBodyRef = React.useRef<HTMLDivElement>(null);
-  const syncingPaneRef = React.useRef<"left" | "right" | null>(null);
+  const [importOpen, setImportOpen] = React.useState(false);
+  const [importTargetId, setImportTargetId] = React.useState<string | null>(null);
 
   const canEdit = roles.includes("admin") || roles.includes("project_manager");
   const canManage = canEdit;
@@ -468,19 +471,43 @@ export default function WbsPage() {
           )}
 
           {mainView === "tree" && (
-            <Button variant="outline" size="sm" onClick={toggleTree}>
-              {treeOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-              {treeOpen ? "Hide tree" : "Show tree"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <Button variant="outline" size="sm" onClick={() => {
+                  setImportTargetId(selectedId);
+                  setImportOpen(true);
+                }}>
+                  <FolderTree className="h-4 w-4 mr-1.5" />
+                  Import Template
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={toggleTree}>
+                {treeOpen ? <PanelLeftClose className="h-4 w-4 mr-1.5" /> : <PanelLeftOpen className="h-4 w-4 mr-1.5" />}
+                {treeOpen ? "Hide tree" : "Show tree"}
+              </Button>
+            </div>
           )}
         </div>
       </div>
+
+      <ImportTemplateDialog 
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        projectId={projectId!}
+        targetParentId={importTargetId}
+        onImported={() => {
+            refresh();
+            refreshSchedule();
+        }}
+      />
 
         {mainView === "schedule" ? (
           <div className="flex-1 min-h-0 overflow-auto p-2">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-5xl mx-auto">
               <BaselinePanel projectId={projectId!} canEdit={canEdit} />
               <CpmPanel projectId={projectId!} canEdit={canEdit} />
+              <LaborCatalogPanel projectId={projectId!} canEdit={canEdit} />
+              <ManpowerHistogramPanel projectId={projectId!} />
               <div className="lg:col-span-2">
                 <CalendarsPanel projectId={projectId!} canEdit={canEdit} />
               </div>

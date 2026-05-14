@@ -13,6 +13,7 @@ export interface Employee {
   emergency_contact: string | null;
   emergency_phone: string | null;
   roles: string[];
+  reports_to: string | null;
 }
 
 export const fetchEmployees = async (): Promise<Employee[]> => {
@@ -37,6 +38,7 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
     emergency_contact: p.emergency_contact,
     emergency_phone: p.emergency_phone,
     roles: rolesByUser[p.id] ?? [],
+    reports_to: p.reports_to,
   }));
   return list;
 };

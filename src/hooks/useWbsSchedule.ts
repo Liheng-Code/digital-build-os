@@ -25,9 +25,10 @@ export function useWbsSchedule(projectId: string | null | undefined, nodes: WbsN
       return;
     }
     setLoading(true);
+    // Fetch only necessary fields for 10,000 rows to minimize payload
     const { data, error } = await supabase
       .from("tasks")
-      .select("id, title, code, wbs_node_id, planned_start, planned_end, actual_start, actual_end, progress_pct, estimated_hours, status, constraint_type, constraint_date, deadline_date")
+      .select("id, title, code, wbs_node_id, planned_start, planned_end, actual_start, actual_end, progress_pct, estimated_hours, status, constraint_type, constraint_date, deadline_date, budgeted_cost, actual_cost")
       .eq("project_id", projectId);
     if (!error) {
       setTasks((data ?? []) as unknown as ScheduleTask[]);
@@ -41,9 +42,24 @@ export function useWbsSchedule(projectId: string | null | undefined, nodes: WbsN
 
   const rollupByNode = useMemo(() => {
     const result = new Map<string, NodeRollup>();
-    if (nodes.length === 0) return result;
+    if (nodes.length === 0 || tasks.length === 0) return result;
 
-    // Build child-of map
+    // 1. Map tasks to their direct WBS node
+    const directTasksByNode = new Map<string, TaskScheduleLite[]>();
+    for (const t of tasks) {
+      if (!t.wbs_node_id) continue;
+      const arr = directTasksByNode.get(t.wbs_node_id) ?? [];
+      arr.push(t);
+      directTasksByNode.set(t.wbs_node_id, arr);
+    }
+
+    // 2. Prepare aggregated task lists for each node
+    const aggregatedTasks = new Map<string, TaskScheduleLite[]>();
+    
+    // 3. Sort nodes by depth descending (bottom-up processing)
+    const sortedNodes = [...nodes].sort((a, b) => b.depth - a.depth);
+    
+    // 4. Group nodes by parent for efficient access
     const childrenOf = new Map<string | null, string[]>();
     for (const n of nodes) {
       const arr = childrenOf.get(n.parent_id) ?? [];
@@ -51,29 +67,23 @@ export function useWbsSchedule(projectId: string | null | undefined, nodes: WbsN
       childrenOf.set(n.parent_id, arr);
     }
 
-    // Tasks grouped by direct WBS node id
-    const tasksByNode = new Map<string, TaskScheduleLite[]>();
-    for (const t of tasks) {
-      if (!t.wbs_node_id) continue;
-      const arr = tasksByNode.get(t.wbs_node_id) ?? [];
-      arr.push(t);
-      tasksByNode.set(t.wbs_node_id, arr);
-    }
-
-    // Recursive: gather tasks under each node (own + descendants)
-    const gather = (nodeId: string): TaskScheduleLite[] => {
-      const own = tasksByNode.get(nodeId) ?? [];
-      const kids = childrenOf.get(nodeId) ?? [];
-      const all = [...own];
-      for (const k of kids) all.push(...gather(k));
-      return all;
-    };
-
-    for (const n of nodes) {
-      const all = gather(n.id);
+    // 5. Aggregate tasks bottom-up
+    for (const n of sortedNodes) {
+      const own = directTasksByNode.get(n.id) ?? [];
+      const childrenIds = childrenOf.get(n.id) ?? [];
+      
+      let all = [...own];
+      for (const childId of childrenIds) {
+        const childTasks = aggregatedTasks.get(childId) ?? [];
+        all = all.concat(childTasks);
+      }
+      
+      aggregatedTasks.set(n.id, all);
+      
       const r = rollupTasks(all);
       if (r) result.set(n.id, r);
     }
+
     return result;
   }, [nodes, tasks]);
 

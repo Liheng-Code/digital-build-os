@@ -1,6 +1,7 @@
 import * as React from "react";
 import { addDays, differenceInCalendarDays, format, isValid, max, min, parseISO, startOfDay } from "date-fns";
 import { Calendar, Info, GripVertical, Pencil, Undo2 } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { GanttRow } from "@/lib/wbsGanttRows";
 import { NodeRollup, TaskScheduleLite, taskStatus, SCHEDULE_STATUS_LABEL, SCHEDULE_STATUS_DOT, CpmMap, ConstraintType, CONSTRAINT_TYPE_LABELS } from "@/lib/scheduleMeta";
@@ -37,7 +38,7 @@ interface Props {
   holidaySet: Set<string>;
   rollupByNode?: Map<string, NodeRollup>;
   projectRollup?: NodeRollup | null;
-  bodyScrollRef?: React.RefObject<HTMLDivElement>;
+  bodyScrollRef: React.RefObject<HTMLDivElement>;
   onBodyScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   /** Set of task IDs currently blocked by hard predecessors. */
   blockedSet?: Set<string>;
@@ -89,10 +90,15 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     x: number;
     y: number;
   } | null>(null);
-  const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => bodyScrollRef.current,
+    estimateSize: () => ROW_H,
+    overscan: 10,
+  });
 
   const range = React.useMemo(() => {
-    // ... same logic
     const starts: Date[] = [];
     const ends: Date[] = [];
     for (const task of tasks) {
@@ -340,6 +346,14 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     headerScrollRef.current.scrollLeft = event.currentTarget.scrollLeft;
   };
 
+  // Optimization: only render predecessors that are visible or have visible endpoints
+  const visibleIndices = React.useMemo(() => new Set(rowVirtualizer.getVirtualItems().map(i => i.index)), [rowVirtualizer.getVirtualItems()]);
+  const visiblePredecessors = React.useMemo(() => predecessors.filter(link => {
+    const fromIdx = taskRowIndex.get(link.predecessor_id);
+    const toIdx = taskRowIndex.get(link.task_id);
+    return fromIdx !== undefined && toIdx !== undefined && (visibleIndices.has(fromIdx) || visibleIndices.has(toIdx));
+  }), [predecessors, taskRowIndex, visibleIndices]);
+
   return (
     <>
       <div className="h-full overflow-hidden bg-background flex flex-col">
@@ -451,7 +465,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                   style={{ height: 0 }}
                 >
                 </div>
-                <div className="relative" style={{ height: rows.length * ROW_H }}>
+                <div className="relative" style={{ height: rowVirtualizer.getTotalSize() }}>
                   <div className="absolute inset-0 pointer-events-none">
                     {dayHeaders.map((header, index) => (
                       <div
@@ -464,14 +478,14 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                         style={{ left: index * dayWidth, width: dayWidth }}
                       />
                     ))}
-                    {rows.map((row, index) => (
+                    {rowVirtualizer.getVirtualItems().map((virtualItem) => (
                       <div
-                        key={row.kind + row.id}
+                        key={virtualItem.key}
                         className={cn(
                           "absolute left-0 right-0 border-t border-border/60",
-                          index % 2 === 1 && "bg-muted/10",
+                          virtualItem.index % 2 === 1 && "bg-muted/10",
                         )}
-                        style={{ top: index * ROW_H, height: ROW_H }}
+                        style={{ top: virtualItem.start, height: virtualItem.size }}
                       />
                     ))}
                   </div>
@@ -485,13 +499,14 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                     </div>
                   )}
 
-                  {rows.map((row) => {
+                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const row = rows[virtualItem.index];
                     const isSelected = row.kind === "task" && row.task.id === selectedTaskId;
                     return (
                     <div
-                      key={row.kind + row.id}
-                      className="relative border-b border-transparent"
-                      style={{ height: ROW_H }}
+                      key={virtualItem.key}
+                      className="absolute left-0 right-0 border-b border-transparent"
+                      style={{ top: virtualItem.start, height: virtualItem.size }}
                     >
                       {(() => {
                         if (row.kind === "task") {
@@ -779,7 +794,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
                    <svg
                      className="absolute inset-0"
-                     style={{ width: chartWidth, height: rows.length * ROW_H, pointerEvents: 'none' }}
+                     style={{ width: chartWidth, height: rowVirtualizer.getTotalSize(), pointerEvents: 'none' }}
                    >
                     <defs>
                       <marker
@@ -794,7 +809,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                         <path d="M0,0 L10,5 L0,10 z" fill="hsl(var(--muted-foreground))" />
                       </marker>
                     </defs>
-                    {predecessors.map((link, index) => {
+                    {visiblePredecessors.map((link, index) => {
                        const fromIdx = taskRowIndex.get(link.predecessor_id);
                        const toIdx = taskRowIndex.get(link.task_id);
                        if (fromIdx === undefined || toIdx === undefined) return null;
@@ -875,7 +890,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                      </svg>
 
                     {/* Overlay divs for clicking dependency arrows */}
-                    {predecessors.map((link, index) => {
+                    {visiblePredecessors.map((link, index) => {
                       const fromIdx = taskRowIndex.get(link.predecessor_id);
                       const toIdx = taskRowIndex.get(link.task_id);
                       if (fromIdx === undefined || toIdx === undefined) return null;
@@ -945,8 +960,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
 
   );
- }
- function LegendItem({ color, label }: { color: string; label: string }) {
+ } function LegendItem({ color, label }: { color: string; label: string }) {
    return (
      <div className="flex items-center gap-1.5">
        <div className={cn("h-2.5 w-2.5 rounded-sm shadow-sm border border-black/10", color)} />
