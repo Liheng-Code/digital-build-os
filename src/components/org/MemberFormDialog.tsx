@@ -48,6 +48,10 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
   const onPickFile = () => fileRef.current?.click();
 
   const onUpload = async (file: File) => {
+    if (!member) {
+      toast.error("Save the member first, then upload a photo.");
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadMemberAvatar(member.id, file);
@@ -62,9 +66,48 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
   };
 
   const onSave = async () => {
+    if (isCreate) {
+      if (!form.email || !form.full_name) {
+        toast.error("Email and full name are required");
+        return;
+      }
+      setSaving(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-org-member", {
+          body: {
+            email: form.email,
+            password: createPassword || undefined,
+            full_name: form.full_name,
+            employee_id: form.employee_id,
+            job_title: form.job_title,
+            department: form.department,
+            level: form.level,
+            report_to_employee_id: form.report_to_employee_id,
+            phone: form.phone,
+            hire_date: form.hire_date,
+            employment_status: form.employment_status,
+            emergency_contact: form.emergency_contact,
+            emergency_phone: form.emergency_phone,
+            role: createRole,
+          },
+        });
+        if (error || !(data as any)?.success) {
+          throw new Error((data as any)?.error || error?.message || "Create failed");
+        }
+        toast.success((data as any).existed ? "Member linked to existing user" : "Member created");
+        onSaved();
+        onOpenChange(false);
+      } catch (e: any) {
+        toast.error(e.message ?? "Create failed");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     try {
-      await updateMemberProfile(member.id, {
+      await updateMemberProfile(member!.id, {
         full_name: form.full_name,
         employee_id: form.employee_id,
         job_title: form.job_title,
@@ -92,7 +135,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Member</DialogTitle>
+          <DialogTitle>{isCreate ? "Add Member" : "Edit Member"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
