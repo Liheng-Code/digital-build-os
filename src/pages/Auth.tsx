@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { HardHat, Loader2 } from "lucide-react";
 import { DemoLoginPanel } from "@/components/org/DemoLoginPanel";
+import { ORG_REGISTRY, ORG_DEPT_LABELS, DEMO_PASSWORD } from "@/lib/orgMeta";
 
 const signInSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -22,21 +23,11 @@ const signUpSchema = signInSchema.extend({
   fullName: z.string().trim().min(2, { message: "Full name is required" }).max(100),
 });
 
-const DEMO_ACCOUNTS = [
-  { email: "admin@buildtrack.demo", name: "Alex Admin", role: "Admin" },
-  { email: "pm@buildtrack.demo", name: "Pat Planner", role: "PM" },
-  { email: "engineer@buildtrack.demo", name: "Erin Engineer", role: "Engineer" },
-  { email: "supervisor@buildtrack.demo", name: "Sam Supervisor", role: "Supervisor" },
-  { email: "worker@buildtrack.demo", name: "Wes Worker", role: "Worker" },
-  { email: "qaqc@buildtrack.demo", name: "Quinn Inspector", role: "QA/QC" },
-  { email: "accountant@buildtrack.demo", name: "Avery Accountant", role: "Accountant" },
-  // Department approvers (seeded via Settings → Departments → Seed demo data)
-  { email: "aria.architect@demo.test", name: "Aria Architect", role: "Architecture" },
-  { email: "stella.struct@demo.test", name: "Stella Struct", role: "Structure" },
-  { email: "marco.mep@demo.test", name: "Marco MEP", role: "MEP" },
-  { email: "pierre.proc@demo.test", name: "Pierre Procurement", role: "Procurement" },
-  { email: "connor.constr@demo.test", name: "Connor Construction", role: "Construction" },
-];
+const DEMO_ACCOUNTS = ORG_REGISTRY.map((m) => ({
+  email: m.email,
+  name: m.full_name,
+  role: `${ORG_DEPT_LABELS[m.department]} · ${m.position}`,
+}));
 
 export default function Auth() {
   const navigate = useNavigate();
