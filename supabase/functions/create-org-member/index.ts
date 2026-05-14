@@ -54,7 +54,6 @@ Deno.serve(async (req) => {
       employee_id: employee_id || null,
       job_title: job_title || null,
       department: department || null,
-      email,
       phone: phone || null,
       hire_date: hire_date || null,
       employment_status: employment_status || "active",
