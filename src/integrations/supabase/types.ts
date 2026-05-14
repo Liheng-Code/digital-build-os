@@ -4113,6 +4113,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           department: string | null
+          email: string | null
           emergency_contact: string | null
           emergency_phone: string | null
           employee_id: string | null
@@ -4126,6 +4127,7 @@ export type Database = {
           level: string | null
           phone: string | null
           report_to_employee_id: string | null
+          reports_to: string | null
           updated_at: string
         }
         Insert: {
@@ -4135,6 +4137,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           department?: string | null
+          email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
           employee_id?: string | null
@@ -4148,6 +4151,7 @@ export type Database = {
           level?: string | null
           phone?: string | null
           report_to_employee_id?: string | null
+          reports_to?: string | null
           updated_at?: string
         }
         Update: {
@@ -4157,6 +4161,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           department?: string | null
+          email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
           employee_id?: string | null
@@ -4170,6 +4175,7 @@ export type Database = {
           level?: string | null
           phone?: string | null
           report_to_employee_id?: string | null
+          reports_to?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4178,6 +4184,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_reports_to_fkey"
+            columns: ["reports_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -8351,6 +8364,7 @@ export type Database = {
         | "mep"
         | "procurement"
         | "construction"
+        | "accounting"
       dept_role: "member" | "reviewer" | "approver"
       dept_status:
         | "draft"
@@ -8832,6 +8846,7 @@ export const Constants = {
         "mep",
         "procurement",
         "construction",
+        "accounting",
       ],
       dept_role: ["member", "reviewer", "approver"],
       dept_status: [
