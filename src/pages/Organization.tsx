@@ -23,7 +23,9 @@ import {
 import {
   fetchOrgDepartments, fetchOrgMembers, OrgDepartmentRow, OrgMemberRow,
 } from "@/services/organizationService";
-import Permissions from "./Permissions";
+import { LevelPermissionsMatrix } from "@/components/org/LevelPermissionsMatrix";
+import { getActionsForLevel, ORG_LEVEL_LABELS, OrgLevel, PERM_TONE } from "@/lib/permissionMatrix";
+import { cn } from "@/lib/utils";
 
 const ALL_ROLES: AppRole[] = [
   "admin", "project_manager", "engineer", "supervisor", "worker", "qaqc_inspector", "accountant",
@@ -201,7 +203,7 @@ export default function Organization() {
         </TabsContent>
 
         <TabsContent value="permissions" className="mt-4">
-          <Permissions />
+          <LevelPermissionsMatrix highlightLevel={selected ? (selected.level as OrgLevel) : null} />
         </TabsContent>
       </Tabs>
 
@@ -340,6 +342,42 @@ export default function Organization() {
                       </div>
                     </>
                   )}
+                </div>
+
+                {/* Per-level permission summary */}
+                <div className="border-t pt-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    Permissions at level {selected.level} — {ORG_LEVEL_LABELS[selected.level as OrgLevel]}
+                  </div>
+                  {(() => {
+                    const granted = getActionsForLevel(selected.level as OrgLevel);
+                    const byModule = granted.reduce<Record<string, typeof granted>>((acc, g) => {
+                      (acc[g.module] ||= []).push(g);
+                      return acc;
+                    }, {});
+                    return (
+                      <div className="space-y-2">
+                        {Object.entries(byModule).map(([mod, items]) => (
+                          <div key={mod} className="rounded-md border bg-muted/20 p-2">
+                            <div className="text-xs font-semibold mb-1.5">
+                              <span className="mr-1">{items[0].icon}</span>{mod}
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {items.map((it) => (
+                                <span
+                                  key={it.action}
+                                  className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", PERM_TONE[it.perm])}
+                                >
+                                  <span className="font-bold">{it.perm}</span>
+                                  <span className="opacity-80">{it.action}</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </>
