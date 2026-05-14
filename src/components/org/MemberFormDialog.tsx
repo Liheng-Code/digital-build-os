@@ -6,11 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Upload, User } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   OrgMemberRow, OrgDepartmentRow,
   updateMemberProfile, uploadMemberAvatar,
 } from "@/services/organizationService";
 import { getInitials } from "@/lib/orgMeta";
+
+const ROLES = ["admin", "project_manager", "engineer", "supervisor", "worker", "qaqc_inspector", "accountant"];
 
 interface Props {
   open: boolean;
@@ -30,16 +33,25 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
   const [uploading, setUploading] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
+  const [createRole, setCreateRole] = React.useState<string>("worker");
+  const [createPassword, setCreatePassword] = React.useState<string>("");
+
   React.useEffect(() => {
     if (member) setForm({ ...member });
-    else setForm({});
+    else setForm({ employment_status: "active", level: "L6" });
+    setCreatePassword("");
+    setCreateRole("worker");
   }, [member, open]);
 
-  if (!member) return null;
+  const isCreate = !member;
 
   const onPickFile = () => fileRef.current?.click();
 
   const onUpload = async (file: File) => {
+    if (!member) {
+      toast.error("Save the member first, then upload a photo.");
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadMemberAvatar(member.id, file);
@@ -54,9 +66,48 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
   };
 
   const onSave = async () => {
+    if (isCreate) {
+      if (!form.email || !form.full_name) {
+        toast.error("Email and full name are required");
+        return;
+      }
+      setSaving(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-org-member", {
+          body: {
+            email: form.email,
+            password: createPassword || undefined,
+            full_name: form.full_name,
+            employee_id: form.employee_id,
+            job_title: form.job_title,
+            department: form.department,
+            level: form.level,
+            report_to_employee_id: form.report_to_employee_id,
+            phone: form.phone,
+            hire_date: form.hire_date,
+            employment_status: form.employment_status,
+            emergency_contact: form.emergency_contact,
+            emergency_phone: form.emergency_phone,
+            role: createRole,
+          },
+        });
+        if (error || !(data as any)?.success) {
+          throw new Error((data as any)?.error || error?.message || "Create failed");
+        }
+        toast.success((data as any).existed ? "Member linked to existing user" : "Member created");
+        onSaved();
+        onOpenChange(false);
+      } catch (e: any) {
+        toast.error(e.message ?? "Create failed");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     setSaving(true);
     try {
-      await updateMemberProfile(member.id, {
+      await updateMemberProfile(member!.id, {
         full_name: form.full_name,
         employee_id: form.employee_id,
         job_title: form.job_title,
@@ -84,7 +135,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Member</DialogTitle>
+          <DialogTitle>{isCreate ? "Add Member" : "Edit Member"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -150,7 +201,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">— None —</SelectItem>
-                  {members.filter((m) => m.id !== member.id && m.employee_id).map((m) => (
+                  {members.filter((m) => (!member || m.id !== member.id) && m.employee_id).map((m) => (
                     <SelectItem key={m.id} value={m.employee_id!}>
                       {m.employee_id} · {m.full_name}
                     </SelectItem>
@@ -188,13 +239,36 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
               <Input value={form.emergency_phone ?? ""} onChange={(e) => setForm({ ...form, emergency_phone: e.target.value })} />
             </div>
           </div>
+
+          {isCreate && (
+            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-3">
+              <div>
+                <Label>Initial role</Label>
+                <Select value={createRole} onValueChange={setCreateRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, " ")}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Password (optional)</Label>
+                <Input
+                  type="text"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  placeholder="Defaults to demo password"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={onSave} disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save changes
+            {isCreate ? "Create member" : "Save changes"}
           </Button>
         </DialogFooter>
       </DialogContent>

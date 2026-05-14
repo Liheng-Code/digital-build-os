@@ -48,6 +48,7 @@ export default function Organization() {
   const [members, setMembers] = React.useState<OrgMemberRow[]>([]);
   const [deptDialogOpen, setDeptDialogOpen] = React.useState(false);
   const [editMember, setEditMember] = React.useState<OrgMemberRow | null>(null);
+  const [addMemberOpen, setAddMemberOpen] = React.useState(false);
 
   const loadAll = React.useCallback(async () => {
     const [profilesRes, rolesRes, deptsData, membersData] = await Promise.all([
@@ -142,6 +143,9 @@ export default function Organization() {
           <Button variant="outline" size="sm" onClick={() => setDeptDialogOpen(true)} className="gap-2">
             <Settings className="h-3.5 w-3.5" /> Departments
           </Button>
+          <Button size="sm" onClick={() => setAddMemberOpen(true)} className="gap-2">
+            <Plus className="h-3.5 w-3.5" /> Add Member
+          </Button>
           {seededCount < totalRegistry && (
             <Button onClick={onSeed} disabled={seeding} size="sm" className="gap-2">
               {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -220,6 +224,16 @@ export default function Organization() {
         open={!!editMember}
         onOpenChange={(o) => !o && setEditMember(null)}
         member={editMember}
+        departments={departments}
+        members={members}
+        onSaved={loadAll}
+      />
+
+      {/* Add member */}
+      <MemberFormDialog
+        open={addMemberOpen}
+        onOpenChange={setAddMemberOpen}
+        member={null}
         departments={departments}
         members={members}
         onSaved={loadAll}
