@@ -3,7 +3,7 @@ import {
   ORG_REGISTRY, ORG_DEPT_LABELS, ORG_DEPT_TONE, OrgDepartment, OrgMember, membersByDepartment,
 } from "@/lib/orgMeta";
 import { OrgMemberCard } from "./OrgMemberCard";
-import { Building2, HardHat, ShoppingCart, Users, Calculator, Layout, Wrench } from "lucide-react";
+import { Building2, HardHat, ShoppingCart, Users, Calculator, Layout, Wrench, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DEPT_ICONS: Record<OrgDepartment, React.ComponentType<{ className?: string }>> = {
