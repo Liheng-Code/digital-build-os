@@ -97,7 +97,7 @@ export function DepartmentMembersTab() {
     const exists = (data?.users ?? []).filter((u: { status: string }) => u.status === "exists").length;
     toast.success(
       `Demo data seeded — ${created} new approver(s), ${exists} already existed. ` +
-      `Password for demo accounts: ${data?.password ?? "Demo1234!"}`,
+      `Password for demo accounts: ${data?.password ?? "DcosDemo#2026"}`,
       { duration: 8000 },
     );
     load();

@@ -11,7 +11,7 @@ type AppRole =
   | "admin" | "project_manager" | "engineer" | "supervisor"
   | "worker" | "qaqc_inspector" | "accountant";
 
-const DEMO_PASSWORD = "Demo1234!";
+const DEMO_PASSWORD = "DcosDemo#2026";
 
 interface OrgUser {
   employee_id: string; full_name: string; position: string;
