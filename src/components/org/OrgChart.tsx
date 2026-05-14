@@ -28,16 +28,65 @@ interface Props {
   onAddReport?: (m: OrgMember) => void;
 }
 
+const ORDER_STORAGE_KEY = "org-chart-dept-order-v1";
+const DEFAULT_DEPT_ORDER: OrgDepartment[] = ["architecture", "structural", "procurement", "construction", "hr", "accounting", "mep"];
+
+function loadSavedOrder(): OrgDepartment[] {
+  try {
+    const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+    if (!raw) return DEFAULT_DEPT_ORDER;
+    const parsed = JSON.parse(raw) as OrgDepartment[];
+    const valid = parsed.filter((d) => DEFAULT_DEPT_ORDER.includes(d));
+    DEFAULT_DEPT_ORDER.forEach((d) => { if (!valid.includes(d)) valid.push(d); });
+    return valid;
+  } catch {
+    return DEFAULT_DEPT_ORDER;
+  }
+}
+
 export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartment = "all", compact, highlightId, avatarMap = {}, onAddMember, onAddReport }: Props) {
   const visible = filterDepartment === "all" ? members : members.filter((m) => m.department === filterDepartment || m.department === "management");
   const grouped = membersByDepartment(visible);
 
   // Top management chain (L1 → L2 → L3)
   const mgmt = grouped.management;
-  const departments: OrgDepartment[] = ["architecture", "structural", "procurement", "construction", "hr", "accounting", "mep"];
+
+  const [deptOrder, setDeptOrder] = React.useState<OrgDepartment[]>(loadSavedOrder);
+  const [dragKey, setDragKey] = React.useState<OrgDepartment | null>(null);
+  const [overKey, setOverKey] = React.useState<OrgDepartment | null>(null);
+
+  React.useEffect(() => {
+    localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(deptOrder));
+  }, [deptOrder]);
+
   const visibleDepts = filterDepartment === "all"
-    ? departments
-    : departments.filter((d) => d === filterDepartment);
+    ? deptOrder
+    : deptOrder.filter((d) => d === filterDepartment);
+
+  const handleDragStart = (dept: OrgDepartment) => (e: React.DragEvent) => {
+    setDragKey(dept);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", dept);
+  };
+  const handleDragOver = (dept: OrgDepartment) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (overKey !== dept) setOverKey(dept);
+  };
+  const handleDrop = (dept: OrgDepartment) => (e: React.DragEvent) => {
+    e.preventDefault();
+    const from = dragKey;
+    setDragKey(null);
+    setOverKey(null);
+    if (!from || from === dept) return;
+    setDeptOrder((prev) => {
+      const next = prev.filter((d) => d !== from);
+      const idx = next.indexOf(dept);
+      next.splice(idx, 0, from);
+      return next;
+    });
+  };
+  const handleDragEnd = () => { setDragKey(null); setOverKey(null); };
 
   return (
     <div className="space-y-6">
@@ -56,7 +105,7 @@ export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartme
         </div>
       )}
 
-      {/* Department columns */}
+      {/* Department columns (drag to reorder) */}
       {visibleDepts.length > 0 && (
         <div
           className={cn(
@@ -70,15 +119,31 @@ export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartme
             const tone = ORG_DEPT_TONE[dept];
             const Icon = DEPT_ICONS[dept];
             const list = grouped[dept];
+            const isDragging = dragKey === dept;
+            const isOver = overKey === dept && dragKey !== dept;
             return (
-              <div key={dept} className="flex flex-col rounded-lg border bg-card overflow-hidden">
+              <div
+                key={dept}
+                draggable={filterDepartment === "all"}
+                onDragStart={handleDragStart(dept)}
+                onDragOver={handleDragOver(dept)}
+                onDrop={handleDrop(dept)}
+                onDragEnd={handleDragEnd}
+                onDragLeave={() => overKey === dept && setOverKey(null)}
+                className={cn(
+                  "flex flex-col rounded-lg border bg-card overflow-hidden transition-all",
+                  filterDepartment === "all" && "cursor-grab active:cursor-grabbing",
+                  isDragging && "opacity-50 scale-[0.98]",
+                  isOver && "ring-2 ring-primary ring-offset-1",
+                )}
+              >
                 <div className={cn("flex items-center gap-2 px-3 py-2.5", tone.headerBg, tone.headerFg)}>
                   <Icon className="h-4 w-4" />
                   <span className="text-sm font-bold tracking-wide">{ORG_DEPT_LABELS[dept]}</span>
                   <div className="ml-auto flex items-center gap-1">
                     <span className="text-xs opacity-80">{list.length}</span>
                     {onAddMember && (
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); onAddMember(dept); }}
                         className="p-1 hover:bg-white/20 rounded transition-colors"
                         title={`Add member to ${ORG_DEPT_LABELS[dept]}`}
