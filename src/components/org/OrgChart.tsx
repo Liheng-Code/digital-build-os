@@ -44,7 +44,7 @@ export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartme
           {mgmt.map((m, i) => (
             <React.Fragment key={m.employee_id}>
               <div className="w-full max-w-md">
-                <OrgMemberCard member={m} onClick={onMemberClick} compact={compact} highlight={highlightId === m.employee_id} />
+                <OrgMemberCard member={m} onClick={onMemberClick} compact={compact} highlight={highlightId === m.employee_id} avatarUrl={avatarMap[m.employee_id]} />
               </div>
               {i < mgmt.length - 1 && <div className="h-4 w-px bg-border" aria-hidden />}
             </React.Fragment>
