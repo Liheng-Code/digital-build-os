@@ -48,6 +48,7 @@ export default function Organization() {
   const [members, setMembers] = React.useState<OrgMemberRow[]>([]);
   const [deptDialogOpen, setDeptDialogOpen] = React.useState(false);
   const [editMember, setEditMember] = React.useState<OrgMemberRow | null>(null);
+  const [addMemberOpen, setAddMemberOpen] = React.useState(false);
 
   const loadAll = React.useCallback(async () => {
     const [profilesRes, rolesRes, deptsData, membersData] = await Promise.all([
