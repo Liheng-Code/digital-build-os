@@ -6,11 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Upload, User } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   OrgMemberRow, OrgDepartmentRow,
   updateMemberProfile, uploadMemberAvatar,
 } from "@/services/organizationService";
 import { getInitials } from "@/lib/orgMeta";
+
+const ROLES = ["admin", "project_manager", "engineer", "supervisor", "worker", "qaqc_inspector", "accountant"];
 
 interface Props {
   open: boolean;
