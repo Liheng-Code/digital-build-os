@@ -3,7 +3,7 @@ import {
   ORG_REGISTRY, ORG_DEPT_LABELS, ORG_DEPT_TONE, OrgDepartment, OrgMember, membersByDepartment,
 } from "@/lib/orgMeta";
 import { OrgMemberCard } from "./OrgMemberCard";
-import { Building2, HardHat, ShoppingCart, Users, Calculator, Layout, Wrench, Plus } from "lucide-react";
+import { Building2, HardHat, ShoppingCart, Users, Calculator, Layout, Wrench, Plus, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DEPT_ICONS: Record<OrgDepartment, React.ComponentType<{ className?: string }>> = {
@@ -14,6 +14,7 @@ const DEPT_ICONS: Record<OrgDepartment, React.ComponentType<{ className?: string
   construction: HardHat,
   hr: Users,
   accounting: Calculator,
+  mep: Zap,
 };
 
 interface Props {
@@ -33,7 +34,7 @@ export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartme
 
   // Top management chain (L1 → L2 → L3)
   const mgmt = grouped.management;
-  const departments: OrgDepartment[] = ["architecture", "structural", "procurement", "construction", "hr", "accounting"];
+  const departments: OrgDepartment[] = ["architecture", "structural", "procurement", "construction", "hr", "accounting", "mep"];
   const visibleDepts = filterDepartment === "all"
     ? departments
     : departments.filter((d) => d === filterDepartment);

@@ -47,6 +47,14 @@ const ORG_USERS: OrgUser[] = [
   { employee_id: "C-0025", full_name: "Sovanarith", position: "Account Manager",        department: "account",      level: "L4", report_to: "C-0002", email: "sovanarith@dcos.com", phone: "070777888", role: "accountant" },
   { employee_id: "C-0026", full_name: "Sreymom",    position: "Account Senior",         department: "account",      level: "L5", report_to: "C-0025", email: "sreymom@dcos.com",    phone: "070888999", role: "accountant" },
   { employee_id: "C-0027", full_name: "Rithy",      position: "Account",                department: "account",      level: "L6", report_to: "C-0025", email: "rithy@dcos.com",      phone: "070999000", role: "accountant" },
+  
+  // MEP
+  { employee_id: "C-0028", full_name: "Hanko",      position: "MEP Manager",            department: "mep",          level: "L4", report_to: "C-0003", email: "hanko@dcos.com",      phone: "070111111", role: "project_manager" },
+  { employee_id: "C-0029", full_name: "Seyha",      position: "MEP Senior",             department: "mep",          level: "L5", report_to: "C-0028", email: "seyha@dcos.com",      phone: "070222222", role: "engineer" },
+  { employee_id: "C-0030", full_name: "Samnang",    position: "MEP Design",             department: "mep",          level: "L6", report_to: "C-0029", email: "samnang@dcos.com",    phone: "070333333", role: "engineer" },
+  { employee_id: "C-0031", full_name: "Sophea",     position: "MEP Design",             department: "mep",          level: "L6", report_to: "C-0029", email: "sophea@dcos.com",     phone: "070444444", role: "engineer" },
+  { employee_id: "C-0032", full_name: "Nita",       position: "MEP Design",             department: "mep",          level: "L6", report_to: "C-0029", email: "nita@dcos.com",       phone: "070555555", role: "engineer" },
+  { employee_id: "C-0033", full_name: "Vanchhouy",  position: "MEP Design",             department: "mep",          level: "L6", report_to: "C-0029", email: "vanchhouy@dcos.com",  phone: "070666666", role: "engineer" },
 ];
 
 Deno.serve(async (req) => {
