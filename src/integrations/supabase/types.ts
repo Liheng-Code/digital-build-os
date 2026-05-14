@@ -3813,6 +3813,42 @@ export type Database = {
         }
         Relationships: []
       }
+      org_departments: {
+        Row: {
+          color_token: string
+          created_at: string
+          icon_key: string
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color_token?: string
+          created_at?: string
+          icon_key?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color_token?: string
+          created_at?: string
+          icon_key?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pay_rates: {
         Row: {
           created_at: string
