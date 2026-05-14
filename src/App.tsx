@@ -9,6 +9,7 @@ import { ProjectProvider } from "@/contexts/ProjectContext";
 import { ViewportGuard } from "@/components/ViewportGuard";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
+import { RouteHead } from "@/components/RouteHead";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Architecture from "./pages/Architecture";
@@ -94,6 +95,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <ProjectProvider>
+              <RouteHead />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
