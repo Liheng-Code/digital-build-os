@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Plus } from "lucide-react";
 import { OrgMember, ORG_DEPT_TONE, getInitials } from "@/lib/orgMeta";
 import { cn } from "@/lib/utils";
 
