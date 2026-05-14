@@ -79,7 +79,7 @@ export function OrgChart({ members = ORG_REGISTRY, onMemberClick, filterDepartme
                     <div className="py-6 text-center text-xs text-muted-foreground">No members</div>
                   ) : (
                     list.map((m) => (
-                      <OrgMemberCard key={m.employee_id} member={m} onClick={onMemberClick} compact highlight={highlightId === m.employee_id} />
+                      <OrgMemberCard key={m.employee_id} member={m} onClick={onMemberClick} compact highlight={highlightId === m.employee_id} avatarUrl={avatarMap[m.employee_id]} />
                     ))
                   )}
                 </div>
