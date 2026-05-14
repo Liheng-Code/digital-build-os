@@ -239,13 +239,36 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
               <Input value={form.emergency_phone ?? ""} onChange={(e) => setForm({ ...form, emergency_phone: e.target.value })} />
             </div>
           </div>
+
+          {isCreate && (
+            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-3">
+              <div>
+                <Label>Initial role</Label>
+                <Select value={createRole} onValueChange={setCreateRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, " ")}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Password (optional)</Label>
+                <Input
+                  type="text"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  placeholder="Defaults to demo password"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={onSave} disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save changes
+            {isCreate ? "Create member" : "Save changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
