@@ -113,7 +113,7 @@ export default function Projects() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
+          <h1 className="text-3xl font-bold">Project Directory</h1>
           <p className="text-muted-foreground">
             All construction projects across the company.
           </p>

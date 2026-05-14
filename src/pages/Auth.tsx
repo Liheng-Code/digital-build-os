@@ -127,6 +127,7 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      <h1 className="sr-only">BuildTrack — Sign in</h1>
       {/* Brand panel */}
       <div className="hidden lg:flex flex-col justify-between bg-gradient-primary text-primary-foreground p-12">
         <div className="flex items-center gap-3">
