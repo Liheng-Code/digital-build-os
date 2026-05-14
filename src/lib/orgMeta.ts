@@ -101,7 +101,7 @@ export const ORG_REGISTRY: OrgMember[] = [
   { employee_id: "C-0027", full_name: "Rithy",    position: "Account",                department: "account",      level: "L6", report_to: "C-0025", email: "rithy@dcos.com",    phone: "070999000", app_role: "accountant" },
 ];
 
-export const DEMO_PASSWORD = "Demo1234!";
+export const DEMO_PASSWORD = "DcosDemo#2026";
 
 export function getInitials(name: string): string {
   return name

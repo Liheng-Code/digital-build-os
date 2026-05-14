@@ -11,7 +11,7 @@ type AppRole =
   | "admin" | "project_manager" | "engineer" | "supervisor"
   | "worker" | "qaqc_inspector" | "accountant";
 
-const DEMO_PASSWORD = "Demo1234!";
+const DEMO_PASSWORD = "DcosDemo#2026";
 
 interface OrgUser {
   employee_id: string; full_name: string; position: string;
@@ -58,13 +58,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const results: Array<{ employee_id: string; email: string; status: string }> = [];
-
     const { data: existingList, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (listErr) throw listErr;
     const byEmail = new Map(existingList.users.map((u) => [u.email?.toLowerCase(), u]));
 
-    for (const u of ORG_USERS) {
+    const processOne = async (u: OrgUser): Promise<{ employee_id: string; email: string; status: string }> => {
       let userId: string;
       const existing = byEmail.get(u.email.toLowerCase());
 
@@ -84,7 +82,7 @@ Deno.serve(async (req) => {
           user_metadata: { full_name: u.full_name },
         });
         if (createErr) throw new Error(`Create ${u.email}: ${createErr.message}`);
-        userId = created.user.id;
+        userId = created!.user.id;
       }
 
       const { error: profErr } = await supabase.from("profiles").upsert({
@@ -99,19 +97,27 @@ Deno.serve(async (req) => {
       });
       if (profErr) throw new Error(`Profile ${u.email}: ${profErr.message}`);
 
-      // Ensure desired role
       const { error: roleErr } = await supabase
         .from("user_roles")
         .upsert({ user_id: userId, role: u.role }, { onConflict: "user_id,role" });
       if (roleErr) throw new Error(`Role ${u.email}: ${roleErr.message}`);
 
-      // Strip auto-assigned 'worker' role for non-worker users
       if (u.role !== "worker") {
         await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "worker");
       }
 
-      results.push({ employee_id: u.employee_id, email: u.email, status: existing ? "updated" : "created" });
+      return { employee_id: u.employee_id, email: u.email, status: existing ? "updated" : "created" };
+    };
+
+    // Run in small parallel batches to stay within edge runtime time limits
+    const BATCH = 6;
+    const results: Array<{ employee_id: string; email: string; status: string }> = [];
+    for (let i = 0; i < ORG_USERS.length; i += BATCH) {
+      const slice = ORG_USERS.slice(i, i + BATCH);
+      const batchResults = await Promise.all(slice.map(processOne));
+      results.push(...batchResults);
     }
+
 
     return new Response(
       JSON.stringify({ success: true, password: DEMO_PASSWORD, count: results.length, users: results }),

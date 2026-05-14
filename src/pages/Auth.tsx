@@ -78,7 +78,7 @@ export default function Auth() {
     const passwordInput = document.getElementById("signin-password") as HTMLInputElement;
     if (emailInput && passwordInput) {
       emailInput.value = email;
-      passwordInput.value = "Demo1234!";
+      passwordInput.value = "DcosDemo#2026";
       passwordInput.focus();
     }
   };
@@ -222,7 +222,7 @@ export default function Auth() {
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3 text-center">Password for all: <span className="font-mono font-medium text-foreground">Demo1234!</span></p>
+                    <p className="text-xs text-muted-foreground mt-3 text-center">Password for all: <span className="font-mono font-medium text-foreground">DcosDemo#2026</span></p>
                   </div>
                 </TabsContent>
 
