@@ -229,6 +229,16 @@ export default function Organization() {
         onSaved={loadAll}
       />
 
+      {/* Add member */}
+      <MemberFormDialog
+        open={addMemberOpen}
+        onOpenChange={setAddMemberOpen}
+        member={null}
+        departments={departments}
+        members={members}
+        onSaved={loadAll}
+      />
+
       {/* Org chart click → detail sheet */}
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
