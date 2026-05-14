@@ -27,9 +27,19 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
     return map;
   }, [members]);
 
+  const scopedMembers = React.useMemo(() => {
+    return members.filter((m) => {
+      const id = m.employee_id ?? "";
+      const match = /^C-(\d{4})$/.exec(id);
+      if (!match) return false;
+      const n = parseInt(match[1], 10);
+      return n >= 1 && n <= 27;
+    });
+  }, [members]);
+
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
-    return members.filter((m) => {
+    return scopedMembers.filter((m) => {
       if (dept !== "all" && m.department !== dept) return false;
       if (!q) return true;
       return (
