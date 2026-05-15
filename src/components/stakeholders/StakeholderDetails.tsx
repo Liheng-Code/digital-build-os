@@ -793,6 +793,13 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Stakeholder Dialog */}
+      <StakeholderDialog
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        stakeholder={stakeholder}
+      />
     </>
   );
 }
