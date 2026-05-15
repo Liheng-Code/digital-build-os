@@ -192,7 +192,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
           {/* Fields */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between h-5">
                 <Label>Employee ID</Label>
                 {isCreate && (
                   <div className="flex items-center gap-2">
@@ -209,8 +209,10 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
                 className={isCreate && isAutoId ? "bg-muted font-mono" : "font-mono"}
               />
             </div>
-            <div className="space-y-1.5 pt-[1.65rem]">
-              <Label>Full name</Label>
+            <div className="space-y-1.5">
+              <div className="flex items-center h-5">
+                <Label>Full name</Label>
+              </div>
               <Input value={form.full_name ?? ""} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
             </div>
             <div>
