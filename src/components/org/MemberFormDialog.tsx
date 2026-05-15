@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Upload, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,22 +34,40 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
   const [form, setForm] = React.useState<Partial<OrgMemberRow>>({});
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
+  const [isAutoId, setIsAutoId] = React.useState(true);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const [createRole, setCreateRole] = React.useState<string>("worker");
   const [createPassword, setCreatePassword] = React.useState<string>("");
 
+  const nextId = React.useMemo(() => {
+    if (!members || members.length === 0) return "C-0001";
+    const ids = members
+      .map(m => {
+        const match = (m.employee_id || "").match(/C-(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+    const max = ids.length > 0 ? Math.max(...ids) : 0;
+    return `C-${(max + 1).toString().padStart(4, "0")}`;
+  }, [members]);
+
   React.useEffect(() => {
-    if (member) setForm({ ...member });
-    else setForm({ 
-      employment_status: "active", 
-      level: "L6", 
-      department: defaultDepartment || undefined,
-      report_to_employee_id: defaultReportTo || undefined
-    });
+    if (member) {
+      setForm({ ...member });
+      setIsAutoId(false);
+    } else {
+      setForm({ 
+        employment_status: "active", 
+        level: "L6", 
+        department: defaultDepartment || undefined,
+        report_to_employee_id: defaultReportTo || undefined,
+        employee_id: isAutoId ? nextId : ""
+      });
+    }
     setCreatePassword("");
     setCreateRole("worker");
-  }, [member, open, defaultDepartment, defaultReportTo]);
+  }, [member, open, defaultDepartment, defaultReportTo, nextId, isAutoId]);
 
   const isCreate = !member;
 
@@ -172,11 +191,25 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
 
           {/* Fields */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Employee ID</Label>
-              <Input value={form.employee_id ?? ""} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} placeholder="C-0028" />
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Employee ID</Label>
+                {isCreate && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="auto-id" checked={isAutoId} onCheckedChange={(c) => setIsAutoId(!!c)} />
+                    <Label htmlFor="auto-id" className="text-[10px] font-normal cursor-pointer">Auto ID</Label>
+                  </div>
+                )}
+              </div>
+              <Input 
+                value={form.employee_id ?? ""} 
+                onChange={(e) => setForm({ ...form, employee_id: e.target.value })} 
+                placeholder="C-0028"
+                disabled={isCreate && isAutoId}
+                className={isCreate && isAutoId ? "bg-muted font-mono" : "font-mono"}
+              />
             </div>
-            <div>
+            <div className="space-y-1.5 pt-[1.65rem]">
               <Label>Full name</Label>
               <Input value={form.full_name ?? ""} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
             </div>
