@@ -503,6 +503,7 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
                 )}
               </div>
             </TabsContent>
+          </Tabs>
       </div>
     </div>
   );
