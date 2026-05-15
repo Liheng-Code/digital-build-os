@@ -111,6 +111,8 @@ export const ORG_REGISTRY: OrgMember[] = [
   { employee_id: "C-0031", full_name: "Sophea",    position: "MEP Design",            department: "mep",          level: "L6", report_to: "C-0029", email: "sophea@dcos.com",   phone: "070444444", app_role: "engineer" },
   { employee_id: "C-0032", full_name: "Nita",      position: "MEP Design",            department: "mep",          level: "L6", report_to: "C-0029", email: "nita@dcos.com",     phone: "070555555", app_role: "engineer" },
   { employee_id: "C-0033", full_name: "Vanchhouy", position: "MEP Design",            department: "mep",          level: "L6", report_to: "C-0029", email: "vanchhouy@dcos.com", phone: "070666666", app_role: "engineer" },
+  { employee_id: "C-0034", full_name: "Nisa",      position: "Resigned Staff",        department: "hr",           level: "L6", report_to: null,     email: "nisa@resigned.com",   phone: "000000000", app_role: "worker" },
+  { employee_id: "C-0035", full_name: "Soklay",    position: "Resigned Staff",        department: "hr",           level: "L6", report_to: null,     email: "soklay@resigned.com", phone: "000000000", app_role: "worker" },
 ];
 
 export const DEMO_PASSWORD = "DcosDemo#2026";
