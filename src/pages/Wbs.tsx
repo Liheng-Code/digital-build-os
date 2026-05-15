@@ -192,6 +192,10 @@ export default function WbsPage() {
     return rows.filter(row => row.kind !== "task" || filteredTaskIds.has(row.id));
   }, [rows, filteredTasks]);
 
+  const leftGanttBodyRef = React.useRef<HTMLDivElement>(null);
+  const rightGanttBodyRef = React.useRef<HTMLDivElement>(null);
+  const syncingPaneRef = React.useRef<"left" | "right" | null>(null);
+
   const toggleTree = () => {
     const next = !treeOpen;
     setTreeOpen(next);
