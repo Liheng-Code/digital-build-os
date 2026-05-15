@@ -32,7 +32,7 @@ import { ImportTemplateDialog } from "@/components/wbs/ImportTemplateDialog";
 import { DEPARTMENT_LABELS, Department } from "@/lib/departmentMeta";
 import { buildGanttRows, GanttRow } from "@/lib/wbsGanttRows";
 import {
-  Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare, Activity,
+  Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare, Activity, FolderTree,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WBS_NODE_TYPE_LABELS, WbsNodeType } from "@/lib/wbsMeta";
