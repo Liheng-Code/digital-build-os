@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useStakeholders } from "@/hooks/useStakeholders";
+import { StakeholderDialog } from "./StakeholderDialog";
 
 interface StakeholderListProps {
   stakeholders: Stakeholder[];
@@ -29,6 +30,7 @@ interface StakeholderListProps {
 
 export function StakeholderList({ stakeholders, onViewDetails, selectedId }: StakeholderListProps) {
   const { deleteStakeholder } = useStakeholders();
+  const [editing, setEditing] = React.useState<Stakeholder | null>(null);
 
   return (
     <div className="rounded-md border bg-card overflow-hidden">
@@ -106,7 +108,7 @@ export function StakeholderList({ stakeholders, onViewDetails, selectedId }: Sta
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onViewDetails(s)}>
+                      <DropdownMenuItem onClick={() => setEditing(s)}>
                         <Edit2 className="h-4 w-4 mr-2" /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem 
@@ -134,6 +136,11 @@ export function StakeholderList({ stakeholders, onViewDetails, selectedId }: Sta
           )}
         </TableBody>
       </Table>
+      <StakeholderDialog
+        open={!!editing}
+        onOpenChange={(o) => !o && setEditing(null)}
+        stakeholder={editing}
+      />
     </div>
   );
 }
