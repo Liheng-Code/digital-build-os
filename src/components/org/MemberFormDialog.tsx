@@ -41,14 +41,19 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
   const [createPassword, setCreatePassword] = React.useState<string>("");
 
   const nextId = React.useMemo(() => {
-    if (!members || members.length === 0) return "C-0001";
-    const ids = members
-      .map(m => {
-        const match = (m.employee_id || "").match(/C-(\d+)/);
+    // Combine IDs from both database members and the static registry
+    const dbIds = (members || []).map(m => m.employee_id || "");
+    const registryIds = ORG_REGISTRY.map(m => m.employee_id);
+    const allIds = [...dbIds, ...registryIds];
+
+    const numbers = allIds
+      .map(id => {
+        const match = id.match(/C-(\d+)/);
         return match ? parseInt(match[1], 10) : 0;
       })
       .filter(n => n > 0);
-    const max = ids.length > 0 ? Math.max(...ids) : 0;
+    
+    const max = numbers.length > 0 ? Math.max(...numbers) : 0;
     return `C-${(max + 1).toString().padStart(4, "0")}`;
   }, [members]);
 
