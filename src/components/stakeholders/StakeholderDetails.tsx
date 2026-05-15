@@ -7,7 +7,11 @@ import {
   Stakeholder, 
   STAKEHOLDER_TYPE_LABELS, 
   STAKEHOLDER_STATUS_COLORS,
-  PROJECT_ROLE_OPTIONS
+  PROJECT_ROLE_OPTIONS,
+  APPROVAL_LEVEL_LABELS,
+  WORKFLOW_LABELS,
+  ApprovalLevel,
+  ProjectStakeholder,
 } from "@/lib/stakeholderMeta";
 import { 
   useStakeholderContacts, 
@@ -20,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Plus, Mail, Phone, MapPin, Building2, UserPlus, 
   Link as LinkIcon, ExternalLink, Trash2, Save, X, 
-  ChevronRight, Loader2
+  ChevronRight, Loader2, ShieldCheck, Edit2, Pencil
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +38,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WbsNodePicker } from "@/components/wbs/WbsNodePicker";
+import { StakeholderDialog } from "./StakeholderDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -50,6 +56,7 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
   const [isEditingNotes, setIsEditingNotes] = React.useState(false);
   const [notes, setNotes] = React.useState("");
   const [editingAssignment, setEditingAssignment] = React.useState<ProjectStakeholder | null>(null);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
 
   const stakeholderId = stakeholder?.id;
   const { contactsQuery, createContact, deleteContact } = useStakeholderContacts(stakeholderId);
@@ -159,11 +166,17 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
               {stakeholder.status}
             </Badge>
           </div>
-          {mode === "panel" && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
             </Button>
-          )}
+            {mode === "panel" && (
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onOpenChange(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight">{stakeholder.organization_name}</h2>
@@ -503,6 +516,7 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
                 )}
               </div>
             </TabsContent>
+          </Tabs>
       </div>
     </div>
   );
@@ -779,6 +793,13 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Stakeholder Dialog */}
+      <StakeholderDialog
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        stakeholder={stakeholder}
+      />
     </>
   );
 }
