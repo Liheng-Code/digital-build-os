@@ -1,79 +1,41 @@
+# Stakeholder — Full Edit Functionality
 
-## Recommendation on scope
+## Problem
+On `/stakeholders`, the "Edit" action in the row dropdown only opens the read-only details panel. There is no way to update an existing stakeholder's core fields (name, type, email, phone, address, status). Only the `notes` field is editable today.
 
-Your question — "what's the real practical use case?" My recommendation:
+The mutation `updateStakeholder` already exists in `useStakeholders` — it just isn't wired to a UI form.
 
-**Merge into a single page: `Organization` (replaces Team & Roles)** with two tabs:
-- **Org Chart** — the visual hierarchy from your reference image (MD → GM → PM → 6 departments)
-- **Permissions Matrix** — the existing matrix, kept intact but rendered inside the same page
+## Goal
+Add a working Edit dialog so users can update all stakeholder core fields, and wire it to:
+- The "Edit" item in the row dropdown menu (`StakeholderList`)
+- A new "Edit" button in the details panel header (`StakeholderDetails`)
 
-Why: admins almost always toggle between "who is this person / what dept" and "what can their role do." Splitting them across two sidebar items forces context-switching. The standalone Permissions page becomes redundant and is removed from the sidebar.
+## Scope
+Frontend only. No schema or service changes.
 
-## What gets built
+## Changes
 
-### 1. Seed 27 staff into the database
+1. **Refactor `StakeholderDialog.tsx`** to support both Create and Edit modes
+   - Accept an optional `stakeholder?: Stakeholder` prop
+   - When provided: title becomes "Edit Stakeholder", form fields pre-fill from the stakeholder, includes a Status select (active / inactive / blacklisted), submits via `updateStakeholder.mutateAsync({ id, ...data })`
+   - When omitted: existing create flow unchanged
 
-Migration + seed insert:
-- 27 rows in `profiles` with `employee_id` = `C-0001`…`C-0027`, `full_name`, `email`, `phone`, `job_title`, `department`
-- Add new columns to `profiles` if missing: `report_to_employee_id text`, `level text` (L1–L6), `avatar_seed text`
-- 27 corresponding `auth.users` (email + a shared demo password like `Demo1234!`) created via the existing `seed-demo-users` edge function pattern
-- 27 `user_roles` rows mapping department → app_role:
-  - Management (MD/GM/PM) → `admin` / `project_manager`
-  - Architecture, Structural → `engineer`
-  - Procurement → `project_manager` (for managers) / `engineer`
-  - Construction → `supervisor` / `engineer`
-  - HR → `admin` for HR Manager, else `worker`
-  - Account → `accountant`
+2. **`StakeholderList.tsx`**
+   - Add local state for the stakeholder being edited
+   - "Edit" dropdown item opens the dialog in edit mode (instead of opening details)
+   - Render `<StakeholderDialog>` in edit mode at the bottom
 
-### 2. New page `src/pages/Organization.tsx` (replaces `Team.tsx`)
+3. **`StakeholderDetails.tsx`**
+   - Add an "Edit" button in the panel header (next to the close button)
+   - Clicking it opens the same `StakeholderDialog` pre-filled for the current stakeholder
+   - On save, panel reflects the updated values via existing react-query invalidation
 
-Tabs:
-- **Org Chart tab** — the hierarchy laid out exactly like your reference:
-  - Top: 3 stacked cards (MD → GM → PM) with vertical connectors
-  - Below: 6 department columns (Architecture / Structural / Procurement / Construction / HR / Account), each with a colored header (using existing `departmentMeta` tones) and member cards underneath
-  - Each card: ID badge (`C-0004`), avatar (initials in dept-colored circle), name, job title, role badge
-  - Click a card → opens `MemberDetailSheet` showing email, phone, roles, and an "Add/Remove role" inline editor (today's Team page functionality preserved)
-- **Permissions tab** — unchanged matrix from `Permissions.tsx`, embedded as a child component
-- Sidebar entries: keep "Organization", remove "Team & Roles" and "Permissions" links
+## Out of scope
+- Editing contacts / project assignments (already have their own dialogs)
+- Bulk edit
+- Changing the underlying create/update mutation behavior
 
-### 3. Demo landing on `/auth`
-
-When the user is signed out and on `/auth`, show a new **Demo Login** panel above (or replacing) the email/password form:
-- Heading: "Sign in as a demo user"
-- **Department dropdown filter** (All / Management / Architecture / Structural / Procurement / Construction / HR / Account)
-- Below it: org chart (compact version reusing the same component) filtered to selected department
-- Click any person card → auto-fills email + demo password and immediately calls `supabase.auth.signInWithPassword` → redirects to `/`
-- Existing manual email/password form stays below in a collapsed "Sign in manually" disclosure
-
-### 4. Photos
-
-Your reference image uses stock photos that aren't licensed for embedding. Plan: **initials avatars in department-tinted circles** (matching the visual rhythm of the chart). The original org chart image is decorative and will appear as a hero banner on the Organization page only. If you prefer real photos later, you can upload individual headshots and we'll swap them in.
-
-## Technical bits
-
-```text
-Files added
-  src/pages/Organization.tsx           (new, replaces Team)
-  src/components/org/OrgChart.tsx      (visual hierarchy, reusable)
-  src/components/org/OrgMemberCard.tsx
-  src/components/org/DemoLoginPanel.tsx
-  supabase migration: add profiles.report_to_employee_id, level, avatar_seed
-  supabase insert: 27 profiles + user_roles
-  edge function call: seed 27 auth users with shared demo password
-
-Files edited
-  src/App.tsx                  swap /team route → /organization, drop /permissions
-  src/components/AppLayout.tsx sidebar: remove Team/Permissions, add Organization
-  src/pages/Auth.tsx           mount <DemoLoginPanel /> above the form
-  src/components/RouteHead.tsx add /organization metadata
-
-Files removed
-  src/pages/Team.tsx
-  src/pages/Permissions.tsx (logic folded into Organization tab)
-```
-
-Departments map to roles via a single `DEPT_TO_ROLE` table in `src/lib/orgMeta.ts` so the seed and UI stay consistent.
-
-## Open question before I build
-
-The 27 demo emails (`liheng@dcos.com`, etc.) — should I create them as **real auth users** with a shared password `Demo1234!` (so click-to-login works), or do you have a different password convention you want me to use? Reply with "Demo1234! is fine" or give me the password you want.
+## Technical notes
+- Reuse the existing `stakeholderSchema` (zod) — extend it to optionally include `status` for edit
+- Keep the `Add Stakeholder` button on the page header working as today
+- All styling stays with semantic Tailwind tokens already used by the dialog
