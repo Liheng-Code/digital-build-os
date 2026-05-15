@@ -7,7 +7,11 @@ import {
   Stakeholder, 
   STAKEHOLDER_TYPE_LABELS, 
   STAKEHOLDER_STATUS_COLORS,
-  PROJECT_ROLE_OPTIONS
+  PROJECT_ROLE_OPTIONS,
+  APPROVAL_LEVEL_LABELS,
+  WORKFLOW_LABELS,
+  ApprovalLevel,
+  ProjectStakeholder,
 } from "@/lib/stakeholderMeta";
 import { 
   useStakeholderContacts, 
@@ -20,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Plus, Mail, Phone, MapPin, Building2, UserPlus, 
   Link as LinkIcon, ExternalLink, Trash2, Save, X, 
-  ChevronRight, Loader2
+  ChevronRight, Loader2, ShieldCheck, Edit2, Pencil
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +38,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WbsNodePicker } from "@/components/wbs/WbsNodePicker";
+import { StakeholderDialog } from "./StakeholderDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
