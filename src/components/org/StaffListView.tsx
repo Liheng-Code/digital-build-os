@@ -20,6 +20,7 @@ interface Props {
 export function StaffListView({ members, departments, onEdit, canEdit }: Props) {
   const [search, setSearch] = React.useState("");
   const [dept, setDept] = React.useState<string>("all");
+  const [status, setStatus] = React.useState<string>("all");
 
   const memberById = React.useMemo(() => {
     const map: Record<string, OrgMemberRow> = {};
@@ -27,10 +28,13 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
     return map;
   }, [members]);
 
+  const STATUS_OPTIONS = ["active", "probation", "on_leave", "inactive", "terminated", "resigned"];
+
   const filtered = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     return members.filter((m) => {
       if (dept !== "all" && m.department !== dept) return false;
+      if (status !== "all" && m.employment_status !== status) return false;
       if (!q) return true;
       return (
         m.full_name.toLowerCase().includes(q) ||
@@ -39,15 +43,16 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
         (m.job_title ?? "").toLowerCase().includes(q)
       );
     });
-  }, [members, search, dept]);
+  }, [members, search, dept, status]);
 
   const exportCsv = () => {
-    const cols = ["employee_id", "full_name", "job_title", "department", "level", "email", "phone", "report_to", "roles"];
+    const cols = ["employee_id", "full_name", "job_title", "department", "status", "level", "email", "phone", "report_to", "roles"];
     const rows = filtered.map((m) => [
       m.employee_id ?? "",
       m.full_name,
       m.job_title ?? "",
       m.department ?? "",
+      m.employment_status ?? "active",
       m.level ?? "",
       m.email ?? "",
       m.phone ?? "",
@@ -70,11 +75,20 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, ID, email, job title..." className="pl-8" />
         </div>
         <Select value={dept} onValueChange={setDept}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Department" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All departments</SelectItem>
             {departments.map((d) => (
               <SelectItem key={d.key} value={d.key}>{d.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s} value={s}>{s.replace(/_/g, " ").charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ")}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -93,6 +107,7 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
               <TableHead>Name</TableHead>
               <TableHead>Position</TableHead>
               <TableHead>Department</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Level</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
@@ -104,7 +119,7 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 11 : 10} className="text-center text-sm text-muted-foreground py-10">
+                <TableCell colSpan={canEdit ? 12 : 11} className="text-center text-sm text-muted-foreground py-10">
                   No staff match the filters.
                 </TableCell>
               </TableRow>
@@ -130,6 +145,11 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
                           {departments.find((d) => d.key === m.department)?.label ?? m.department}
                         </Badge>
                       ) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={m.employment_status === "active" ? "success" : m.employment_status === "resigned" ? "destructive" : "outline"} className="text-[10px] capitalize">
+                        {m.employment_status?.replace(/_/g, " ") ?? "active"}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-xs">{m.level ?? "—"}</TableCell>
                     <TableCell className="text-xs">
