@@ -2728,6 +2728,44 @@ export type Database = {
           },
         ]
       }
+      labor_catalogs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          project_id: string
+          role_name: string
+          standard_rate: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id: string
+          role_name: string
+          standard_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          project_id?: string
+          role_name?: string
+          standard_rate?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_catalogs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       labor_rates: {
         Row: {
           created_at: string
@@ -6928,6 +6966,64 @@ export type Database = {
           },
           {
             foreignKeyName: "task_predecessors_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_resources: {
+        Row: {
+          actual_man_hours: number
+          created_at: string
+          id: string
+          labor_role_id: string
+          notes: string | null
+          planned_count: number
+          planned_man_hours: number
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          actual_man_hours?: number
+          created_at?: string
+          id?: string
+          labor_role_id: string
+          notes?: string | null
+          planned_count?: number
+          planned_man_hours?: number
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          actual_man_hours?: number
+          created_at?: string
+          id?: string
+          labor_role_id?: string
+          notes?: string | null
+          planned_count?: number
+          planned_man_hours?: number
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_resources_labor_role_id_fkey"
+            columns: ["labor_role_id"]
+            isOneToOne: false
+            referencedRelation: "labor_catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_resources_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_cost_summaries"
+            referencedColumns: ["task_id"]
+          },
+          {
+            foreignKeyName: "task_resources_task_id_fkey"
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
