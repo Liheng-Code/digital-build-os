@@ -56,6 +56,7 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
   const [isEditingNotes, setIsEditingNotes] = React.useState(false);
   const [notes, setNotes] = React.useState("");
   const [editingAssignment, setEditingAssignment] = React.useState<ProjectStakeholder | null>(null);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
 
   const stakeholderId = stakeholder?.id;
   const { contactsQuery, createContact, deleteContact } = useStakeholderContacts(stakeholderId);
@@ -165,11 +166,17 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
               {stakeholder.status}
             </Badge>
           </div>
-          {mode === "panel" && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
             </Button>
-          )}
+            {mode === "panel" && (
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onOpenChange(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="space-y-1">
           <h2 className="text-2xl font-bold tracking-tight">{stakeholder.organization_name}</h2>
