@@ -8406,7 +8406,12 @@ export type Database = {
       dsr_severity: "low" | "med" | "high"
       dsr_site_status: "working" | "partial" | "closed"
       dsr_status: "draft" | "submitted" | "approved" | "rejected"
-      employment_status: "active" | "probation" | "inactive" | "terminated"
+      employment_status:
+        | "active"
+        | "probation"
+        | "inactive"
+        | "terminated"
+        | "resigned"
       incident_severity: "low" | "medium" | "high" | "critical"
       incident_type:
         | "near_miss"
@@ -8892,7 +8897,13 @@ export const Constants = {
       dsr_severity: ["low", "med", "high"],
       dsr_site_status: ["working", "partial", "closed"],
       dsr_status: ["draft", "submitted", "approved", "rejected"],
-      employment_status: ["active", "probation", "inactive", "terminated"],
+      employment_status: [
+        "active",
+        "probation",
+        "inactive",
+        "terminated",
+        "resigned",
+      ],
       incident_severity: ["low", "medium", "high", "critical"],
       incident_type: [
         "near_miss",
