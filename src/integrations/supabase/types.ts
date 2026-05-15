@@ -4362,27 +4362,42 @@ export type Database = {
       }
       project_stakeholders: {
         Row: {
+          access_level: string | null
           added_at: string
           approval_authority: boolean
+          approval_level: string | null
+          discipline: string | null
           id: string
           project_id: string
           project_role: string | null
+          responsibilities: Json | null
+          restricted_wbs_ids: string[] | null
           stakeholder_id: string
         }
         Insert: {
+          access_level?: string | null
           added_at?: string
           approval_authority?: boolean
+          approval_level?: string | null
+          discipline?: string | null
           id?: string
           project_id: string
           project_role?: string | null
+          responsibilities?: Json | null
+          restricted_wbs_ids?: string[] | null
           stakeholder_id: string
         }
         Update: {
+          access_level?: string | null
           added_at?: string
           approval_authority?: boolean
+          approval_level?: string | null
+          discipline?: string | null
           id?: string
           project_id?: string
           project_role?: string | null
+          responsibilities?: Json | null
+          restricted_wbs_ids?: string[] | null
           stakeholder_id?: string
         }
         Relationships: [
