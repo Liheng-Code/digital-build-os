@@ -179,7 +179,27 @@ export function useStakeholderProjects(stakeholderId?: string) {
     },
   });
 
-  return { stakeholderProjectsQuery, linkProject, unlinkProject };
+  const updateAssignment = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<ProjectStakeholder> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("project_stakeholders")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stakeholder-projects", stakeholderId] });
+      toast.success("Assignment updated successfully");
+    },
+    onError: (error) => {
+      toast.error(`Error updating assignment: ${error.message}`);
+    },
+  });
+
+  return { stakeholderProjectsQuery, linkProject, unlinkProject, updateAssignment };
 }
 
 export function useProjectStakeholders(projectId?: string) {

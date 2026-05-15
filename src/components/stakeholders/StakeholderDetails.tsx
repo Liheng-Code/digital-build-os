@@ -49,10 +49,11 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
   const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false);
   const [isEditingNotes, setIsEditingNotes] = React.useState(false);
   const [notes, setNotes] = React.useState("");
+  const [editingAssignment, setEditingAssignment] = React.useState<ProjectStakeholder | null>(null);
 
   const stakeholderId = stakeholder?.id;
   const { contactsQuery, createContact, deleteContact } = useStakeholderContacts(stakeholderId);
-  const { stakeholderProjectsQuery, linkProject, unlinkProject } = useStakeholderProjects(stakeholderId);
+  const { stakeholderProjectsQuery, linkProject, unlinkProject, updateAssignment } = useStakeholderProjects(stakeholderId);
   const { updateStakeholder } = useStakeholders();
   const { projects } = useProjects();
 
@@ -114,6 +115,35 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
     try {
       await linkProject.mutateAsync(data);
       setIsLinkDialogOpen(false);
+    } catch (err) {}
+  };
+
+  const handleUpdateAssignment = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingAssignment) return;
+
+    const fd = new FormData(e.currentTarget);
+    const responsibilities = {
+      executes_tasks: fd.get("wf_executes_tasks") === "on",
+      reviews_rfis: fd.get("wf_reviews_rfis") === "on",
+      approves_inspections: fd.get("wf_approves_inspections") === "on",
+      receives_transmittals: fd.get("wf_receives_transmittals") === "on",
+      procurement_involvement: fd.get("wf_procurement_involvement") === "on",
+      safety_oversight: fd.get("wf_safety_oversight") === "on",
+    };
+
+    const updates = {
+      id: editingAssignment.id,
+      project_role: fd.get("project_role") as string,
+      discipline: fd.get("discipline") as string,
+      approval_level: fd.get("approval_level") as ApprovalLevel,
+      approval_authority: (fd.get("approval_level") as string) !== "none",
+      responsibilities: responsibilities as any,
+    };
+
+    try {
+      await updateAssignment.mutateAsync(updates);
+      setEditingAssignment(null);
     } catch (err) {}
   };
 
@@ -351,7 +381,12 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
                         </div>
                         
                         <div className="pt-2">
-                          <Button variant="ghost" size="sm" className="w-full h-8 text-[11px] gap-2 text-primary border border-dashed hover:bg-primary/5">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full h-8 text-[11px] gap-2 text-primary border border-dashed hover:bg-primary/5"
+                            onClick={() => setEditingAssignment(lp)}
+                          >
                             <Edit2 className="h-3 w-3" />
                             Manage Controls & Restrictions
                           </Button>
@@ -625,6 +660,123 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Assignment Dialog */}
+      <Dialog open={!!editingAssignment} onOpenChange={(o) => !o && setEditingAssignment(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Controls & Restrictions</DialogTitle>
+          </DialogHeader>
+          {editingAssignment && (
+            <form onSubmit={handleUpdateAssignment} className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Stakeholder Role *</Label>
+                  <Select name="project_role" defaultValue={editingAssignment.project_role || PROJECT_ROLE_OPTIONS[0]} required>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Pick a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROJECT_ROLE_OPTIONS.map(role => (
+                        <SelectItem key={role} value={role} className="text-xs">{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Discipline</Label>
+                  <Select name="discipline" defaultValue={editingAssignment.discipline || "General"}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Pick a discipline" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="General" className="text-xs">General / All</SelectItem>
+                      <SelectItem value="ARC" className="text-xs">Architectural (ARC)</SelectItem>
+                      <SelectItem value="STR" className="text-xs">Structural (STR)</SelectItem>
+                      <SelectItem value="MEP" className="text-xs">Mechanical/Elec (MEP)</SelectItem>
+                      <SelectItem value="CIV" className="text-xs">Civil / Infrastructure</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Approval Authority Level</Label>
+                <Select name="approval_level" defaultValue={editingAssignment.approval_level || "none"}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(APPROVAL_LEVEL_LABELS).map(([value, label]) => (
+                      <SelectItem key={value} value={value} className="text-xs">{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="bg-muted/30 p-3 rounded-lg space-y-2">
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Workflow Responsibility Mapping</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(WORKFLOW_LABELS).map(([key, label]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        name={`wf_${key}`} 
+                        id={`edit_wf_${key}`} 
+                        defaultChecked={!!(editingAssignment.responsibilities as any)?.[key]} 
+                        className="h-3 w-3 rounded" 
+                      />
+                      <Label htmlFor={`edit_wf_${key}`} className="text-[10px] font-normal cursor-pointer">{label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <Label>Project Access Level</Label>
+                  <div className="flex bg-muted rounded-lg p-0.5">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className={cn("h-7 text-[10px] px-2", editingAssignment.access_level === 'full' && "bg-background shadow-sm")}
+                    >
+                      Full
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className={cn("h-7 text-[10px] px-2", editingAssignment.access_level === 'restricted' && "bg-background shadow-sm")}
+                    >
+                      Restricted
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase">WBS Location Restriction</Label>
+                  <WbsNodePicker
+                    projectId={editingAssignment.project_id}
+                    value={editingAssignment.restricted_wbs_ids?.[0] || null}
+                    onChange={(id) => {
+                      // Currently supporting single WBS restriction via UI
+                    }}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="ghost" onClick={() => setEditingAssignment(null)}>Cancel</Button>
+                <Button type="submit" disabled={updateAssignment.isPending}>
+                  {updateAssignment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </>
