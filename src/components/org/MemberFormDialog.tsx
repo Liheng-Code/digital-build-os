@@ -12,7 +12,7 @@ import {
   OrgMemberRow, OrgDepartmentRow,
   updateMemberProfile, uploadMemberAvatar,
 } from "@/services/organizationService";
-import { getInitials } from "@/lib/orgMeta";
+import { getInitials, ORG_REGISTRY } from "@/lib/orgMeta";
 
 const ROLES = ["admin", "project_manager", "engineer", "supervisor", "worker", "qaqc_inspector", "accountant"];
 
