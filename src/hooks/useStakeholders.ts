@@ -23,7 +23,7 @@ export function useStakeholders() {
     mutationFn: async (stakeholder: Partial<Stakeholder>) => {
       const { data, error } = await supabase
         .from("stakeholders")
-        .insert(stakeholder)
+        .insert(stakeholder as any)
         .select()
         .single();
       if (error) throw error;
@@ -103,7 +103,7 @@ export function useStakeholderContacts(stakeholderId?: string) {
     mutationFn: async (contact: Partial<StakeholderContact>) => {
       const { data, error } = await supabase
         .from("stakeholder_contacts")
-        .insert(contact)
+        .insert(contact as any)
         .select()
         .single();
       if (error) throw error;
@@ -144,7 +144,7 @@ export function useStakeholderProjects(stakeholderId?: string) {
         `)
         .eq("stakeholder_id", stakeholderId);
       if (error) throw error;
-      return data as (ProjectStakeholder & { project: { id: string; name: string; code: string } })[];
+      return data as unknown as (ProjectStakeholder & { project: { id: string; name: string; code: string } })[];
     },
     enabled: !!stakeholderId,
   });
@@ -153,7 +153,7 @@ export function useStakeholderProjects(stakeholderId?: string) {
     mutationFn: async (link: Partial<ProjectStakeholder>) => {
       const { data, error } = await supabase
         .from("project_stakeholders")
-        .insert(link)
+        .insert(link as any)
         .select()
         .single();
       if (error) throw error;
@@ -183,7 +183,7 @@ export function useStakeholderProjects(stakeholderId?: string) {
     mutationFn: async ({ id, ...updates }: Partial<ProjectStakeholder> & { id: string }) => {
       const { data, error } = await supabase
         .from("project_stakeholders")
-        .update(updates)
+        .update(updates as any)
         .eq("id", id)
         .select()
         .single();
@@ -217,7 +217,7 @@ export function useProjectStakeholders(projectId?: string) {
         `)
         .eq("project_id", projectId);
       if (error) throw error;
-      return data as ProjectStakeholder[];
+      return data as unknown as ProjectStakeholder[];
     },
     enabled: !!projectId,
   });
@@ -226,7 +226,7 @@ export function useProjectStakeholders(projectId?: string) {
     mutationFn: async (link: Partial<ProjectStakeholder>) => {
       const { data, error } = await supabase
         .from("project_stakeholders")
-        .insert(link)
+        .insert(link as any)
         .select()
         .single();
       if (error) throw error;
