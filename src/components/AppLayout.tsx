@@ -270,6 +270,8 @@ function AppSidebar() {
                           <NavLink
                             to={item.to}
                             end={item.to === "/"}
+                            onMouseEnter={() => prefetchRoute(item.to)}
+                            onFocus={() => prefetchRoute(item.to)}
                             className={({ isActive }) =>
                               isActive ? "data-[active=true]:bg-sidebar-accent" : ""
                             }
