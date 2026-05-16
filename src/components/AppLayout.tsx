@@ -67,6 +67,7 @@ import { Badge } from "@/components/ui/badge";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { useApprovalUnread } from "@/hooks/useApprovalUnread";
+import { prefetchRoute } from "@/lib/routePrefetch";
 
 interface NavItem {
   to: string;
