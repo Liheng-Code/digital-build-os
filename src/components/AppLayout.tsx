@@ -317,7 +317,7 @@ const AppSidebar = React.memo(function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
-}
+});
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, signOut, user } = useAuth();
