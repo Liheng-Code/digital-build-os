@@ -67,6 +67,7 @@ import { Badge } from "@/components/ui/badge";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { useApprovalUnread } from "@/hooks/useApprovalUnread";
+import { prefetchRoute } from "@/lib/routePrefetch";
 
 interface NavItem {
   to: string;
@@ -190,7 +191,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   },
 ];
 
-function AppSidebar() {
+const AppSidebar = React.memo(function AppSidebar() {
   const { roles } = useAuth();
   const { can } = usePermissions();
   const { totalTaskUnread } = useTaskUnread();
@@ -269,6 +270,8 @@ function AppSidebar() {
                           <NavLink
                             to={item.to}
                             end={item.to === "/"}
+                            onMouseEnter={() => prefetchRoute(item.to)}
+                            onFocus={() => prefetchRoute(item.to)}
                             className={({ isActive }) =>
                               isActive ? "data-[active=true]:bg-sidebar-accent" : ""
                             }
@@ -314,7 +317,7 @@ function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
-}
+});
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, signOut, user } = useAuth();
