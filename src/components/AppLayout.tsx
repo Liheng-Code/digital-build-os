@@ -191,7 +191,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   },
 ];
 
-function AppSidebar() {
+const AppSidebar = React.memo(function AppSidebar() {
   const { roles } = useAuth();
   const { can } = usePermissions();
   const { totalTaskUnread } = useTaskUnread();
