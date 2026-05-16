@@ -147,7 +147,7 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
                       ) : "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={m.employment_status === "active" ? "success" : m.employment_status === "resigned" ? "destructive" : "outline"} className="text-[10px] capitalize">
+                      <Badge variant={m.employment_status === "active" ? "default" : m.employment_status === "resigned" ? "destructive" : "outline"} className="text-[10px] capitalize">
                         {m.employment_status?.replace(/_/g, " ") ?? "active"}
                       </Badge>
                     </TableCell>

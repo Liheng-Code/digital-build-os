@@ -43,7 +43,7 @@ export function CreatePoDialog() {
         po_date: new Date().toISOString().split('T')[0],
         status: 'issued',
         total_amount: 0
-      })
+      } as any)
       .select()
       .single();
 

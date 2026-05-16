@@ -200,7 +200,7 @@ export function AdminDataTable({ title, description, tableName, columns, orderBy
                   ) : c.type === "select" ? (
                     <select
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={form[c.key] ?? ""}
+                      value={(form[c.key] as string | number | undefined) ?? ""}
                       onChange={(e) => setForm({ ...form, [c.key]: e.target.value })}
                     >
                       <option value="">Select...</option>
@@ -211,14 +211,14 @@ export function AdminDataTable({ title, description, tableName, columns, orderBy
                   ) : c.type === "textarea" ? (
                     <textarea
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={form[c.key] ?? ""}
+                      value={(form[c.key] as string | number | undefined) ?? ""}
                       onChange={(e) => setForm({ ...form, [c.key]: e.target.value })}
                       placeholder={c.placeholder}
                     />
                   ) : (
                     <Input
                       type={c.type === "number" ? "number" : "text"}
-                      value={form[c.key] ?? ""}
+                      value={(form[c.key] as string | number | undefined) ?? ""}
                       onChange={(e) => setForm({ ...form, [c.key]: c.type === "number" ? parseFloat(e.target.value) || 0 : e.target.value })}
                       placeholder={c.placeholder}
                     />
