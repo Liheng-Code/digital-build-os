@@ -1,66 +1,74 @@
-# Fix slow tab-to-tab navigation
+# Why tab navigation is still slow (round 2)
 
-## Summary of the issue
+## What the previous fix actually did
 
-Switching between tabs (sidebar links) feels heavy because of three compounding problems in `src/App.tsx` and the routing shell:
+Round 1 changed `src/App.tsx` to:
+- Lazy-load every page (code-splitting).
+- Keep `AppLayout` mounted via a parent `Outlet` route.
+- Set React Query defaults (`staleTime: 30s`, no refetch on focus).
 
-1. **No code-splitting.** All ~64 page components (Tasks, WBS, Financials, Reports, Construction, HR, etc.) are statically imported at the top of `src/App.tsx`. That ships one giant JS bundle and forces React to instantiate every module up front — first paint and every subsequent navigation pay the cost.
-2. **AppLayout remounts on every route change.** Each `<Route>` wraps its page in `<ProtectedRoute><AppLayout>...</AppLayout></ProtectedRoute>`. Because the layout element is recreated per route, React unmounts and remounts the sidebar, topbar, project switcher, notification bell, etc. on every tab click — re-running their effects and refetching their data.
-3. **React Query has no defaults.** `new QueryClient()` uses `staleTime: 0` and `refetchOnWindowFocus: true`. Every navigation refetches data that was just fetched, and just focusing the tab triggers refetches.
+That removed the layout remount cost and the giant initial bundle, but **the per-tab "refresh" feeling is still there**. After auditing the pages, here is why.
 
-Together this is why tab switching feels like a full page refresh.
+## Real remaining bottlenecks
+
+### 1. Pages don't use React Query — so `staleTime` does nothing
+A scan of `src/pages/*` shows the vast majority of pages call `supabase.from(...)` directly inside `React.useEffect` (e.g. `Tasks.tsx`, `Approvals.tsx`, `Architecture.tsx` with 17 direct calls, `Wbs.tsx`, `Procurement.tsx`, all `procurement/*` detail pages, all `account/*` pages, etc.). Only a handful (`GRNs`, `RFQs`, `POs`, `Invoices`, `Budgets`, plus their detail pages) use `useQuery`.
+
+Effect: every time you click a tab, that page mounts fresh and re-fires all its Supabase queries from scratch. The React Query cache is empty for them, so the global `staleTime` we set is irrelevant. The "refresh" is real network round-trips on every click.
+
+### 2. Heavy pages fan out many sequential queries on mount
+`Approvals.tsx` runs four independent loaders (`loadTasks`, `loadTimesheets`, `loadLeave`, `loadCommercial`) in four separate effects. `Architecture.tsx` has multiple nested loaders triggered by `projectId` / `roomId` changes. None of them are cached or deduplicated, and at least one is failing (`Failed to load leave requests` visible in the session replay), which also stalls UI.
+
+### 3. First click to a never-visited tab still has to download its JS chunk
+Code-splitting helps initial load but means each tab pays a one-time chunk download cost on first visit. On a slow connection this looks like "slow tab switch". We can hide most of that by prefetching the chunk when the user hovers the sidebar link.
+
+### 4. `AppLayout` still recomputes a lot on every navigation
+`AppSidebar` filters every nav item through `usePermissions().can(...)` on each render, and `NotificationBell`/`ProjectSwitcher` re-render on every route change. Low impact compared to #1, but worth memoising.
 
 ## Fix plan
 
-### 1. Lazy-load page routes
-- Convert all `import Page from "./pages/..."` in `src/App.tsx` to `const Page = React.lazy(() => import("./pages/..."))`.
-- Wrap `<Routes>` in `<React.Suspense fallback={<PageLoader />}>` with a lightweight skeleton/spinner.
-- Keep `Auth`, `ResetPassword`, `NotFound`, and `Index` eager (small, used immediately) — optional.
+### A. Cache page data with React Query (biggest win)
+Wrap the per-page fetches in `useQuery` so a second visit to the same tab returns instantly from cache and only revalidates in the background. Target the heaviest, most-navigated pages first:
 
-Result: initial bundle drops dramatically and each tab only loads its own chunk once, then is cached.
+1. `Approvals.tsx` — convert all four loaders to `useQuery` with stable keys (`["approvals","tasks",projectId]`, etc.) and run them in parallel. Also fix the failing `loadLeave` call so the toast stops firing.
+2. `Tasks.tsx` — convert the task list loader.
+3. `Wbs.tsx` — convert the tree + schedule loaders.
+4. `Procurement.tsx`, `Inventory.tsx`, `Construction.tsx`, `DailyReports.tsx`, `Stakeholders.tsx`, `Organization.tsx` — same pattern.
+5. `Architecture.tsx`, `Structural.tsx`, `MEP.tsx` — wrap the room/board/schedule loaders.
 
-### 2. Hoist the layout into a parent route
-Replace the repeated `<ProtectedRoute><AppLayout>...</AppLayout></ProtectedRoute>` wrappers with a single layout route using react-router v6 `Outlet`:
-
-```text
-<Route element={<ProtectedRoute><AppLayout><Outlet/></AppLayout></ProtectedRoute>}>
-  <Route path="/" element={<Index/>} />
-  <Route path="/projects" element={<Projects/>} />
-  ...
-</Route>
-```
-
-Now AppLayout (sidebar, topbar, project switcher) stays mounted across tab navigations — only the page content swaps. This alone removes most of the visible "refresh".
-
-### 3. Set sane React Query defaults
-In `src/App.tsx`:
+Pattern (drop-in replacement for the current `useEffect`+`useState` block):
 
 ```ts
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
+const { data: tasks = [], isLoading } = useQuery({
+  queryKey: ["approvals", "tasks", activeProject?.id],
+  queryFn: () => fetchApprovalTasks(activeProject!.id),
+  enabled: !!activeProject?.id,
 });
 ```
 
-Stops redundant refetches when switching tabs or refocusing the browser.
+This is the single change that will make tab switches feel instant after the first visit.
 
-### 4. (Optional, low risk) Small follow-ups
-- Add `React.memo` to `AppLayout`'s sidebar/topbar children if they re-render on context change.
-- Verify `NotificationBell` and `ProjectSwitcher` don't poll on mount in a tight loop (only once now that they don't remount).
+### B. Prefetch the next chunk on sidebar hover
+In `src/components/AppLayout.tsx`, attach `onMouseEnter` on each `NavLink` that calls a lightweight `import("./pages/X")` for that route. Vite turns this into a `<link rel="modulepreload">`-style fetch and the chunk is warm by the time the user clicks. Implemented as a small `prefetch` map keyed by route.
+
+### C. Memoise the layout shell
+- Wrap `AppSidebar` in `React.memo`.
+- Memoise the filtered nav groups with `React.useMemo` keyed on `[roles, can]`.
+- Move the `useTaskUnread` / `useApprovalUnread` badge reads behind `useMemo` so they don't re-render the whole sidebar tree on every poll.
+
+### D. Lift shared data into React Query, not contexts
+`ProjectContext` currently refetches the project list whenever the user changes (fine) but also lives in React state. Move the project list to a `useQuery(["projects"])` so any page that needs it shares the same cache instead of duplicating its own `supabase.from("projects").select(...)` calls (several pages do this today).
+
+## Scope / order of work
+
+We will deliver this in two passes so the user feels improvement quickly:
+
+1. **Pass 1 (perceived-speed quick wins):** B + C, plus convert the top 3 heaviest pages (`Approvals`, `Tasks`, `Wbs`) to `useQuery`. ~6 files touched.
+2. **Pass 2 (full caching):** Convert the remaining pages listed in A, then D. ~15–20 files touched, mechanical refactor.
 
 ## Out of scope
-- No data model changes, no Supabase/RLS changes, no visual redesign.
-- Existing page logic stays the same — only how they are loaded and wrapped changes.
-
-## Files touched
-- `src/App.tsx` — lazy imports, Suspense, layout route, QueryClient defaults.
-- (Possibly) `src/components/AppLayout.tsx` — accept `children` already; switch to `<Outlet/>` if we convert.
+- No schema changes, no RLS changes, no visual redesign.
+- No change to Supabase service functions themselves — only how pages call them.
 
 ## Risk
-Low. Behavior is identical; navigation just becomes near-instant after the first visit to each tab.
+Low. `useQuery` is already a project dependency and used in several pages, so we are standardising on an existing pattern. The hover-prefetch is additive and safe.
