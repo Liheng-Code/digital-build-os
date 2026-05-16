@@ -62,7 +62,7 @@ export default function Architecture() {
         .maybeSingle();
       
       if (error) throw error;
-      setRoomData(data as RoomData || {
+      setRoomData((data as RoomData) || ({
         wbs_node_id: nodeId,
         floor_finish: "",
         wall_finish: "",
@@ -74,7 +74,7 @@ export default function Architecture() {
         acoustic_rating: "",
         mep_requirements: {},
         remarks: ""
-      });
+      } as RoomData));
     } catch (e: any) {
       toast.error(e.message);
     } finally {

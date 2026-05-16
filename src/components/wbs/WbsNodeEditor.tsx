@@ -131,7 +131,7 @@ export function WbsNodeEditor({
         actionType: "UPDATE",
         actionLabel: "WBS Node Updated",
         projectId,
-        oldValues: before,
+        oldValues: before as any,
         newValues: {
           code: code.trim(),
           name: name.trim(),
@@ -162,7 +162,7 @@ export function WbsNodeEditor({
       actionType: "DELETE",
       actionLabel: "WBS Node Deleted",
       projectId,
-      oldValues: node,
+      oldValues: node as any,
       severity: "critical"
     });
     onDeleted();

@@ -179,13 +179,13 @@ export default function Approvals() {
         .eq("project_id", activeProject.id)
         .eq("status", "submitted")
         .order("created_at", { ascending: true }),
-      supabase
+      (supabase as any)
         .from("purchase_orders")
         .select("id, po_number, status, total_amount, currency, suppliers(name)")
         .eq("project_id", activeProject.id)
         .in("status", ["submitted", "review"])
         .order("created_at", { ascending: true }),
-      supabase
+      (supabase as any)
         .from("payment_requests")
         .select("*")
         .eq("project_id", activeProject.id)
