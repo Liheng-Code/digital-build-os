@@ -88,28 +88,117 @@ export default function Approvals() {
     timesheetApprovalCount,
   } = useApprovalUnread();
 
+  const projectId = activeProject?.id ?? null;
+
   // Tasks
-  const [items, setItems] = React.useState<Pending[]>([]);
-  const [loadingTasks, setLoadingTasks] = React.useState(true);
+  const tasksQuery = useQuery({
+    queryKey: ["approvals", "tasks", projectId],
+    enabled: !!projectId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, status, priority, task_type, progress_pct, estimated_hours, actual_hours, updated_at")
+        .eq("project_id", projectId!)
+        .eq("status", "pending_approval")
+        .order("updated_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Pending[];
+    },
+  });
+  const items = tasksQuery.data ?? [];
+  const loadingTasks = tasksQuery.isLoading;
+  const loadTasks = React.useCallback(() => { tasksQuery.refetch(); }, [tasksQuery]);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   // Timesheets
-  const [tsItems, setTsItems] = React.useState<PendingTimesheet[]>([]);
-  const [loadingTs, setLoadingTs] = React.useState(true);
+  const projectsMapKey = React.useMemo(() => projects.map((p) => p.id).join(","), [projects]);
+  const timesheetsQuery = useQuery({
+    queryKey: ["approvals", "timesheets", projectsMapKey],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("timesheet_entries")
+        .select("id, user_id, work_date, regular_hours, overtime_hours, notes, project_id, flags")
+        .eq("status", "submitted")
+        .order("work_date", { ascending: true });
+      if (error) throw error;
+      const userIds = Array.from(new Set((data ?? []).map((t) => t.user_id)));
+      const profilesRes = userIds.length
+        ? await supabase.from("profiles").select("id, full_name, employee_id").in("id", userIds)
+        : { data: [] as { id: string; full_name: string; employee_id: string | null }[] };
+      const profMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
+      const projMap = new Map(projects.map((p) => [p.id, p]));
+      return ((data ?? []) as unknown as PendingTimesheet[]).map((t) => ({
+        ...t,
+        profile: profMap.get(t.user_id),
+        project: projMap.get(t.project_id),
+      }));
+    },
+  });
+  const tsItems = timesheetsQuery.data ?? [];
+  const loadingTs = timesheetsQuery.isLoading;
+  const loadTimesheets = React.useCallback(() => { timesheetsQuery.refetch(); }, [timesheetsQuery]);
   const [tsBusy, setTsBusy] = React.useState<string | null>(null);
   const [rejectingId, setRejectingId] = React.useState<string | null>(null);
   const [rejectReason, setRejectReason] = React.useState("");
 
   // Leave
-  const [leaveItems, setLeaveItems] = React.useState<LeaveRequest[]>([]);
-  const [loadingLeave, setLoadingLeave] = React.useState(true);
+  const leaveQuery = useQuery({
+    queryKey: ["approvals", "leave"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      try {
+        return await fetchPendingLeaveRequests();
+      } catch {
+        toast.error("Failed to load leave requests");
+        return [] as LeaveRequest[];
+      }
+    },
+  });
+  const leaveItems = leaveQuery.data ?? [];
+  const loadingLeave = leaveQuery.isLoading;
+  const loadLeave = React.useCallback(() => { leaveQuery.refetch(); }, [leaveQuery]);
   const [leaveBusy, setLeaveBusy] = React.useState<string | null>(null);
 
   // Procurement / Finance
-  const [prItems, setPrItems] = React.useState<PendingPr[]>([]);
-  const [poItems, setPoItems] = React.useState<PendingPo[]>([]);
-  const [paymentItems, setPaymentItems] = React.useState<PaymentRequest[]>([]);
-  const [loadingCommercial, setLoadingCommercial] = React.useState(true);
+  const commercialQuery = useQuery({
+    queryKey: ["approvals", "commercial", projectId],
+    enabled: !!projectId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const [prsRes, posRes, paymentsRes] = await Promise.all([
+        supabase
+          .from("purchase_requisitions")
+          .select("id, pr_number, subject, total_estimate, status, created_at")
+          .eq("project_id", projectId!)
+          .eq("status", "submitted")
+          .order("created_at", { ascending: true }),
+        (supabase as any)
+          .from("purchase_orders")
+          .select("id, po_number, status, total_amount, currency, suppliers(name)")
+          .eq("project_id", projectId!)
+          .in("status", ["submitted", "review"])
+          .order("created_at", { ascending: true }),
+        (supabase as any)
+          .from("payment_requests")
+          .select("*")
+          .eq("project_id", projectId!)
+          .eq("status", "submitted")
+          .order("created_at", { ascending: true })
+      ]);
+      return {
+        prs: (prsRes.data ?? []) as PendingPr[],
+        pos: (posRes.data ?? []) as unknown as PendingPo[],
+        payments: (paymentsRes.data ?? []) as unknown as PaymentRequest[],
+      };
+    },
+  });
+  const prItems = commercialQuery.data?.prs ?? [];
+  const poItems = commercialQuery.data?.pos ?? [];
+  const paymentItems = commercialQuery.data?.payments ?? [];
+  const loadingCommercial = commercialQuery.isLoading;
+  const loadCommercial = React.useCallback(() => { commercialQuery.refetch(); }, [commercialQuery]);
   const [commercialBusy, setCommercialBusy] = React.useState<string | null>(null);
 
   const canApprove = roles.some((r) =>
@@ -119,187 +208,6 @@ export default function Approvals() {
   const canApproveLeave = roles.some((r) => ["admin", "project_manager", "supervisor"].includes(r));
   const canApproveCommercial = roles.some((r) => ["admin", "project_manager", "supervisor", "accountant"].includes(r));
 
-  const loadTasks = React.useCallback(async () => {
-    if (!activeProject) { setItems([]); setLoadingTasks(false); return; }
-    setLoadingTasks(true);
-    const { data } = await supabase
-      .from("tasks")
-      .select("id, title, status, priority, task_type, progress_pct, estimated_hours, actual_hours, updated_at")
-      .eq("project_id", activeProject.id)
-      .eq("status", "pending_approval")
-      .order("updated_at", { ascending: true });
-    setItems((data ?? []) as Pending[]);
-    setLoadingTasks(false);
-  }, [activeProject]);
-
-  const loadTimesheets = React.useCallback(async () => {
-    setLoadingTs(true);
-    const { data } = await supabase
-      .from("timesheet_entries")
-      .select("id, user_id, work_date, regular_hours, overtime_hours, notes, project_id, flags")
-      .eq("status", "submitted")
-      .order("work_date", { ascending: true });
-    const userIds = Array.from(new Set((data ?? []).map((t) => t.user_id)));
-    const profilesRes = userIds.length
-      ? await supabase.from("profiles").select("id, full_name, employee_id").in("id", userIds)
-      : { data: [] };
-    const profMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
-    const projMap = new Map(projects.map((p) => [p.id, p]));
-    setTsItems(((data ?? []) as unknown as PendingTimesheet[]).map((t) => ({
-      ...t,
-      profile: profMap.get(t.user_id),
-      project: projMap.get(t.project_id),
-    })));
-    setLoadingTs(false);
-  }, [projects]);
-
-  const loadLeave = React.useCallback(async () => {
-    setLoadingLeave(true);
-    try {
-      const data = await fetchPendingLeaveRequests();
-      setLeaveItems(data);
-    } catch {
-      toast.error("Failed to load leave requests");
-    }
-    setLoadingLeave(false);
-  }, []);
-
-  const loadCommercial = React.useCallback(async () => {
-    if (!activeProject) {
-      setPrItems([]);
-      setPoItems([]);
-      setPaymentItems([]);
-      setLoadingCommercial(false);
-      return;
-    }
-    setLoadingCommercial(true);
-    const [prsRes, posRes, paymentsRes] = await Promise.all([
-      supabase
-        .from("purchase_requisitions")
-        .select("id, pr_number, subject, total_estimate, status, created_at")
-        .eq("project_id", activeProject.id)
-        .eq("status", "submitted")
-        .order("created_at", { ascending: true }),
-      (supabase as any)
-        .from("purchase_orders")
-        .select("id, po_number, status, total_amount, currency, suppliers(name)")
-        .eq("project_id", activeProject.id)
-        .in("status", ["submitted", "review"])
-        .order("created_at", { ascending: true }),
-      (supabase as any)
-        .from("payment_requests")
-        .select("*")
-        .eq("project_id", activeProject.id)
-        .eq("status", "submitted")
-        .order("created_at", { ascending: true })
-    ]);
-    setPrItems((prsRes.data ?? []) as PendingPr[]);
-    setPoItems((posRes.data ?? []) as unknown as PendingPo[]);
-    setPaymentItems((paymentsRes.data ?? []) as unknown as PaymentRequest[]);
-    setLoadingCommercial(false);
-  }, [activeProject]);
-
-  const approveLeave = async (id: string) => {
-    const actorId = (await supabase.auth.getUser()).data.user?.id;
-    if (!actorId) return;
-    setLeaveBusy(id);
-    try {
-      await updateLeaveStatus(id, "approved", actorId);
-      toast.success("Leave approved");
-      loadLeave();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to approve leave");
-    }
-    setLeaveBusy(null);
-  };
-
-  const rejectLeave = async (id: string) => {
-    const actorId = (await supabase.auth.getUser()).data.user?.id;
-    if (!actorId) return;
-    setLeaveBusy(id);
-    try {
-      await updateLeaveStatus(id, "rejected", actorId, "Rejected from Approvals");
-      toast.success("Leave rejected");
-      loadLeave();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to reject leave");
-    }
-    setLeaveBusy(null);
-  };
-
-  const approvePr = async (id: string) => {
-    setCommercialBusy(id);
-    try {
-      await updatePRStatus(id, "approved");
-      toast.success("PR approved");
-      loadCommercial();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to approve PR");
-    } finally {
-      setCommercialBusy(null);
-    }
-  };
-
-  const rejectPr = async (id: string) => {
-    setCommercialBusy(id);
-    try {
-      await updatePRStatus(id, "rejected");
-      toast.success("PR rejected");
-      loadCommercial();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to reject PR");
-    } finally {
-      setCommercialBusy(null);
-    }
-  };
-
-  const advancePo = async (id: string, status: PurchaseOrder["status"]) => {
-    setCommercialBusy(id);
-    try {
-      await updatePOStatus(id, status);
-      toast.success("PO updated");
-      loadCommercial();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update PO");
-    } finally {
-      setCommercialBusy(null);
-    }
-  };
-
-  const approvePayment = async (id: string) => {
-    const actorId = (await supabase.auth.getUser()).data.user?.id;
-    if (!actorId) return;
-    setCommercialBusy(id);
-    try {
-      await updatePaymentRequestStatus(id, "approved", actorId);
-      toast.success("Payment request approved");
-      loadCommercial();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to approve payment request");
-    } finally {
-      setCommercialBusy(null);
-    }
-  };
-
-  const rejectPayment = async (id: string) => {
-    const actorId = (await supabase.auth.getUser()).data.user?.id;
-    if (!actorId) return;
-    setCommercialBusy(id);
-    try {
-      await updatePaymentRequestStatus(id, "cancelled", actorId, "Rejected from Approvals");
-      toast.success("Payment request rejected");
-      loadCommercial();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to reject payment request");
-    } finally {
-      setCommercialBusy(null);
-    }
-  };
-
-  React.useEffect(() => { loadTasks(); }, [loadTasks]);
-  React.useEffect(() => { loadTimesheets(); }, [loadTimesheets]);
-  React.useEffect(() => { loadLeave(); }, [loadLeave]);
-  React.useEffect(() => { loadCommercial(); }, [loadCommercial]);
 
   // NOTE: We intentionally do NOT auto-mark approval notifications as read
   // when a tab is opened — the sidebar "Approvals" badge and tab badges
