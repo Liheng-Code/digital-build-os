@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProjects } from "@/contexts/ProjectContext";
@@ -113,8 +114,26 @@ export default function Tasks() {
   const { user, roles } = useAuth();
   const { activeProject } = useProjects();
   const { unreadByTaskId } = useTaskUnread();
-  const [tasks, setTasks] = React.useState<TaskRow[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const projectId = activeProject?.id ?? null;
+
+  const tasksQuery = useQuery({
+    queryKey: ["tasks", "list", projectId],
+    enabled: !!projectId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("id, title, description, status, priority, task_type, location_zone, planned_start, planned_end, estimated_hours, progress_pct, department, discipline_meta, workflow_type, category, wbs_node_id, task_assignments(user_id, unassigned_at)")
+        .eq("project_id", projectId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as TaskRow[];
+    },
+  });
+  const tasks = tasksQuery.data ?? [];
+  const loading = tasksQuery.isLoading;
+  const load = React.useCallback(async () => { await tasksQuery.refetch(); }, [tasksQuery]);
+
   const [savingAction, setSavingAction] = React.useState(false);
   const [editingTask, setEditingTask] = React.useState<TaskRow | null>(null);
   const [deletingTask, setDeletingTask] = React.useState<TaskRow | null>(null);
@@ -144,23 +163,6 @@ export default function Tasks() {
   );
   const canDeleteTasks = roles.some((r) => ["admin", "project_manager"].includes(r));
 
-  const load = React.useCallback(async () => {
-    if (!activeProject) {
-      setTasks([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const { data } = await supabase
-      .from("tasks")
-      .select("id, title, description, status, priority, task_type, location_zone, planned_start, planned_end, estimated_hours, progress_pct, department, discipline_meta, workflow_type, category, wbs_node_id, task_assignments(user_id, unassigned_at)")
-      .eq("project_id", activeProject.id)
-      .order("created_at", { ascending: false });
-    setTasks((data ?? []) as TaskRow[]);
-    setLoading(false);
-  }, [activeProject]);
-
-  React.useEffect(() => { load(); }, [load]);
 
   const filtered = React.useMemo(() => tasks.filter((t) => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
@@ -928,7 +930,7 @@ function SummaryCard({
 }: {
   label: string;
   value: number;
-  icon: ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }>;
   tone?: "default" | "info" | "risk" | "warning" | "success" | "accent";
   loading: boolean;
 }) {
