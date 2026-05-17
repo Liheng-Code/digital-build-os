@@ -930,7 +930,7 @@ function SummaryCard({
 }: {
   label: string;
   value: number;
-  icon: ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }>;
   tone?: "default" | "info" | "risk" | "warning" | "success" | "accent";
   loading: boolean;
 }) {
