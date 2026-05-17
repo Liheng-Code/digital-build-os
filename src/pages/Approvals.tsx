@@ -208,8 +208,104 @@ export default function Approvals() {
   const canApproveLeave = roles.some((r) => ["admin", "project_manager", "supervisor"].includes(r));
   const canApproveCommercial = roles.some((r) => ["admin", "project_manager", "supervisor", "accountant"].includes(r));
 
+  const approveLeave = async (id: string) => {
+    const actorId = (await supabase.auth.getUser()).data.user?.id;
+    if (!actorId) return;
+    setLeaveBusy(id);
+    try {
+      await updateLeaveStatus(id, "approved", actorId);
+      toast.success("Leave approved");
+      loadLeave();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to approve leave");
+    }
+    setLeaveBusy(null);
+  };
 
-  // NOTE: We intentionally do NOT auto-mark approval notifications as read
+  const rejectLeave = async (id: string) => {
+    const actorId = (await supabase.auth.getUser()).data.user?.id;
+    if (!actorId) return;
+    setLeaveBusy(id);
+    try {
+      await updateLeaveStatus(id, "rejected", actorId, "Rejected from Approvals");
+      toast.success("Leave rejected");
+      loadLeave();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to reject leave");
+    }
+    setLeaveBusy(null);
+  };
+
+  const approvePr = async (id: string) => {
+    setCommercialBusy(id);
+    try {
+      await updatePRStatus(id, "approved");
+      toast.success("PR approved");
+      loadCommercial();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to approve PR");
+    } finally {
+      setCommercialBusy(null);
+    }
+  };
+
+  const rejectPr = async (id: string) => {
+    setCommercialBusy(id);
+    try {
+      await updatePRStatus(id, "rejected");
+      toast.success("PR rejected");
+      loadCommercial();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to reject PR");
+    } finally {
+      setCommercialBusy(null);
+    }
+  };
+
+  const advancePo = async (id: string, status: PurchaseOrder["status"]) => {
+    setCommercialBusy(id);
+    try {
+      await updatePOStatus(id, status);
+      toast.success("PO updated");
+      loadCommercial();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update PO");
+    } finally {
+      setCommercialBusy(null);
+    }
+  };
+
+  const approvePayment = async (id: string) => {
+    const actorId = (await supabase.auth.getUser()).data.user?.id;
+    if (!actorId) return;
+    setCommercialBusy(id);
+    try {
+      await updatePaymentRequestStatus(id, "approved", actorId);
+      toast.success("Payment request approved");
+      loadCommercial();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to approve payment request");
+    } finally {
+      setCommercialBusy(null);
+    }
+  };
+
+  const rejectPayment = async (id: string) => {
+    const actorId = (await supabase.auth.getUser()).data.user?.id;
+    if (!actorId) return;
+    setCommercialBusy(id);
+    try {
+      await updatePaymentRequestStatus(id, "cancelled", actorId, "Rejected from Approvals");
+      toast.success("Payment request rejected");
+      loadCommercial();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to reject payment request");
+    } finally {
+      setCommercialBusy(null);
+    }
+  };
+
+
   // when a tab is opened — the sidebar "Approvals" badge and tab badges
   // should persist as a visible reminder until the approver actually acts on
   // the items (approve/reject) or clears them from the notification bell.
