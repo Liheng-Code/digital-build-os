@@ -40,30 +40,32 @@ import { storageService } from "@/services/storageService";
 export default function Architecture() {
   const { activeProject } = useProjects();
   const { nodes: wbsNodes, loading: wbsLoading } = useWbsTree(activeProject?.id);
-  
+  const queryClient = useQueryClient();
+
   const [selectedRoom, setSelectedRoom] = React.useState<WbsNode | null>(null);
   const [roomData, setRoomData] = React.useState<RoomData | null>(null);
-  const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [sidebarTab, setSidebarTab] = React.useState<'rooms' | 'drawings' | 'boards'>('boards');
 
   // Filter only rooms
-  const rooms = React.useMemo(() => 
-    wbsNodes.filter(n => n.node_type === 'room'), 
+  const rooms = React.useMemo(() =>
+    wbsNodes.filter(n => n.node_type === 'room'),
     [wbsNodes]
   );
 
-  const loadRoomData = async (nodeId: string) => {
-    setLoading(true);
-    try {
+  const roomQuery = useQuery<RoomData>({
+    queryKey: ["architecture", "room", selectedRoom?.id ?? null],
+    enabled: !!selectedRoom,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const nodeId = selectedRoom!.id;
       const { data, error } = await supabase
         .from("architecture_room_data")
         .select("*")
         .eq("wbs_node_id", nodeId)
         .maybeSingle();
-      
       if (error) throw error;
-      setRoomData((data as RoomData) || ({
+      return (data as RoomData) || ({
         wbs_node_id: nodeId,
         floor_finish: "",
         wall_finish: "",
@@ -75,17 +77,15 @@ export default function Architecture() {
         acoustic_rating: "",
         mep_requirements: {},
         remarks: ""
-      } as RoomData));
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      } as RoomData);
+    },
+  });
+  const loading = roomQuery.isLoading;
 
   React.useEffect(() => {
-    if (selectedRoom) loadRoomData(selectedRoom.id);
-  }, [selectedRoom]);
+    if (roomQuery.data) setRoomData(roomQuery.data);
+    else if (!selectedRoom) setRoomData(null);
+  }, [roomQuery.data, selectedRoom]);
 
   const handleSave = async () => {
     if (!selectedRoom || !roomData) return;
@@ -98,15 +98,17 @@ export default function Architecture() {
           wbs_node_id: selectedRoom.id,
           updated_at: new Date().toISOString()
         });
-      
+
       if (error) throw error;
       toast.success("RDS updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["architecture", "room", selectedRoom.id] });
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setSaving(false);
     }
   };
+
 
   if (!activeProject) {
     return <div className="p-8 text-muted-foreground">Select a project to view Architecture Design.</div>;
