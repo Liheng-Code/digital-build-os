@@ -41,42 +41,39 @@ import { updatePRStatus } from "@/services/procurementService";
 
 export default function Procurement() {
   const { activeProject } = useProjects();
-  const [loading, setLoading] = React.useState(true);
-  const [prs, setPrs] = React.useState<any[]>([]);
-  const [catalog, setCatalog] = React.useState<any[]>([]);
+  const projectId = activeProject?.id ?? null;
   const [activeTab, setActiveTab] = React.useState("dashboard");
   const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
   const [isCreatePrOpen, setIsCreatePrOpen] = React.useState(false);
   const [prBusy, setPrBusy] = React.useState<string | null>(null);
 
-  const loadData = async () => {
-    if (!activeProject) return;
-    setLoading(true);
-    try {
+  const dataQuery = useQuery({
+    queryKey: ["procurement", "dashboard", projectId],
+    enabled: !!projectId,
+    staleTime: 60_000,
+    queryFn: async () => {
       const [prsRes, catalogRes] = await Promise.all([
         supabase
           .from("purchase_requisitions")
           .select("*, pr_items(count)")
-          .eq("project_id", activeProject.id)
+          .eq("project_id", projectId!)
           .order("created_at", { ascending: false }),
         supabase
           .from("material_catalog")
           .select("*")
           .order("name", { ascending: true })
       ]);
+      return {
+        prs: (prsRes.data || []) as any[],
+        catalog: (catalogRes.data || []) as any[],
+      };
+    },
+  });
+  const prs = dataQuery.data?.prs ?? [];
+  const catalog = dataQuery.data?.catalog ?? [];
+  const loading = dataQuery.isLoading;
+  const loadData = React.useCallback(async () => { await dataQuery.refetch(); }, [dataQuery]);
 
-      setPrs(prsRes.data || []);
-      setCatalog(catalogRes.data || []);
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    loadData();
-  }, [activeProject]);
 
   const changePrStatus = async (id: string, status: string) => {
     setPrBusy(id);
