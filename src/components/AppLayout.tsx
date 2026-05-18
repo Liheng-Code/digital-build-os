@@ -246,9 +246,8 @@ const AppSidebar = React.memo(function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map((group) => {
-          const items = group.items.filter(canSee);
-          if (items.length === 0) return null;
+        {visibleGroups.map((group) => {
+          const items = group.items;
           const isOpen = openGroups.has(group.label);
           return (
             <SidebarGroup key={group.label}>
