@@ -89,9 +89,12 @@ const ProjectDetail = React.lazy(() => import("./pages/ProjectDetail"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
+      // Long stale time so navigating to a previously-visited tab reuses the
+      // cached payload immediately and only revalidates in the background.
+      staleTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
       refetchOnWindowFocus: false,
+      refetchOnMount: false,
       retry: 1,
     },
   },

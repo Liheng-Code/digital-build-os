@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const navigate = useNavigate();
-  const { notifications, unreadCount, markRead, markAllRead } = useNotifications(20);
+  // Use the same limit as the unread hooks so all three share one React Query cache entry.
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications(50);
   const { markTaskRead } = useTaskUnread();
 
   const handleClick = (n: NotificationRow) => {

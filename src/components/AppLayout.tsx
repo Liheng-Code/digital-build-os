@@ -208,14 +208,22 @@ const AppSidebar = React.memo(function AppSidebar() {
     });
   };
   
-  const canSee = (item: NavItem) => {
-    // If it has a module, check dynamic permissions
-    if (item.module) {
-      return can("view", item.module);
-    }
-    // Fallback to legacy roles check
-    return !item.roles || item.roles.some((r) => roles.includes(r));
-  };
+  const canSee = React.useCallback(
+    (item: NavItem) => {
+      if (item.module) return can("view", item.module);
+      return !item.roles || item.roles.some((r) => roles.includes(r));
+    },
+    [can, roles],
+  );
+
+  const visibleGroups = React.useMemo(
+    () =>
+      NAV_GROUPS.map((group) => ({
+        label: group.label,
+        items: group.items.filter(canSee),
+      })).filter((g) => g.items.length > 0),
+    [canSee],
+  );
 
   const badgeFor = (to: string): number => {
     if (to === "/tasks") return totalTaskUnread;
@@ -238,9 +246,8 @@ const AppSidebar = React.memo(function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map((group) => {
-          const items = group.items.filter(canSee);
-          if (items.length === 0) return null;
+        {visibleGroups.map((group) => {
+          const items = group.items;
           const isOpen = openGroups.has(group.label);
           return (
             <SidebarGroup key={group.label}>

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,44 +11,38 @@ export interface Permission {
 
 export function usePermissions() {
   const { roles } = useAuth();
-  const [permissions, setPermissions] = React.useState<Permission[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const rolesKey = React.useMemo(() => [...roles].sort().join(","), [roles]);
 
-  const loadPermissions = React.useCallback(async () => {
-    if (roles.length === 0) {
-      setPermissions([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
+  const { data: permissions = [], isLoading, refetch } = useQuery({
+    queryKey: ["role_permissions", rolesKey],
+    enabled: roles.length > 0,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("role_permissions")
         .select("module, action, is_allowed")
         .in("role", roles)
         .eq("is_allowed", true);
-
       if (error) throw error;
-      setPermissions(data || []);
-    } catch (e) {
-      console.error("Error loading permissions:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [roles]);
+      return (data ?? []) as Permission[];
+    },
+  });
 
-  React.useEffect(() => {
-    loadPermissions();
-  }, [loadPermissions]);
+  const isAdmin = roles.includes("admin");
+  const permSet = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const p of permissions) s.add(`${p.module}:${p.action}`);
+    return s;
+  }, [permissions]);
 
-  const can = (action: string, module: string) => {
-    // Admins can do everything by default
-    if (roles.includes("admin")) return true;
-    
-    return permissions.some(
-      (p) => p.module === module && p.action === action
-    );
-  };
+  const can = React.useCallback(
+    (action: string, module: string) => {
+      if (isAdmin) return true;
+      return permSet.has(`${module}:${action}`);
+    },
+    [isAdmin, permSet],
+  );
 
-  return { can, loading, refresh: loadPermissions };
+  return { can, loading: isLoading, refresh: refetch };
 }

@@ -22,10 +22,15 @@ export function useWbsSchedule(projectId: string | null | undefined, nodes: WbsN
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tasks")
-        .select("id, title, code, wbs_node_id, planned_start, planned_end, actual_start, actual_end, progress_pct, estimated_hours, status, constraint_type, constraint_date, deadline_date, budgeted_cost, actual_cost")
+        .select("id, title, code, wbs_node_id, planned_start, planned_end, actual_start, actual_end, progress_pct, estimated_hours, status, constraint_type, constraint_date, deadline_date")
         .eq("project_id", projectId!);
       if (error) throw error;
-      return (data ?? []) as unknown as ScheduleTask[];
+      // Default missing cost columns to null so client code that reads them stays safe.
+      return ((data ?? []) as unknown as ScheduleTask[]).map((t) => ({
+        ...t,
+        budgeted_cost: (t as { budgeted_cost?: number | null }).budgeted_cost ?? null,
+        actual_cost: (t as { actual_cost?: number | null }).actual_cost ?? null,
+      }));
     },
   });
 
