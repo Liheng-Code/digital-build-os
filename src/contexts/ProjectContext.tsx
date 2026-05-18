@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
-
-// Trigger Lovable rebuild: v1.0.1
 
 export interface Project {
   id: string;
@@ -35,33 +34,24 @@ const STORAGE_KEY = "buildtrack.activeProjectId";
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const queryClient = useQueryClient();
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY),
   );
-  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    if (!user) {
-      setProjects([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const { data } = await supabase
-      .from("projects")
-      .select(`
-        *,
-        client:stakeholders(organization_name)
-      `)
-      .order("created_at", { ascending: false });
-    setProjects((data ?? []) as Project[]);
-    setLoading(false);
-  }, [user]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const { data: projects = [], isLoading } = useQuery({
+    queryKey: ["projects", "list", user?.id ?? null],
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("projects")
+        .select(`*, client:stakeholders(organization_name)`)
+        .order("created_at", { ascending: false });
+      return (data ?? []) as Project[];
+    },
+  });
 
   // Default active project to first one if none selected
   useEffect(() => {
@@ -75,21 +65,28 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }, [projects, activeProjectId]);
 
-  const setActiveProjectId = (id: string | null) => {
+  const setActiveProjectId = useCallback((id: string | null) => {
     setActiveProjectIdState(id);
     if (id) localStorage.setItem(STORAGE_KEY, id);
     else localStorage.removeItem(STORAGE_KEY);
-  };
+  }, []);
 
-  const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["projects", "list"] });
+  }, [queryClient]);
 
-  return (
-    <ProjectContext.Provider
-      value={{ projects, activeProject, setActiveProjectId, loading, refresh }}
-    >
-      {children}
-    </ProjectContext.Provider>
-  );
+  const value = useMemo<ProjectContextValue>(() => {
+    const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
+    return {
+      projects,
+      activeProject,
+      setActiveProjectId,
+      loading: isLoading,
+      refresh,
+    };
+  }, [projects, activeProjectId, isLoading, setActiveProjectId, refresh]);
+
+  return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
 }
 
 export function useProjects() {
