@@ -128,13 +128,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }
-
-export const ROLE_LABELS: Record<AppRole, string> = {
-  admin: "Admin",
-  project_manager: "Project Manager",
-  engineer: "Engineer",
-  supervisor: "Supervisor",
-  worker: "Worker",
-  qaqc_inspector: "QA/QC Inspector",
-  accountant: "Accountant",
-};
