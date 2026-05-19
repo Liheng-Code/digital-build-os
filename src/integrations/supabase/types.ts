@@ -7329,6 +7329,39 @@ export type Database = {
           },
         ]
       }
+      telegram_conversation_state: {
+        Row: {
+          chat_id: number
+          expires_at: string
+          progress_pct: number | null
+          status: string | null
+          step: string
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: number
+          expires_at?: string
+          progress_pct?: number | null
+          status?: string | null
+          step: string
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: number
+          expires_at?: string
+          progress_pct?: number | null
+          status?: string | null
+          step?: string
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_link_codes: {
         Row: {
           code: string
