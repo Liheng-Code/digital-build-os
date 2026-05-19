@@ -517,30 +517,19 @@ async function handleReceived(
     for (const uid of recipients) {
       try {
         await db.rpc("create_notification", {
-          p_user_id: uid,
-          p_type: "task_received",
-          p_title: "Task received by assignee",
-          p_body: body,
-          p_entity_type: "task",
-          p_entity_id: taskId,
-          p_project_id: task.project_id,
-          p_priority: "normal",
-          p_actor_id: profile.id,
-          p_metadata: {},
+          _user_id: uid,
+          _type: "task_received",
+          _title: "Task received by assignee",
+          _body: body,
+          _entity_type: "task",
+          _entity_id: taskId,
+          _project_id: task.project_id,
+          _priority: "normal",
+          _actor_id: profile.id,
+          _metadata: {},
         });
       } catch (e) {
-        // Fallback: direct insert if RPC signature differs
-        await db.from("notifications").insert({
-          user_id: uid,
-          type: "task_received",
-          title: "Task received by assignee",
-          body,
-          entity_type: "task",
-          entity_id: taskId,
-          project_id: task.project_id,
-          priority: "normal",
-          actor_id: profile.id,
-        });
+        console.error("create_notification failed:", e);
       }
     }
   }
