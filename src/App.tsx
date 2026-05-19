@@ -85,6 +85,7 @@ const GRNDetail = React.lazy(() => import("./pages/GRNDetail"));
 const Budgets = React.lazy(() => import("./pages/Budgets"));
 const BudgetDetail = React.lazy(() => import("./pages/BudgetDetail"));
 const ProjectDetail = React.lazy(() => import("./pages/ProjectDetail"));
+const TelegramTaskUpdate = React.lazy(() => import("./pages/TelegramTaskUpdate"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -134,6 +135,11 @@ const App = () => (
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/telegram/task-update/:taskId" element={
+                  <React.Suspense fallback={<PageFallback />}>
+                    <TelegramTaskUpdate />
+                  </React.Suspense>
+                } />
 
                 <Route element={<ProtectedShell />}>
                   <Route path="/" element={<Index />} />

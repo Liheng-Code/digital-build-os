@@ -179,8 +179,25 @@ Deno.serve(async (req) => {
 
     const text = formatMessage(n, task);
 
-    const reply_markup = n.action_url
-      ? { inline_keyboard: [[{ text: "Open in DCOS", url: n.action_url }]] }
+    const inline_keyboard: any[][] = [];
+    if (n.action_url) {
+      inline_keyboard.push([{ text: "Open in DCOS", url: n.action_url }]);
+    }
+
+    // Add Mini App button for tasks
+    if (n.entity_type === "task" && n.entity_id && n.action_url) {
+      try {
+        const url = new URL(n.action_url);
+        const baseUrl = `${url.protocol}//${url.host}`;
+        const miniAppUrl = `${baseUrl}/telegram/task-update/${n.entity_id}`;
+        inline_keyboard.push([{ text: "📈 Update Progress", web_app: { url: miniAppUrl } }]);
+      } catch (e) {
+        console.error("Failed to parse action_url for mini app:", n.action_url);
+      }
+    }
+
+    const reply_markup = inline_keyboard.length > 0
+      ? { inline_keyboard }
       : undefined;
 
     const tgRes = await fetch(`${GATEWAY_URL}/sendMessage`, {
