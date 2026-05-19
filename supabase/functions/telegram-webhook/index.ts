@@ -329,9 +329,9 @@ function buildTaskKeyboard(taskId: string, actionUrl: string | null, status?: st
   if (!baseUrl) baseUrl = "https://build-flow-dcos.lovable.app";
   const updateUrl = `${baseUrl}/telegram/task-update/${taskId}`;
   if (status === "assigned" || status === "open") {
-    kb.push([{ text: "✅ Received", callback_data: `rcv:${taskId}` }]);
+    kb.push([{ text: "✅ Received Task", callback_data: `rcv:${taskId}` }]);
   }
-  kb.push([{ text: "✍️ Update Progress (in chat)", callback_data: `upd:${taskId}` }]);
+  kb.push([{ text: "✍️ Update Status", callback_data: `upd:${taskId}` }]);
   kb.push([{ text: "📈 Open Mini App", web_app: { url: updateUrl } }]);
   return { inline_keyboard: kb };
 }

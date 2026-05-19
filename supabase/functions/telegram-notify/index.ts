@@ -200,10 +200,10 @@ Deno.serve(async (req) => {
       const updateUrl = `${baseUrl}/telegram/task-update/${n.entity_id}`;
       // Show "Received" button only when the task is still awaiting acknowledgement.
       if (task && (task.status === "open" || task.status === "assigned")) {
-        inline_keyboard.push([{ text: "✅ Received", callback_data: `rcv:${n.entity_id}` }]);
+        inline_keyboard.push([{ text: "✅ Received Task", callback_data: `rcv:${n.entity_id}` }]);
       }
       // In-chat quick update flow (no Mini App needed)
-      inline_keyboard.push([{ text: "✍️ Update Progress (in chat)", callback_data: `upd:${n.entity_id}` }]);
+      inline_keyboard.push([{ text: "✍️ Update Status", callback_data: `upd:${n.entity_id}` }]);
       // Mini App fallback
       inline_keyboard.push([{ text: "📈 Open Mini App", web_app: { url: updateUrl } }]);
     }
