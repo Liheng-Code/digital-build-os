@@ -583,56 +583,71 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }));
     }
 
-    // /start <code> linking
-    const startMatch = text.match(/^\/start(?:\s+([A-Z0-9]{4,12}))?/i);
-    if (startMatch) {
-      const code = startMatch[1]?.toUpperCase();
-      if (!code) {
-        await tgSendMessage(
-          chatId,
-          "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo receive task notifications, open <b>Settings → Telegram</b> in DCOS, generate a link code, then send:\n<code>/start YOURCODE</code>",
-        );
-        return new Response(JSON.stringify({ ok: true }));
-      }
+    // Main Menu intercept
+    if (text === "☰ Main Menu" || text.trim() === "/start") {
+      await tgSendMessage(
+        chatId,
+        "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo link your account, simply paste your link code here.\n\nYou can generate a link code in the DCOS Web App under <b>Settings → Telegram</b>.",
+        { 
+          inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: "https://build-flow-dcos.lovable.app" } }]],
+        }
+      );
+      return new Response(JSON.stringify({ ok: true }));
+    }
 
+    // Code linking (allows just pasting the code, e.g., "ABCD12" or "/start ABCD12")
+    const codeMatch = text.match(/^(?:\/start\s+)?([A-Z0-9]{4,12})$/i);
+    const isExplicitStart = text.toLowerCase().startsWith("/start ");
+    
+    if (codeMatch) {
+      const code = codeMatch[1]?.toUpperCase();
+      
       const { data: row } = await db
         .from("telegram_link_codes")
         .select("user_id, expires_at, used_at")
         .eq("code", code)
         .maybeSingle();
 
-      if (!row) {
+      if (row) {
+        if (row.used_at) {
+          await tgSendMessage(chatId, "❌ This code has already been used.");
+          return new Response(JSON.stringify({ ok: true }));
+        }
+        if (new Date(row.expires_at).getTime() < Date.now()) {
+          await tgSendMessage(chatId, "❌ Code expired. Please generate a new one.");
+          return new Response(JSON.stringify({ ok: true }));
+        }
+
+        await db
+          .from("profiles")
+          .update({
+            telegram_chat_id: chatId,
+            telegram_username: username ?? null,
+            telegram_linked_at: new Date().toISOString(),
+          })
+          .eq("id", row.user_id);
+
+        await db
+          .from("telegram_link_codes")
+          .update({ used_at: new Date().toISOString() })
+          .eq("code", code);
+
+        await tgSendMessage(
+          chatId,
+          "✅ <b>Linked successfully!</b>\n\nYou will now receive DCOS task and system alerts here.",
+          {
+             keyboard: [[{ text: "☰ Main Menu" }]],
+             resize_keyboard: true,
+             is_persistent: true
+          }
+        );
+        return new Response(JSON.stringify({ ok: true }));
+      } else if (isExplicitStart) {
+        // If they explicitly used /start but it's invalid
         await tgSendMessage(chatId, "❌ Invalid code. Please generate a new one in DCOS Settings → Telegram.");
         return new Response(JSON.stringify({ ok: true }));
       }
-      if (row.used_at) {
-        await tgSendMessage(chatId, "❌ This code has already been used.");
-        return new Response(JSON.stringify({ ok: true }));
-      }
-      if (new Date(row.expires_at).getTime() < Date.now()) {
-        await tgSendMessage(chatId, "❌ Code expired. Please generate a new one.");
-        return new Response(JSON.stringify({ ok: true }));
-      }
-
-      await db
-        .from("profiles")
-        .update({
-          telegram_chat_id: chatId,
-          telegram_username: username ?? null,
-          telegram_linked_at: new Date().toISOString(),
-        })
-        .eq("id", row.user_id);
-
-      await db
-        .from("telegram_link_codes")
-        .update({ used_at: new Date().toISOString() })
-        .eq("code", code);
-
-      await tgSendMessage(
-        chatId,
-        "✅ <b>Linked successfully!</b>\n\nYou will now receive DCOS task and system alerts here.",
-      );
-      return new Response(JSON.stringify({ ok: true }));
+      // If it wasn't explicit /start and row wasn't found, it might just be a regular message (e.g. note), so let it fall through.
     }
 
     // ---------- in-flight conversation? ----------
@@ -678,6 +693,11 @@ Deno.serve(async (req) => {
     await tgSendMessage(
       chatId,
       "ℹ️ Tap <b>✍️ Update Progress (in chat)</b> on a task notification to update it from here.",
+      {
+         keyboard: [[{ text: "☰ Main Menu" }]],
+         resize_keyboard: true,
+         is_persistent: true
+      }
     );
     return new Response(JSON.stringify({ ok: true }));
   } catch (e) {
