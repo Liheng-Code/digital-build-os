@@ -63,10 +63,14 @@ function formatMessage(n: any, task: any | null): string {
     lines.push(`<b>Task Name:</b> ${escapeHtml(task.title ?? "—")}${task.code ? ` (${escapeHtml(task.code)})` : ""}`);
     lines.push(`<b>Task Type:</b> ${escapeHtml(labelize(task.task_type, TASK_TYPE_LABELS))}`);
     lines.push(`<b>Task Category:</b> ${escapeHtml(labelize(task.category))}`);
-    const wbs = task.wbs_node
-      ? `${task.wbs_node.code ? task.wbs_node.code + " — " : ""}${task.wbs_node.name ?? ""}`
-      : (task.location_zone ?? "—");
-    lines.push(`<b>WBS Location:</b> ${escapeHtml(wbs || "—")}`);
+    const wbsParts: string[] = [];
+    if (task.project_name) wbsParts.push(task.project_name);
+    if (Array.isArray(task.wbs_path) && task.wbs_path.length) {
+      for (const p of task.wbs_path) wbsParts.push(p);
+    }
+    if (task.location_zone) wbsParts.push(task.location_zone);
+    const wbs = wbsParts.length ? wbsParts.join(" / ") : "—";
+    lines.push(`<b>WBS Location:</b> ${escapeHtml(wbs)}`);
     lines.push(`<b>Plan Start:</b> ${escapeHtml(fmtDate(task.planned_start))}`);
     lines.push(`<b>Plan End:</b> ${escapeHtml(fmtDate(task.planned_end))}`);
     lines.push(`<b>Status:</b> ${escapeHtml(labelize(task.status, TASK_STATUS_LABELS))}`);
