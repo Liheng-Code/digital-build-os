@@ -139,21 +139,43 @@ Deno.serve(async (req) => {
     if (n.entity_type === "task" && n.entity_id) {
       const { data: t } = await db
         .from("tasks")
-        .select("id, code, title, task_type, category, status, planned_start, planned_end, location_zone, wbs_node_id")
+        .select("id, code, title, task_type, category, status, planned_start, planned_end, location_zone, wbs_node_id, project_id")
         .eq("id", n.entity_id)
         .maybeSingle();
       if (t) {
         task = t;
-        if (t.wbs_node_id) {
-          const { data: w } = await db
-            .from("wbs_nodes")
-            .select("code, name")
-            .eq("id", t.wbs_node_id)
+
+        // Project name
+        if (t.project_id) {
+          const { data: p } = await db
+            .from("projects")
+            .select("name")
+            .eq("id", t.project_id)
             .maybeSingle();
-          task.wbs_node = w ?? null;
+          task.project_name = p?.name ?? null;
+        }
+
+        // WBS ancestor chain (root → leaf), names only
+        if (t.wbs_node_id) {
+          const chain: string[] = [];
+          let currentId: string | null = t.wbs_node_id;
+          let guard = 0;
+          while (currentId && guard < 12) {
+            const { data: node } = await db
+              .from("wbs_nodes")
+              .select("name, parent_id")
+              .eq("id", currentId)
+              .maybeSingle();
+            if (!node) break;
+            chain.unshift(node.name);
+            currentId = node.parent_id;
+            guard++;
+          }
+          task.wbs_path = chain;
         }
       }
     }
+
 
     const text = formatMessage(n, task);
 
