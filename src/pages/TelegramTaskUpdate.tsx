@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TASK_STATUS_LABELS, ALLOWED_TRANSITIONS, type TaskStatus } from "@/lib/taskMeta";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +42,7 @@ declare global {
 export default function TelegramTaskUpdate() {
   const { taskId } = useParams<{ taskId: string }>();
   const [progress, setProgress] = React.useState<number>(0);
+  const [status, setStatus] = React.useState<TaskStatus | "">("");
   const [note, setNote] = React.useState("");
   const [isSubmitted, setIsSubmitted] = React.useState(false);
 
@@ -67,6 +70,7 @@ export default function TelegramTaskUpdate() {
   React.useEffect(() => {
     if (taskQuery.data) {
       setProgress(taskQuery.data.progress_pct || 0);
+      setStatus((taskQuery.data.status as TaskStatus) || "");
     }
   }, [taskQuery.data]);
 
@@ -85,6 +89,7 @@ export default function TelegramTaskUpdate() {
           task_id: taskId,
           progress_pct: progress,
           note: note,
+          status: status || undefined,
           telegram_username: username || "test_user", // Fallback for dev
         },
       });
@@ -170,6 +175,27 @@ export default function TelegramTaskUpdate() {
           <span>Halfway</span>
           <span>Completed</span>
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <Label className="text-sm font-semibold">Status</Label>
+        <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            {(() => {
+              const current = (taskQuery.data?.status as TaskStatus) || "open";
+              const opts = Array.from(new Set<TaskStatus>([current, ...(ALLOWED_TRANSITIONS[current] || [])]));
+              return opts.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {TASK_STATUS_LABELS[s]}
+                  {s === current ? " (current)" : ""}
+                </SelectItem>
+              ));
+            })()}
+          </SelectContent>
+        </Select>
       </section>
 
       <section className="space-y-3">
