@@ -4166,6 +4166,9 @@ export type Database = {
           phone: string | null
           report_to_employee_id: string | null
           reports_to: string | null
+          telegram_chat_id: number | null
+          telegram_linked_at: string | null
+          telegram_username: string | null
           updated_at: string
         }
         Insert: {
@@ -4190,6 +4193,9 @@ export type Database = {
           phone?: string | null
           report_to_employee_id?: string | null
           reports_to?: string | null
+          telegram_chat_id?: number | null
+          telegram_linked_at?: string | null
+          telegram_username?: string | null
           updated_at?: string
         }
         Update: {
@@ -4214,6 +4220,9 @@ export type Database = {
           phone?: string | null
           report_to_employee_id?: string | null
           reports_to?: string | null
+          telegram_chat_id?: number | null
+          telegram_linked_at?: string | null
+          telegram_username?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -7319,6 +7328,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      telegram_link_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_outbox: {
+        Row: {
+          chat_id: number | null
+          created_at: string
+          error: string | null
+          notification_id: string
+          sent_at: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          chat_id?: number | null
+          created_at?: string
+          error?: string | null
+          notification_id: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          chat_id?: number | null
+          created_at?: string
+          error?: string | null
+          notification_id?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       timesheet_entries: {
         Row: {
