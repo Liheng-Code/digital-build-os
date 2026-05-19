@@ -63,10 +63,14 @@ function formatMessage(n: any, task: any | null): string {
     lines.push(`<b>Task Name:</b> ${escapeHtml(task.title ?? "—")}${task.code ? ` (${escapeHtml(task.code)})` : ""}`);
     lines.push(`<b>Task Type:</b> ${escapeHtml(labelize(task.task_type, TASK_TYPE_LABELS))}`);
     lines.push(`<b>Task Category:</b> ${escapeHtml(labelize(task.category))}`);
-    const wbs = task.wbs_node
-      ? `${task.wbs_node.code ? task.wbs_node.code + " — " : ""}${task.wbs_node.name ?? ""}`
-      : (task.location_zone ?? "—");
-    lines.push(`<b>WBS Location:</b> ${escapeHtml(wbs || "—")}`);
+    const wbsParts: string[] = [];
+    if (task.project_name) wbsParts.push(task.project_name);
+    if (Array.isArray(task.wbs_path) && task.wbs_path.length) {
+      for (const p of task.wbs_path) wbsParts.push(p);
+    }
+    if (task.location_zone) wbsParts.push(task.location_zone);
+    const wbs = wbsParts.length ? wbsParts.join(" / ") : "—";
+    lines.push(`<b>WBS Location:</b> ${escapeHtml(wbs)}`);
     lines.push(`<b>Plan Start:</b> ${escapeHtml(fmtDate(task.planned_start))}`);
     lines.push(`<b>Plan End:</b> ${escapeHtml(fmtDate(task.planned_end))}`);
     lines.push(`<b>Status:</b> ${escapeHtml(labelize(task.status, TASK_STATUS_LABELS))}`);
@@ -135,21 +139,43 @@ Deno.serve(async (req) => {
     if (n.entity_type === "task" && n.entity_id) {
       const { data: t } = await db
         .from("tasks")
-        .select("id, code, title, task_type, category, status, planned_start, planned_end, location_zone, wbs_node_id")
+        .select("id, code, title, task_type, category, status, planned_start, planned_end, location_zone, wbs_node_id, project_id")
         .eq("id", n.entity_id)
         .maybeSingle();
       if (t) {
         task = t;
-        if (t.wbs_node_id) {
-          const { data: w } = await db
-            .from("wbs_nodes")
-            .select("code, name")
-            .eq("id", t.wbs_node_id)
+
+        // Project name
+        if (t.project_id) {
+          const { data: p } = await db
+            .from("projects")
+            .select("name")
+            .eq("id", t.project_id)
             .maybeSingle();
-          task.wbs_node = w ?? null;
+          task.project_name = p?.name ?? null;
+        }
+
+        // WBS ancestor chain (root → leaf), names only
+        if (t.wbs_node_id) {
+          const chain: string[] = [];
+          let currentId: string | null = t.wbs_node_id;
+          let guard = 0;
+          while (currentId && guard < 12) {
+            const { data: node } = await db
+              .from("wbs_nodes")
+              .select("name, parent_id")
+              .eq("id", currentId)
+              .maybeSingle();
+            if (!node) break;
+            chain.unshift(node.name);
+            currentId = node.parent_id;
+            guard++;
+          }
+          task.wbs_path = chain;
         }
       }
     }
+
 
     const text = formatMessage(n, task);
 
