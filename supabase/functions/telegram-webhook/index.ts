@@ -316,7 +316,7 @@ async function refreshCard(db: any, chatId: number, state: any, step: string, op
   await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
 }
 
-function buildTaskKeyboard(taskId: string, actionUrl: string | null) {
+function buildTaskKeyboard(taskId: string, actionUrl: string | null, status?: string | null) {
   const kb: any[][] = [];
   if (actionUrl) kb.push([{ text: "🔎 Open in DCOS", url: actionUrl }]);
   let baseUrl: string | null = null;
@@ -328,9 +328,11 @@ function buildTaskKeyboard(taskId: string, actionUrl: string | null) {
   }
   if (!baseUrl) baseUrl = "https://build-flow-dcos.lovable.app";
   const updateUrl = `${baseUrl}/telegram/task-update/${taskId}`;
+  if (status === "assigned" || status === "open") {
+    kb.push([{ text: "✅ Received", callback_data: `rcv:${taskId}` }]);
+  }
   kb.push([{ text: "✍️ Update Progress (in chat)", callback_data: `upd:${taskId}` }]);
   kb.push([{ text: "📈 Open Mini App", web_app: { url: updateUrl } }]);
-  kb.push([{ text: "🌐 Update in Browser", url: updateUrl }]);
   return { inline_keyboard: kb };
 }
 
