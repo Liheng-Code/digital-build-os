@@ -303,7 +303,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
                 <Input
                   type="number"
                   value={(form as any).telegram_chat_id ?? ""}
-                  onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value as any })}
+                  onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value } as any)}
                   placeholder="Leave blank to unlink"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
