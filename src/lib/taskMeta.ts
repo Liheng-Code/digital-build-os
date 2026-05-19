@@ -24,6 +24,7 @@ export type TaskType =
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   open: "Open",
   assigned: "Assigned",
+  received: "Received",
   in_progress: "In Progress",
   pending_approval: "Pending Approval",
   approved: "Approved",
