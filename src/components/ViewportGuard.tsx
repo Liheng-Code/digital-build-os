@@ -16,7 +16,11 @@ export function ViewportGuard({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  if (isMobile && width < 768) {
+  // Allow mobile viewports for Telegram Mini App routes (designed mobile-first)
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
+  const isTelegramRoute = path.startsWith("/telegram");
+
+  if (isMobile && width < 768 && !isTelegramRoute) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-primary-deep p-8 text-center">
         <div className="rounded-2xl bg-card p-8 shadow-elevated max-w-sm">
