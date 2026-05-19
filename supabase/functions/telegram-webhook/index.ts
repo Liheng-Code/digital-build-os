@@ -318,7 +318,10 @@ async function refreshCard(db: any, chatId: number, state: any, step: string, op
 
 function buildTaskKeyboard(taskId: string, actionUrl: string | null, status?: string | null) {
   const kb: any[][] = [];
+  // Once the task is finished, hide all action buttons.
+  const isDone = status === "completed" || status === "closed" || status === "approved";
   if (actionUrl) kb.push([{ text: "🔎 Open in DCOS", url: actionUrl }]);
+  if (isDone) return { inline_keyboard: kb };
   let baseUrl: string | null = null;
   if (actionUrl) {
     try {
@@ -623,10 +626,8 @@ Deno.serve(async (req) => {
       if (data === "nav:cancel") {
         await tgAnswerCallback(cq.id, "Cancelled");
         if (state) {
-          const task = await loadTask(db, state.task_id);
-          if (state.card_message_id && task) {
-            const view = renderCancelled(task);
-            await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+          if (state.card_message_id) {
+            await tgDeleteMessage(chatId, state.card_message_id);
           }
           await clearState(db, chatId);
         }
@@ -711,10 +712,8 @@ Deno.serve(async (req) => {
     if (/^\/cancel\b/i.test(text)) {
       const state = await getActiveState(db, chatId);
       if (state) {
-        const task = await loadTask(db, state.task_id);
-        if (state.card_message_id && task) {
-          const view = renderCancelled(task);
-          await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+        if (state.card_message_id) {
+          await tgDeleteMessage(chatId, state.card_message_id);
         }
         await clearState(db, chatId);
       }
@@ -800,6 +799,18 @@ Deno.serve(async (req) => {
         }
         const pct = Math.round(num);
         if (messageId) await tgDeleteMessage(chatId, messageId);
+
+        // Auto-complete shortcut: 100% skips status + note steps.
+        if (pct === 100) {
+          await finalizeAndShow(
+            db,
+            chatId,
+            { ...state, progress_pct: 100, status: "completed" },
+            null,
+          );
+          return new Response(JSON.stringify({ ok: true }));
+        }
+
         await setState(db, chatId, {
           user_id: state.user_id,
           task_id: state.task_id,
