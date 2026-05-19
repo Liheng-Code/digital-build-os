@@ -188,9 +188,15 @@ Deno.serve(async (req) => {
     if (n.entity_type === "task" && n.entity_id && n.action_url) {
       try {
         const url = new URL(n.action_url);
-        const baseUrl = `${url.protocol}//${url.host}`;
-        const miniAppUrl = `${baseUrl}/telegram/task-update/${n.entity_id}`;
-        inline_keyboard.push([{ text: "📈 Update Progress", web_app: { url: miniAppUrl } }]);
+        // Telegram Web Apps REQUIRE https protocol. 
+        // If testing on localhost, the button will be skipped to prevent Telegram from rejecting the message.
+        if (url.protocol === "https:") {
+          const baseUrl = `${url.protocol}//${url.host}`;
+          const miniAppUrl = `${baseUrl}/telegram/task-update/${n.entity_id}`;
+          inline_keyboard.push([{ text: "📈 Update Progress", web_app: { url: miniAppUrl } }]);
+        } else {
+          console.warn("Skipping Telegram Mini App button: HTTPS is required for web_app buttons. Found:", url.protocol);
+        }
       } catch (e) {
         console.error("Failed to parse action_url for mini app:", n.action_url);
       }
