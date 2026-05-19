@@ -297,7 +297,22 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
               <Label>Emergency phone</Label>
               <Input value={form.emergency_phone ?? ""} onChange={(e) => setForm({ ...form, emergency_phone: e.target.value })} />
             </div>
+            {!isCreate && (
+              <div className="col-span-2">
+                <Label>Telegram chat ID (admin override)</Label>
+                <Input
+                  type="number"
+                  value={(form as any).telegram_chat_id ?? ""}
+                  onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value as any })}
+                  placeholder="Leave blank to unlink"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Users should normally self-link via Settings → Telegram.
+                </p>
+              </div>
+            )}
           </div>
+
 
           {isCreate && (
             <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-3">
