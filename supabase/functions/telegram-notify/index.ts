@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
 
     const { data: n, error: nErr } = await db
       .from("notifications")
-      .select("id, user_id, title, body, priority, action_url, type")
+      .select("id, user_id, title, body, priority, action_url, type, entity_type, entity_id")
       .eq("id", notification_id)
       .maybeSingle();
     if (nErr || !n) throw new Error(nErr?.message ?? "notification not found");
@@ -130,7 +130,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    const text = formatMessage(n);
+    // Fetch task details if notification refers to a task
+    let task: any = null;
+    if (n.entity_type === "task" && n.entity_id) {
+      const { data: t } = await db
+        .from("tasks")
+        .select("id, code, title, task_type, category, status, planned_start, planned_end, location_zone, wbs_node_id")
+        .eq("id", n.entity_id)
+        .maybeSingle();
+      if (t) {
+        task = t;
+        if (t.wbs_node_id) {
+          const { data: w } = await db
+            .from("wbs_nodes")
+            .select("code, name")
+            .eq("id", t.wbs_node_id)
+            .maybeSingle();
+          task.wbs_node = w ?? null;
+        }
+      }
+    }
+
+    const text = formatMessage(n, task);
+
     const reply_markup = n.action_url
       ? { inline_keyboard: [[{ text: "Open in DCOS", url: n.action_url }]] }
       : undefined;
