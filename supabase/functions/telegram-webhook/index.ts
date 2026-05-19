@@ -626,10 +626,8 @@ Deno.serve(async (req) => {
       if (data === "nav:cancel") {
         await tgAnswerCallback(cq.id, "Cancelled");
         if (state) {
-          const task = await loadTask(db, state.task_id);
-          if (state.card_message_id && task) {
-            const view = renderCancelled(task);
-            await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+          if (state.card_message_id) {
+            await tgDeleteMessage(chatId, state.card_message_id);
           }
           await clearState(db, chatId);
         }
