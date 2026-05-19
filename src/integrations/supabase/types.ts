@@ -8830,6 +8830,7 @@ export type Database = {
       task_status:
         | "open"
         | "assigned"
+        | "received"
         | "in_progress"
         | "pending_approval"
         | "approved"
@@ -9341,6 +9342,7 @@ export const Constants = {
       task_status: [
         "open",
         "assigned",
+        "received",
         "in_progress",
         "pending_approval",
         "approved",
