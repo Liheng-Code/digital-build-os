@@ -247,6 +247,10 @@ Deno.serve(async (req) => {
       chat_id: chatId,
       status: "sent",
       sent_at: new Date().toISOString(),
+      message_id: tgData?.result?.message_id ?? null,
+      message_text: text,
+      entity_type: n.entity_type ?? null,
+      entity_id: n.entity_id ?? null,
     });
 
     return new Response(JSON.stringify({ ok: true }), {
