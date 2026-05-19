@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { DepartmentMembersTab } from "@/components/settings/DepartmentMembersTab";
 import { ProjectHolidaysTab } from "@/components/settings/ProjectHolidaysTab";
 import { CompanyProfileTab } from "@/components/settings/CompanyProfileTab";
+import { TelegramTab } from "@/components/settings/TelegramTab";
 
 export default function Settings() {
   const { user, profile, refreshProfile, hasRole } = useAuth();
