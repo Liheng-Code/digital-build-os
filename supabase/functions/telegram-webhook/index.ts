@@ -587,7 +587,7 @@ Deno.serve(async (req) => {
     if (text === "☰ Main Menu" || text.trim() === "/start") {
       await tgSendMessage(
         chatId,
-        "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo link your account, simply paste your link code here.\n\nYou can generate a link code in the DCOS Web App under <b>Settings → Telegram</b>.",
+        "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo receive task notifications, open <b>Settings → Telegram</b> in DCOS, generate a link code, then send:\n<code>YOURCODE</code>",
         { 
           inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: "https://build-flow-dcos.lovable.app" } }]],
         }
@@ -637,16 +637,6 @@ Deno.serve(async (req) => {
           "✅ <b>Successfully connected to DCOS Web App!</b>\n\nYour Telegram account is now linked. You will receive task assignments, approvals, and system alerts here.\n\nOpen the web app anytime from the button below.",
           {
             inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: "https://build-flow-dcos.lovable.app" } }]],
-          },
-        );
-        // Persistent reply keyboard with Main Menu shortcut
-        await tgSendMessage(
-          chatId,
-          "Tip: tap <b>☰ Main Menu</b> anytime to see your welcome screen.",
-          {
-            keyboard: [[{ text: "☰ Main Menu" }]],
-            resize_keyboard: true,
-            is_persistent: true,
           },
         );
         return new Response(JSON.stringify({ ok: true }));
