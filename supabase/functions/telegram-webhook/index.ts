@@ -481,6 +481,14 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: true }));
       }
 
+      // Receive task: "rcv:<task_id>"
+      if (data.startsWith("rcv:")) {
+        const taskId = data.slice(4);
+        const messageId: number | undefined = cq.message?.message_id;
+        await handleReceived(db, chatId, taskId, messageId, cq.id);
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
       const state = await getActiveState(db, chatId);
 
       // Navigation buttons
