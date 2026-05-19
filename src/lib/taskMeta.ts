@@ -78,7 +78,8 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
 /** Allowed status transitions, mirrored from the DB trigger. */
 export const ALLOWED_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   open: ["assigned", "closed"],
-  assigned: ["in_progress", "open", "closed"],
+  assigned: ["received", "in_progress", "open", "closed"],
+  received: ["in_progress", "closed"],
   in_progress: ["pending_approval", "assigned", "closed"],
   pending_approval: ["approved", "rejected"],
   approved: ["completed", "closed"],
