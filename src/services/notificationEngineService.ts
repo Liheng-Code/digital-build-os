@@ -102,6 +102,13 @@ export async function createNotification(input: CreateNotificationInput): Promis
     isSystemGenerated: true
   });
 
+  // Fire-and-forget Telegram mirror for in-scope event types
+  if (TELEGRAM_EVENT_TYPES.includes(input.type)) {
+    supabase.functions
+      .invoke("telegram-notify", { body: { notification_id: data.id } })
+      .catch((err) => console.warn("telegram-notify invoke failed:", err));
+  }
+
   return data;
 }
 
