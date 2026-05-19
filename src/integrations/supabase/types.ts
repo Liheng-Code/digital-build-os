@@ -8734,6 +8734,7 @@ export type Database = {
         | "role_permission_changed"
         | "approval_required"
         | "approval_overdue"
+        | "task_received"
       payroll_period_status: "open" | "locked" | "paid"
       permit_type:
         | "hot_work"
@@ -9234,6 +9235,7 @@ export const Constants = {
         "role_permission_changed",
         "approval_required",
         "approval_overdue",
+        "task_received",
       ],
       payroll_period_status: ["open", "locked", "paid"],
       permit_type: [
