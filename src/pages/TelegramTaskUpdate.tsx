@@ -89,6 +89,7 @@ export default function TelegramTaskUpdate() {
           task_id: taskId,
           progress_pct: progress,
           note: note,
+          status: status || undefined,
           telegram_username: username || "test_user", // Fallback for dev
         },
       });
