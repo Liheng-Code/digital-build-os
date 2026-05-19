@@ -376,7 +376,7 @@ async function appendUpdateToOriginalCard(
   ].join("\n");
 
   const newText = (row.message_text ?? "") + "\n" + updateBlock;
-  const keyboard = buildTaskKeyboard(taskId, notif?.action_url ?? null);
+  const keyboard = buildTaskKeyboard(taskId, notif?.action_url ?? null, finalStatus);
 
   try {
     await tgEditMessage(chatId, row.message_id, newText, keyboard);
