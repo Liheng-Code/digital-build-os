@@ -21,6 +21,7 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 const STATUS_LABELS: Record<string, string> = {
   open: "Open",
   assigned: "Assigned",
+  received: "Received",
   in_progress: "In Progress",
   pending_approval: "Pending Approval",
   approved: "Approved",
@@ -315,7 +316,7 @@ async function refreshCard(db: any, chatId: number, state: any, step: string, op
   await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
 }
 
-function buildTaskKeyboard(taskId: string, actionUrl: string | null) {
+function buildTaskKeyboard(taskId: string, actionUrl: string | null, status?: string | null) {
   const kb: any[][] = [];
   if (actionUrl) kb.push([{ text: "🔎 Open in DCOS", url: actionUrl }]);
   let baseUrl: string | null = null;
@@ -327,9 +328,11 @@ function buildTaskKeyboard(taskId: string, actionUrl: string | null) {
   }
   if (!baseUrl) baseUrl = "https://build-flow-dcos.lovable.app";
   const updateUrl = `${baseUrl}/telegram/task-update/${taskId}`;
+  if (status === "assigned" || status === "open") {
+    kb.push([{ text: "✅ Received", callback_data: `rcv:${taskId}` }]);
+  }
   kb.push([{ text: "✍️ Update Progress (in chat)", callback_data: `upd:${taskId}` }]);
   kb.push([{ text: "📈 Open Mini App", web_app: { url: updateUrl } }]);
-  kb.push([{ text: "🌐 Update in Browser", url: updateUrl }]);
   return { inline_keyboard: kb };
 }
 
@@ -373,7 +376,7 @@ async function appendUpdateToOriginalCard(
   ].join("\n");
 
   const newText = (row.message_text ?? "") + "\n" + updateBlock;
-  const keyboard = buildTaskKeyboard(taskId, notif?.action_url ?? null);
+  const keyboard = buildTaskKeyboard(taskId, notif?.action_url ?? null, finalStatus);
 
   try {
     await tgEditMessage(chatId, row.message_id, newText, keyboard);
@@ -439,6 +442,134 @@ async function finalizeAndShow(db: any, chatId: number, state: any, note: string
   await clearState(db, chatId);
 }
 
+// ---------- Receive (acknowledge) flow ----------
+
+async function handleReceived(
+  db: any,
+  chatId: number,
+  taskId: string,
+  messageId: number | undefined,
+  callbackId: string,
+) {
+  // Resolve user from chat
+  const { data: profile } = await db
+    .from("profiles")
+    .select("id, full_name")
+    .eq("telegram_chat_id", chatId)
+    .maybeSingle();
+  if (!profile) {
+    await tgAnswerCallback(callbackId, "Telegram not linked");
+    return;
+  }
+
+  // Must be assigned to this task
+  const { data: assignment } = await db
+    .from("task_assignments")
+    .select("id")
+    .eq("task_id", taskId)
+    .eq("user_id", profile.id)
+    .is("unassigned_at", null)
+    .maybeSingle();
+  if (!assignment) {
+    await tgAnswerCallback(callbackId, "You are not assigned");
+    return;
+  }
+
+  const { data: task } = await db
+    .from("tasks")
+    .select("id, code, title, status, project_id, created_by")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task) {
+    await tgAnswerCallback(callbackId, "Task not found");
+    return;
+  }
+
+  // Only transition from open/assigned
+  if (task.status !== "open" && task.status !== "assigned" && task.status !== "received") {
+    await tgAnswerCallback(callbackId, "Already started");
+    return;
+  }
+
+  if (task.status !== "received") {
+    const { error: upErr } = await db
+      .from("tasks")
+      .update({ status: "received", updated_at: new Date().toISOString() })
+      .eq("id", taskId);
+    if (upErr) {
+      console.error("Received update failed:", upErr);
+      await tgAnswerCallback(callbackId, "Failed to update");
+      return;
+    }
+
+    // Notify task creator and any other assignees (excluding the actor)
+    const body = `${task.code ? task.code + " — " : ""}${task.title} • Received by ${profile.full_name ?? "assignee"}`;
+    const recipients = new Set<string>();
+    if (task.created_by && task.created_by !== profile.id) recipients.add(task.created_by);
+    const { data: others } = await db
+      .from("task_assignments")
+      .select("user_id")
+      .eq("task_id", taskId)
+      .is("unassigned_at", null);
+    for (const r of others ?? []) {
+      if (r.user_id && r.user_id !== profile.id) recipients.add(r.user_id);
+    }
+    for (const uid of recipients) {
+      try {
+        await db.rpc("create_notification", {
+          _user_id: uid,
+          _type: "task_received",
+          _title: "Task received by assignee",
+          _body: body,
+          _entity_type: "task",
+          _entity_id: taskId,
+          _project_id: task.project_id,
+          _priority: "normal",
+          _actor_id: profile.id,
+          _metadata: {},
+        });
+      } catch (e) {
+        console.error("create_notification failed:", e);
+      }
+    }
+  }
+
+  // Edit the existing card to reflect new status and remove the Received button
+  if (messageId) {
+    const { data: outboxRow } = await db
+      .from("telegram_outbox")
+      .select("notification_id, message_text")
+      .eq("chat_id", chatId)
+      .eq("message_id", messageId)
+      .maybeSingle();
+    const { data: notif } = outboxRow?.notification_id
+      ? await db.from("notifications").select("action_url").eq("id", outboxRow.notification_id).maybeSingle()
+      : { data: null };
+    const ts = new Date().toLocaleString("en-GB", { hour12: false });
+    const ack = [
+      "",
+      "────────────────",
+      `✅ <b>Received</b> — ${escapeHtml(ts)}${profile.full_name ? ` • <i>${escapeHtml(profile.full_name)}</i>` : ""}`,
+      `Status: <b>Received</b>`,
+    ].join("\n");
+    const newText = (outboxRow?.message_text ?? "") + ack;
+    const keyboard = buildTaskKeyboard(taskId, notif?.action_url ?? null, "received");
+    try {
+      await tgEditMessage(chatId, messageId, newText, keyboard);
+      if (outboxRow?.notification_id) {
+        await db
+          .from("telegram_outbox")
+          .update({ message_text: newText })
+          .eq("notification_id", outboxRow.notification_id);
+      }
+    } catch (e) {
+      console.error("handleReceived edit failed:", e);
+    }
+  }
+
+  await tgAnswerCallback(callbackId, "Marked as received");
+}
+
 // ---------- HTTP entry ----------
 
 Deno.serve(async (req) => {
@@ -475,6 +606,14 @@ Deno.serve(async (req) => {
       if (data.startsWith("upd:")) {
         await tgAnswerCallback(cq.id);
         await startUpdateFlow(db, chatId, data.slice(4));
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      // Receive task: "rcv:<task_id>"
+      if (data.startsWith("rcv:")) {
+        const taskId = data.slice(4);
+        const messageId: number | undefined = cq.message?.message_id;
+        await handleReceived(db, chatId, taskId, messageId, cq.id);
         return new Response(JSON.stringify({ ok: true }));
       }
 
