@@ -61,6 +61,15 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
     if (member) {
       setForm({ ...member });
       setIsAutoId(false);
+      // Load Telegram chat_id from profile (not in OrgMemberRow)
+      supabase
+        .from("profiles")
+        .select("telegram_chat_id")
+        .eq("id", member.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setForm((f) => ({ ...f, telegram_chat_id: (data as any).telegram_chat_id ?? "" } as any));
+        });
     } else {
       setForm({ 
         employment_status: "active", 
