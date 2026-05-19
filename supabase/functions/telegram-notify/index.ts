@@ -202,7 +202,10 @@ Deno.serve(async (req) => {
       // Use web_app for in-Telegram Mini App experience (works in private chats
       // once the bot's Mini App domain is configured). Also add a plain URL
       // button as a guaranteed fallback so the button always appears.
-      inline_keyboard.push([{ text: "📈 Update Progress", web_app: { url: updateUrl } }]);
+      // In-chat quick update flow (no Mini App needed)
+      inline_keyboard.push([{ text: "✍️ Update Progress (in chat)", callback_data: `upd:${n.entity_id}` }]);
+      // Mini App + browser fallback
+      inline_keyboard.push([{ text: "📈 Open Mini App", web_app: { url: updateUrl } }]);
       inline_keyboard.push([{ text: "🌐 Update in Browser", url: updateUrl }]);
     }
 
