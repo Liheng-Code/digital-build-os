@@ -178,6 +178,27 @@ export default function TelegramTaskUpdate() {
       </section>
 
       <section className="space-y-3">
+        <Label className="text-sm font-semibold">Status</Label>
+        <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
+          <SelectTrigger className="h-11">
+            <SelectValue placeholder="Select status" />
+          </SelectTrigger>
+          <SelectContent>
+            {(() => {
+              const current = (taskQuery.data?.status as TaskStatus) || "open";
+              const opts = Array.from(new Set<TaskStatus>([current, ...(ALLOWED_TRANSITIONS[current] || [])]));
+              return opts.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {TASK_STATUS_LABELS[s]}
+                  {s === current ? " (current)" : ""}
+                </SelectItem>
+              ));
+            })()}
+          </SelectContent>
+        </Select>
+      </section>
+
+      <section className="space-y-3">
         <Label className="text-sm font-semibold">Update Notes</Label>
         <Textarea 
           placeholder="What's the status? Any blockers?" 
