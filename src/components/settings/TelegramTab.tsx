@@ -141,7 +141,7 @@ export function TelegramTab() {
                 </a>
               </li>
               <li>
-                Send: <code className="bg-muted px-1.5 py-0.5 rounded">/start {code}</code>
+                Send your code: <code className="bg-muted px-1.5 py-0.5 rounded">{code}</code>
               </li>
               <li>This page will update automatically once linked.</li>
             </ol>
