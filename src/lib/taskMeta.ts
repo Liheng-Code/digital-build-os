@@ -41,6 +41,7 @@ export const TASK_STATUS_TONE: Record<
 > = {
   open: { bg: "bg-neutral-status-soft", fg: "text-neutral-status", dot: "bg-neutral-status" },
   assigned: { bg: "bg-info-soft", fg: "text-info", dot: "bg-info" },
+  received: { bg: "bg-success-soft", fg: "text-success", dot: "bg-success" },
   in_progress: { bg: "bg-info-soft", fg: "text-info", dot: "bg-info" },
   pending_approval: { bg: "bg-warning-soft", fg: "text-warning", dot: "bg-warning" },
   approved: { bg: "bg-success-soft", fg: "text-success", dot: "bg-success" },
