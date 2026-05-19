@@ -315,6 +315,79 @@ async function refreshCard(db: any, chatId: number, state: any, step: string, op
   await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
 }
 
+function buildTaskKeyboard(taskId: string, actionUrl: string | null) {
+  const kb: any[][] = [];
+  if (actionUrl) kb.push([{ text: "🔎 Open in DCOS", url: actionUrl }]);
+  let baseUrl: string | null = null;
+  if (actionUrl) {
+    try {
+      const u = new URL(actionUrl);
+      if (u.protocol === "https:") baseUrl = `${u.protocol}//${u.host}`;
+    } catch (_) { /* ignore */ }
+  }
+  if (!baseUrl) baseUrl = "https://build-flow-dcos.lovable.app";
+  const updateUrl = `${baseUrl}/telegram/task-update/${taskId}`;
+  kb.push([{ text: "✍️ Update Progress (in chat)", callback_data: `upd:${taskId}` }]);
+  kb.push([{ text: "📈 Open Mini App", web_app: { url: updateUrl } }]);
+  kb.push([{ text: "🌐 Update in Browser", url: updateUrl }]);
+  return { inline_keyboard: kb };
+}
+
+async function appendUpdateToOriginalCard(
+  db: any,
+  chatId: number,
+  taskId: string,
+  pct: number,
+  finalStatus: string,
+  note: string | null,
+  byName: string | null,
+): Promise<boolean> {
+  // Find the most recent telegram_outbox row for this chat + task that has a message_id
+  const { data: rows } = await db
+    .from("telegram_outbox")
+    .select("notification_id, message_id, message_text")
+    .eq("chat_id", chatId)
+    .eq("entity_type", "task")
+    .eq("entity_id", taskId)
+    .not("message_id", "is", null)
+    .order("sent_at", { ascending: false })
+    .limit(1);
+  const row = rows?.[0];
+  if (!row?.message_id) return false;
+
+  // Look up the action_url to rebuild the same inline keyboard
+  const { data: notif } = await db
+    .from("notifications")
+    .select("action_url")
+    .eq("id", row.notification_id)
+    .maybeSingle();
+
+  const label = STATUS_LABELS[finalStatus] ?? finalStatus;
+  const ts = new Date().toLocaleString("en-GB", { hour12: false });
+  const updateBlock = [
+    "",
+    "────────────────",
+    `✅ <b>Update</b> — ${escapeHtml(ts)}${byName ? ` • <i>${escapeHtml(byName)}</i>` : ""}`,
+    `Progress: <b>${pct}%</b> • Status: <b>${escapeHtml(label)}</b>`,
+    `Note: ${note ? escapeHtml(note) : "—"}`,
+  ].join("\n");
+
+  const newText = (row.message_text ?? "") + "\n" + updateBlock;
+  const keyboard = buildTaskKeyboard(taskId, notif?.action_url ?? null);
+
+  try {
+    await tgEditMessage(chatId, row.message_id, newText, keyboard);
+    await db
+      .from("telegram_outbox")
+      .update({ message_text: newText })
+      .eq("notification_id", row.notification_id);
+    return true;
+  } catch (e) {
+    console.error("appendUpdateToOriginalCard edit failed:", e);
+    return false;
+  }
+}
+
 async function finalizeAndShow(db: any, chatId: number, state: any, note: string | null) {
   const task = await loadTask(db, state.task_id);
   if (!task) return;
@@ -341,11 +414,27 @@ async function finalizeAndShow(db: any, chatId: number, state: any, note: string
     return;
   }
   const { data: profile } = await db.from("profiles").select("full_name").eq("id", state.user_id).maybeSingle();
-  const view = renderSummary(task, state.progress_pct ?? 0, finalStatus, note, profile?.full_name ?? null);
-  if (state.card_message_id) {
-    await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+  const pct = state.progress_pct ?? 0;
+  const byName = profile?.full_name ?? null;
+
+  // Try to append the update into the original task card so it sits
+  // between the task details and the action buttons.
+  const appended = await appendUpdateToOriginalCard(
+    db, chatId, state.task_id, pct, finalStatus, note, byName,
+  );
+
+  if (appended) {
+    // Remove the standalone flow card so only the original (now-updated)
+    // task card remains in chat.
+    if (state.card_message_id) await tgDeleteMessage(chatId, state.card_message_id);
   } else {
-    await tgSendMessage(chatId, view.text);
+    // Fallback: original card not found — show standalone summary in place of the flow card.
+    const view = renderSummary(task, pct, finalStatus, note, byName);
+    if (state.card_message_id) {
+      await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+    } else {
+      await tgSendMessage(chatId, view.text);
+    }
   }
   await clearState(db, chatId);
 }

@@ -7393,7 +7393,11 @@ export type Database = {
         Row: {
           chat_id: number | null
           created_at: string
+          entity_id: string | null
+          entity_type: string | null
           error: string | null
+          message_id: number | null
+          message_text: string | null
           notification_id: string
           sent_at: string | null
           status: string
@@ -7402,7 +7406,11 @@ export type Database = {
         Insert: {
           chat_id?: number | null
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           error?: string | null
+          message_id?: number | null
+          message_text?: string | null
           notification_id: string
           sent_at?: string | null
           status?: string
@@ -7411,7 +7419,11 @@ export type Database = {
         Update: {
           chat_id?: number | null
           created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
           error?: string | null
+          message_id?: number | null
+          message_text?: string | null
           notification_id?: string
           sent_at?: string | null
           status?: string
