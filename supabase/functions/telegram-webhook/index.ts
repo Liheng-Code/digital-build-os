@@ -587,7 +587,7 @@ Deno.serve(async (req) => {
     if (text === "☰ Main Menu" || text.trim() === "/start") {
       await tgSendMessage(
         chatId,
-        "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo link your account, simply paste your link code here.\n\nYou can generate a link code in the DCOS Web App under <b>Settings → Telegram</b>.",
+        "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo receive task notifications, open <b>Settings → Telegram</b> in DCOS, generate a link code, then send:\n<code>YOURCODE</code>",
         { 
           inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: "https://build-flow-dcos.lovable.app" } }]],
         }
