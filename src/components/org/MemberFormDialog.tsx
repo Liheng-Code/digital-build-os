@@ -152,6 +152,18 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
         report_to_employee_id: form.report_to_employee_id,
         level: form.level,
       });
+      // Telegram chat_id is updated separately (not in OrgMemberRow type)
+      const tgRaw = (form as any).telegram_chat_id;
+      const tgVal = tgRaw === "" || tgRaw == null ? null : Number(tgRaw);
+      if (tgVal === null || Number.isFinite(tgVal)) {
+        await supabase
+          .from("profiles")
+          .update({
+            telegram_chat_id: tgVal,
+            telegram_linked_at: tgVal ? new Date().toISOString() : null,
+          })
+          .eq("id", member!.id);
+      }
       toast.success("Member updated");
       onSaved();
       onOpenChange(false);
