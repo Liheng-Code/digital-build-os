@@ -634,12 +634,20 @@ Deno.serve(async (req) => {
 
         await tgSendMessage(
           chatId,
-          "✅ <b>Linked successfully!</b>\n\nYou will now receive DCOS task and system alerts here.",
+          "✅ <b>Successfully connected to DCOS Web App!</b>\n\nYour Telegram account is now linked. You will receive task assignments, approvals, and system alerts here.\n\nOpen the web app anytime from the button below.",
           {
-             keyboard: [[{ text: "☰ Main Menu" }]],
-             resize_keyboard: true,
-             is_persistent: true
-          }
+            inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: "https://build-flow-dcos.lovable.app" } }]],
+          },
+        );
+        // Persistent reply keyboard with Main Menu shortcut
+        await tgSendMessage(
+          chatId,
+          "Tip: tap <b>☰ Main Menu</b> anytime to see your welcome screen.",
+          {
+            keyboard: [[{ text: "☰ Main Menu" }]],
+            resize_keyboard: true,
+            is_persistent: true,
+          },
         );
         return new Response(JSON.stringify({ ok: true }));
       } else if (isExplicitStart) {
