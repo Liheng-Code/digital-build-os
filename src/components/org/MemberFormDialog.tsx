@@ -61,6 +61,15 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
     if (member) {
       setForm({ ...member });
       setIsAutoId(false);
+      // Load Telegram chat_id from profile (not in OrgMemberRow)
+      supabase
+        .from("profiles")
+        .select("telegram_chat_id")
+        .eq("id", member.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setForm((f) => ({ ...f, telegram_chat_id: (data as any).telegram_chat_id ?? "" } as any));
+        });
     } else {
       setForm({ 
         employment_status: "active", 
@@ -152,6 +161,18 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
         report_to_employee_id: form.report_to_employee_id,
         level: form.level,
       });
+      // Telegram chat_id is updated separately (not in OrgMemberRow type)
+      const tgRaw = (form as any).telegram_chat_id;
+      const tgVal = tgRaw === "" || tgRaw == null ? null : Number(tgRaw);
+      if (tgVal === null || Number.isFinite(tgVal)) {
+        await supabase
+          .from("profiles")
+          .update({
+            telegram_chat_id: tgVal,
+            telegram_linked_at: tgVal ? new Date().toISOString() : null,
+          })
+          .eq("id", member!.id);
+      }
       toast.success("Member updated");
       onSaved();
       onOpenChange(false);
@@ -285,7 +306,22 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
               <Label>Emergency phone</Label>
               <Input value={form.emergency_phone ?? ""} onChange={(e) => setForm({ ...form, emergency_phone: e.target.value })} />
             </div>
+            {!isCreate && (
+              <div className="col-span-2">
+                <Label>Telegram chat ID (admin override)</Label>
+                <Input
+                  type="number"
+                  value={(form as any).telegram_chat_id ?? ""}
+                  onChange={(e) => setForm({ ...form, telegram_chat_id: e.target.value } as any)}
+                  placeholder="Leave blank to unlink"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Users should normally self-link via Settings → Telegram.
+                </p>
+              </div>
+            )}
           </div>
+
 
           {isCreate && (
             <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/20 p-3">

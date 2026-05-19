@@ -43,6 +43,19 @@ export interface TemplateNotificationInput {
   kind?: NotificationKind;
 }
 
+import { supabase } from "@/integrations/supabase/client";
+
+const TELEGRAM_EVENT_TYPES: NotificationType[] = [
+  "task_assigned",
+  "task_unassigned",
+  "task_reopened",
+  "task_submitted_for_approval",
+  "task_approved",
+  "task_rejected",
+  "task_overdue",
+  "task_blocker_reported",
+];
+
 export async function createNotification(input: CreateNotificationInput): Promise<NotificationRow> {
   const payload = {
     user_id: input.recipientUserId,
@@ -88,6 +101,13 @@ export async function createNotification(input: CreateNotificationInput): Promis
     severity: input.priority === "critical" ? "high" : "low",
     isSystemGenerated: true
   });
+
+  // Fire-and-forget Telegram mirror for in-scope event types
+  if (TELEGRAM_EVENT_TYPES.includes(input.type)) {
+    supabase.functions
+      .invoke("telegram-notify", { body: { notification_id: data.id } })
+      .catch((err) => console.warn("telegram-notify invoke failed:", err));
+  }
 
   return data;
 }

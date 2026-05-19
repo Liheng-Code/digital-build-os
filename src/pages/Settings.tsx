@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { DepartmentMembersTab } from "@/components/settings/DepartmentMembersTab";
 import { ProjectHolidaysTab } from "@/components/settings/ProjectHolidaysTab";
 import { CompanyProfileTab } from "@/components/settings/CompanyProfileTab";
+import { TelegramTab } from "@/components/settings/TelegramTab";
 
 export default function Settings() {
   const { user, profile, refreshProfile, hasRole } = useAuth();
@@ -63,10 +64,16 @@ export default function Settings() {
       <Tabs defaultValue="profile">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="telegram">Telegram</TabsTrigger>
           <TabsTrigger value="holidays">Project holidays</TabsTrigger>
           {isAdmin && <TabsTrigger value="departments">Departments</TabsTrigger>}
           {isAdmin && <TabsTrigger value="company">Company Profile</TabsTrigger>}
         </TabsList>
+
+        <TabsContent value="telegram" className="mt-4">
+          <TelegramTab />
+        </TabsContent>
+
 
         <TabsContent value="holidays" className="mt-4">
           <ProjectHolidaysTab />
