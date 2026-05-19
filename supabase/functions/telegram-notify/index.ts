@@ -181,25 +181,29 @@ Deno.serve(async (req) => {
 
     const inline_keyboard: any[][] = [];
     if (n.action_url) {
-      inline_keyboard.push([{ text: "Open in DCOS", url: n.action_url }]);
+      inline_keyboard.push([{ text: "🔎 Open in DCOS", url: n.action_url }]);
     }
 
-    // Add Mini App button for tasks
-    if (n.entity_type === "task" && n.entity_id && n.action_url) {
-      try {
-        const url = new URL(n.action_url);
-        // Telegram Web Apps REQUIRE https protocol. 
-        // If testing on localhost, the button will be skipped to prevent Telegram from rejecting the message.
-        if (url.protocol === "https:") {
-          const baseUrl = `${url.protocol}//${url.host}`;
-          const miniAppUrl = `${baseUrl}/telegram/task-update/${n.entity_id}`;
-          inline_keyboard.push([{ text: "📈 Update Progress", web_app: { url: miniAppUrl } }]);
-        } else {
-          console.warn("Skipping Telegram Mini App button: HTTPS is required for web_app buttons. Found:", url.protocol);
-        }
-      } catch (e) {
-        console.error("Failed to parse action_url for mini app:", n.action_url);
+    // Update Progress button for tasks — try Mini App (web_app) first if HTTPS,
+    // otherwise fall back to a regular URL button so the user always has a way
+    // to update progress from Telegram.
+    if (n.entity_type === "task" && n.entity_id) {
+      let baseUrl: string | null = null;
+      if (n.action_url) {
+        try {
+          const u = new URL(n.action_url);
+          if (u.protocol === "https:") baseUrl = `${u.protocol}//${u.host}`;
+        } catch (_) { /* ignore */ }
       }
+      // Fallback to published app host if action_url is not usable
+      if (!baseUrl) baseUrl = "https://build-flow-dcos.lovable.app";
+
+      const updateUrl = `${baseUrl}/telegram/task-update/${n.entity_id}`;
+      // Use web_app for in-Telegram Mini App experience (works in private chats
+      // once the bot's Mini App domain is configured). Also add a plain URL
+      // button as a guaranteed fallback so the button always appears.
+      inline_keyboard.push([{ text: "📈 Update Progress", web_app: { url: updateUrl } }]);
+      inline_keyboard.push([{ text: "🌐 Update in Browser", url: updateUrl }]);
     }
 
     const reply_markup = inline_keyboard.length > 0
