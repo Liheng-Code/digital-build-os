@@ -11,7 +11,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Network, ShieldCheck, Mail, Phone, ArrowUp, Trash2, Plus, Sparkles, List, Settings, Pencil } from "lucide-react";
+import { Loader2, Users, Network, ShieldCheck, Mail, Phone, ArrowUp, Trash2, Plus, Sparkles, List, Settings, Pencil, Send } from "lucide-react";
 import { toast } from "sonner";
 import { OrgChart } from "@/components/org/OrgChart";
 import { StaffListView } from "@/components/org/StaffListView";
@@ -310,6 +310,14 @@ export default function Organization() {
                     <Phone className="h-4 w-4" />
                     <a href={`tel:${selected.phone}`} className="hover:underline">{selected.phone}</a>
                   </div>
+                  {selectedMemberRow?.telegram_username && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Send className="h-4 w-4 text-sky-500 fill-sky-500/10" />
+                      <a href={`https://t.me/${selectedMemberRow.telegram_username.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-sky-500 font-medium">
+                        {selectedMemberRow.telegram_username}
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 {reportsTo && (

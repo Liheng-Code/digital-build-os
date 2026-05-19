@@ -59,12 +59,14 @@ export interface OrgMember {
   email: string;
   phone: string;
   app_role: AppRole;
+  telegram_username?: string | null;
 }
+
 
 /** Static registry — single source of truth for seed + UI. */
 export const ORG_REGISTRY: OrgMember[] = [
   // Management
-  { employee_id: "C-0001", full_name: "Liheng",   position: "Managing Director",      department: "management",   level: "L1", report_to: null,     email: "liheng@dcos.com",   phone: "070112233", app_role: "admin" },
+  { employee_id: "C-0001", full_name: "Liheng",   position: "Managing Director",      department: "management",   level: "L1", report_to: null,     email: "liheng@dcos.com",   phone: "070112233", app_role: "admin", telegram_username: "@Liheng_Str" },
   { employee_id: "C-0002", full_name: "Sophat",   position: "General Manager",        department: "management",   level: "L2", report_to: "C-0001", email: "sophat@dcos.com",   phone: "070223344", app_role: "admin" },
   { employee_id: "C-0003", full_name: "Vuthy",    position: "Project Manager",        department: "management",   level: "L3", report_to: "C-0002", email: "vuthy@dcos.com",    phone: "070334455", app_role: "project_manager" },
 

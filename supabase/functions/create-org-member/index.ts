@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const {
       email, password, full_name, employee_id, job_title, department,
       level, report_to_employee_id, reports_to, phone, hire_date, employment_status,
-      emergency_contact, emergency_phone, role,
+      emergency_contact, emergency_phone, role, telegram_username,
     } = body ?? {};
 
     if (!email || !full_name) {
@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       report_to_employee_id: report_to_employee_id || null,
       reports_to: reports_to || null,
       email: email || null,
+      telegram_username: telegram_username || null,
     });
     if (profErr) throw new Error(`Profile: ${profErr.message}`);
 

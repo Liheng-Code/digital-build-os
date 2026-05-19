@@ -129,6 +129,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
             emergency_contact: form.emergency_contact,
             emergency_phone: form.emergency_phone,
             role: createRole,
+            telegram_username: form.telegram_username || null,
           },
         });
         if (error || !(data as any)?.success) {
@@ -160,6 +161,7 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
         emergency_phone: form.emergency_phone,
         report_to_employee_id: form.report_to_employee_id,
         level: form.level,
+        telegram_username: form.telegram_username || null,
       });
       // Telegram chat_id is updated separately (not in OrgMemberRow type)
       const tgRaw = (form as any).telegram_chat_id;
@@ -284,6 +286,14 @@ export function MemberFormDialog({ open, onOpenChange, member, departments, memb
             <div>
               <Label>Phone</Label>
               <Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </div>
+            <div>
+              <Label>Telegram Username</Label>
+              <Input 
+                value={form.telegram_username ?? ""} 
+                onChange={(e) => setForm({ ...form, telegram_username: e.target.value })} 
+                placeholder="e.g. @username"
+              />
             </div>
             <div>
               <Label>Hire date</Label>

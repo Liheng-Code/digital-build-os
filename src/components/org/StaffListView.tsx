@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Download, Mail, Phone, Pencil } from "lucide-react";
+import { Search, Download, Mail, Phone, Pencil, Send } from "lucide-react";
 import { OrgMemberRow, OrgDepartmentRow } from "@/services/organizationService";
 import { getInitials, ORG_DEPT_TONE, OrgDepartment } from "@/lib/orgMeta";
 import { ROLE_LABELS } from "@/contexts/AuthContext";
@@ -46,7 +46,7 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
   }, [members, search, dept, status]);
 
   const exportCsv = () => {
-    const cols = ["employee_id", "full_name", "job_title", "department", "status", "level", "email", "phone", "report_to", "roles"];
+    const cols = ["employee_id", "full_name", "job_title", "department", "status", "level", "email", "telegram", "phone", "report_to", "roles"];
     const rows = filtered.map((m) => [
       m.employee_id ?? "",
       m.full_name,
@@ -55,6 +55,7 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
       m.employment_status ?? "active",
       m.level ?? "",
       m.email ?? "",
+      m.telegram_username ?? "",
       m.phone ?? "",
       m.report_to_employee_id ? `${m.report_to_employee_id} ${memberById[m.report_to_employee_id]?.full_name ?? ""}`.trim() : "",
       m.roles.join("|"),
@@ -110,6 +111,7 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
               <TableHead>Status</TableHead>
               <TableHead>Level</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Telegram</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Reports to</TableHead>
               <TableHead>Roles</TableHead>
@@ -156,6 +158,13 @@ export function StaffListView({ members, departments, onEdit, canEdit }: Props) 
                       {m.email ? (
                         <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:underline">
                           <Mail className="h-3 w-3" /> {m.email}
+                        </a>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {m.telegram_username ? (
+                        <a href={`https://t.me/${m.telegram_username.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline text-sky-500 font-medium">
+                          <Send className="h-3 w-3" /> {m.telegram_username}
                         </a>
                       ) : "—"}
                     </TableCell>

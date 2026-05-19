@@ -26,7 +26,9 @@ export interface OrgMemberRow {
   report_to_employee_id: string | null;
   level: string | null;
   roles: string[];
+  telegram_username?: string | null;
 }
+
 
 export const fetchOrgDepartments = async (): Promise<OrgDepartmentRow[]> => {
   const { data, error } = await (supabase as any)
@@ -78,6 +80,7 @@ export const fetchOrgMembers = async (): Promise<OrgMemberRow[]> => {
     report_to_employee_id: p.report_to_employee_id,
     level: p.level,
     roles: rolesByUser[p.id] ?? [],
+    telegram_username: p.telegram_username,
   }));
 };
 
