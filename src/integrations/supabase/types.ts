@@ -7331,6 +7331,7 @@ export type Database = {
       }
       telegram_conversation_state: {
         Row: {
+          card_message_id: number | null
           chat_id: number
           expires_at: string
           progress_pct: number | null
@@ -7341,6 +7342,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          card_message_id?: number | null
           chat_id: number
           expires_at?: string
           progress_pct?: number | null
@@ -7351,6 +7353,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          card_message_id?: number | null
           chat_id?: number
           expires_at?: string
           progress_pct?: number | null
