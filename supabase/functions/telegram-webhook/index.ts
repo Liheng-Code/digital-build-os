@@ -43,8 +43,8 @@ function tgHeaders() {
   };
 }
 
-async function tgSendMessage(chatId: number, text: string, reply_markup?: any) {
-  await fetch(`${GATEWAY_URL}/sendMessage`, {
+async function tgSendMessage(chatId: number, text: string, reply_markup?: any): Promise<number | null> {
+  const res = await fetch(`${GATEWAY_URL}/sendMessage`, {
     method: "POST",
     headers: tgHeaders(),
     body: JSON.stringify({
@@ -55,6 +55,39 @@ async function tgSendMessage(chatId: number, text: string, reply_markup?: any) {
       reply_markup,
     }),
   });
+  try {
+    const j = await res.json();
+    return j?.result?.message_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function tgEditMessage(chatId: number, messageId: number, text: string, reply_markup?: any) {
+  await fetch(`${GATEWAY_URL}/editMessageText`, {
+    method: "POST",
+    headers: tgHeaders(),
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+      reply_markup: reply_markup ?? { inline_keyboard: [] },
+    }),
+  });
+}
+
+async function tgDeleteMessage(chatId: number, messageId: number) {
+  try {
+    await fetch(`${GATEWAY_URL}/deleteMessage`, {
+      method: "POST",
+      headers: tgHeaders(),
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
+    });
+  } catch {
+    /* ignore */
+  }
 }
 
 async function tgAnswerCallback(callbackId: string, text?: string) {
@@ -65,21 +98,89 @@ async function tgAnswerCallback(callbackId: string, text?: string) {
   });
 }
 
-function statusKeyboard() {
+// ---------- Card rendering ----------
+
+function cardHeader(task: { title: string; code?: string | null; progress_pct?: number | null; status?: string | null }) {
+  const titleLine = `<b>${escapeHtml(task.title)}</b>${task.code ? ` <code>${escapeHtml(task.code)}</code>` : ""}`;
+  const currentBits: string[] = [];
+  if (typeof task.progress_pct === "number") currentBits.push(`${task.progress_pct}%`);
+  if (task.status) currentBits.push(STATUS_LABELS[task.status] ?? task.status);
+  const current = currentBits.length ? `Current: ${currentBits.join(" • ")}` : "";
+  return `✍️ <b>Update Progress</b>\n${titleLine}${current ? `\n<i>${escapeHtml(current)}</i>` : ""}\n────────────────`;
+}
+
+function renderProgressStep(task: any, lastPct: number | null, warning?: string) {
+  const body = warning
+    ? `⚠️ ${escapeHtml(warning)}`
+    : `Reply with a number <b>0–100</b>${lastPct !== null ? ` (last: ${lastPct}%)` : ""}.`;
   return {
-    inline_keyboard: [
-      [
-        { text: "In Progress", callback_data: "st:in_progress" },
-        { text: "Pending Approval", callback_data: "st:pending_approval" },
-      ],
-      [
-        { text: "Blocked", callback_data: "st:blocked" },
-        { text: "Keep current", callback_data: "st:keep" },
-      ],
-      [{ text: "❌ Cancel", callback_data: "st:cancel" }],
-    ],
+    text: `${cardHeader(task)}\n<b>Step 1/3 — Progress</b>\n${body}`,
+    keyboard: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "nav:cancel" }]] },
   };
 }
+
+function renderStatusStep(task: any, pct: number) {
+  return {
+    text: `${cardHeader(task)}\n<b>Step 2/3 — Status</b>\nProgress: <b>${pct}%</b>. Pick a status:`,
+    keyboard: {
+      inline_keyboard: [
+        [
+          { text: "In Progress", callback_data: "st:in_progress" },
+          { text: "Pending Approval", callback_data: "st:pending_approval" },
+        ],
+        [
+          { text: "Completed", callback_data: "st:completed" },
+          { text: "Blocked", callback_data: "st:blocked" },
+        ],
+        [{ text: "Keep current", callback_data: "st:keep" }],
+        [
+          { text: "⬅ Back", callback_data: "nav:back" },
+          { text: "❌ Cancel", callback_data: "nav:cancel" },
+        ],
+      ],
+    },
+  };
+}
+
+function renderNoteStep(task: any, pct: number, status: string) {
+  const label = status === "keep" ? "Keep current" : STATUS_LABELS[status] ?? status;
+  return {
+    text: `${cardHeader(task)}\n<b>Step 3/3 — Note</b>\nProgress: <b>${pct}%</b> • Status: <b>${escapeHtml(label)}</b>\nReply with a note, or send /skip.`,
+    keyboard: {
+      inline_keyboard: [
+        [
+          { text: "⏭ Skip note", callback_data: "nav:skip" },
+        ],
+        [
+          { text: "⬅ Back", callback_data: "nav:back" },
+          { text: "❌ Cancel", callback_data: "nav:cancel" },
+        ],
+      ],
+    },
+  };
+}
+
+function renderSummary(task: any, pct: number, finalStatus: string, note: string | null, byName: string | null) {
+  const label = STATUS_LABELS[finalStatus] ?? finalStatus;
+  const lines = [
+    `✅ <b>Task updated</b>`,
+    `<b>${escapeHtml(task.title)}</b>${task.code ? ` <code>${escapeHtml(task.code)}</code>` : ""}`,
+    `Progress: <b>${pct}%</b>`,
+    `Status: <b>${escapeHtml(label)}</b>`,
+    `Note: ${note ? escapeHtml(note) : "—"}`,
+  ];
+  if (byName) lines.push(`<i>By ${escapeHtml(byName)} • ${new Date().toLocaleString("en-GB", { hour12: false })}</i>`);
+  return { text: lines.join("\n"), keyboard: { inline_keyboard: [] } };
+}
+
+function renderCancelled(task: any) {
+  return {
+    text: `${cardHeader(task)}\n❌ <b>Update cancelled.</b>`,
+    keyboard: { inline_keyboard: [] },
+  };
+}
+
+// ---------- State helpers ----------
 
 async function getActiveState(db: any, chatId: number) {
   const { data } = await db
@@ -108,11 +209,20 @@ async function clearState(db: any, chatId: number) {
   await db.from("telegram_conversation_state").delete().eq("chat_id", chatId);
 }
 
+async function loadTask(db: any, taskId: string) {
+  const { data } = await db
+    .from("tasks")
+    .select("id, title, code, progress_pct, status")
+    .eq("id", taskId)
+    .maybeSingle();
+  return data;
+}
+
 async function finalizeTaskUpdate(
   db: any,
-  args: { chatId: number; userId: string; taskId: string; progressPct: number; status: string | null; note: string | null },
+  args: { userId: string; taskId: string; progressPct: number; status: string | null; note: string | null },
 ) {
-  const { chatId, userId, taskId, progressPct, status, note } = args;
+  const { userId, taskId, progressPct, status, note } = args;
 
   await db.from("task_updates").insert({
     task_id: taskId,
@@ -146,26 +256,18 @@ async function finalizeTaskUpdate(
   }
 
   await db.from("tasks").update(updateData).eq("id", taskId);
-
-  const statusLabel = STATUS_LABELS[finalStatus ?? ""] ?? finalStatus ?? "—";
-  const lines = [
-    `✅ <b>Task updated</b>`,
-    `<b>Task:</b> ${escapeHtml(currentTask?.title ?? "")}${currentTask?.code ? ` (${escapeHtml(currentTask.code)})` : ""}`,
-    `<b>Progress:</b> ${progressPct}%`,
-    `<b>Status:</b> ${escapeHtml(statusLabel)}`,
-  ];
-  if (note) lines.push(`<b>Note:</b> ${escapeHtml(note)}`);
-  await tgSendMessage(chatId, lines.join("\n"));
+  return finalStatus as string;
 }
 
-async function handleStartUpdateFlow(db: any, chatId: number, taskId: string): Promise<string> {
+async function startUpdateFlow(db: any, chatId: number, taskId: string): Promise<void> {
   const { data: profile } = await db
     .from("profiles")
-    .select("id")
+    .select("id, full_name")
     .eq("telegram_chat_id", chatId)
     .maybeSingle();
   if (!profile) {
-    return "❌ Your Telegram is not linked. Open DCOS → Settings → Telegram.";
+    await tgSendMessage(chatId, "❌ Your Telegram is not linked. Open DCOS → Settings → Telegram.");
+    return;
   }
   const { data: assignment } = await db
     .from("task_assignments")
@@ -175,23 +277,80 @@ async function handleStartUpdateFlow(db: any, chatId: number, taskId: string): P
     .is("unassigned_at", null)
     .maybeSingle();
   if (!assignment) {
-    return "❌ You are not assigned to this task.";
+    await tgSendMessage(chatId, "❌ You are not assigned to this task.");
+    return;
   }
-  const { data: task } = await db
-    .from("tasks")
-    .select("title, code")
-    .eq("id", taskId)
-    .maybeSingle();
+  const task = await loadTask(db, taskId);
+  if (!task) {
+    await tgSendMessage(chatId, "❌ Task not found.");
+    return;
+  }
+
+  // If existing flow card exists for this chat, drop it so we don't have orphans
+  const existing = await getActiveState(db, chatId);
+  if (existing?.card_message_id) {
+    await tgDeleteMessage(chatId, existing.card_message_id);
+  }
+
+  const view = renderProgressStep(task, task.progress_pct ?? null);
+  const messageId = await tgSendMessage(chatId, view.text, view.keyboard);
+
   await setState(db, chatId, {
     user_id: profile.id,
     task_id: taskId,
     step: "awaiting_progress",
     progress_pct: null,
     status: null,
+    card_message_id: messageId,
   });
-  const label = task ? `<b>${escapeHtml(task.title)}</b>${task.code ? ` (${escapeHtml(task.code)})` : ""}` : "this task";
-  return `✍️ Reply with progress % for ${label}.\nSend a number from <b>0 to 100</b>.\n\nReply /cancel to abort.`;
 }
+
+async function refreshCard(db: any, chatId: number, state: any, step: string, opts?: { warning?: string }) {
+  const task = await loadTask(db, state.task_id);
+  if (!task || !state.card_message_id) return;
+  let view;
+  if (step === "awaiting_progress") view = renderProgressStep(task, state.progress_pct ?? null, opts?.warning);
+  else if (step === "awaiting_status") view = renderStatusStep(task, state.progress_pct ?? 0);
+  else view = renderNoteStep(task, state.progress_pct ?? 0, state.status ?? "keep");
+  await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+}
+
+async function finalizeAndShow(db: any, chatId: number, state: any, note: string | null) {
+  const task = await loadTask(db, state.task_id);
+  if (!task) return;
+  let finalStatus = state.status ?? task.status;
+  try {
+    finalStatus = await finalizeTaskUpdate(db, {
+      userId: state.user_id,
+      taskId: state.task_id,
+      progressPct: state.progress_pct ?? 0,
+      status: state.status,
+      note,
+    });
+  } catch (e) {
+    console.error("finalizeTaskUpdate failed:", e);
+    if (state.card_message_id) {
+      await tgEditMessage(
+        chatId,
+        state.card_message_id,
+        `${cardHeader(task)}\n⚠️ <b>Failed to save the update.</b> Please try again.`,
+        { inline_keyboard: [] },
+      );
+    }
+    await clearState(db, chatId);
+    return;
+  }
+  const { data: profile } = await db.from("profiles").select("full_name").eq("id", state.user_id).maybeSingle();
+  const view = renderSummary(task, state.progress_pct ?? 0, finalStatus, note, profile?.full_name ?? null);
+  if (state.card_message_id) {
+    await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+  } else {
+    await tgSendMessage(chatId, view.text);
+  }
+  await clearState(db, chatId);
+}
+
+// ---------- HTTP entry ----------
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -223,27 +382,69 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: true }));
       }
 
-      // Start update flow: "upd:<task_id>"
+      // Start flow: "upd:<task_id>"
       if (data.startsWith("upd:")) {
-        const taskId = data.slice(4);
-        const reply = await handleStartUpdateFlow(db, chatId, taskId);
         await tgAnswerCallback(cq.id);
-        await tgSendMessage(chatId, reply);
+        await startUpdateFlow(db, chatId, data.slice(4));
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      const state = await getActiveState(db, chatId);
+
+      // Navigation buttons
+      if (data === "nav:cancel") {
+        await tgAnswerCallback(cq.id, "Cancelled");
+        if (state) {
+          const task = await loadTask(db, state.task_id);
+          if (state.card_message_id && task) {
+            const view = renderCancelled(task);
+            await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+          }
+          await clearState(db, chatId);
+        }
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      if (data === "nav:back") {
+        await tgAnswerCallback(cq.id);
+        if (!state) return new Response(JSON.stringify({ ok: true }));
+        if (state.step === "awaiting_status") {
+          await setState(db, chatId, {
+            user_id: state.user_id,
+            task_id: state.task_id,
+            progress_pct: state.progress_pct,
+            status: null,
+            card_message_id: state.card_message_id,
+            step: "awaiting_progress",
+          });
+          await refreshCard(db, chatId, { ...state, status: null }, "awaiting_progress");
+        } else if (state.step === "awaiting_note") {
+          await setState(db, chatId, {
+            user_id: state.user_id,
+            task_id: state.task_id,
+            progress_pct: state.progress_pct,
+            status: state.status,
+            card_message_id: state.card_message_id,
+            step: "awaiting_status",
+          });
+          await refreshCard(db, chatId, state, "awaiting_status");
+        }
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      if (data === "nav:skip") {
+        await tgAnswerCallback(cq.id);
+        if (state?.step === "awaiting_note") {
+          await finalizeAndShow(db, chatId, state, null);
+        }
         return new Response(JSON.stringify({ ok: true }));
       }
 
       // Status pick: "st:<value>"
       if (data.startsWith("st:")) {
         const value = data.slice(3);
-        const state = await getActiveState(db, chatId);
         if (!state || state.step !== "awaiting_status") {
           await tgAnswerCallback(cq.id, "Flow expired");
-          return new Response(JSON.stringify({ ok: true }));
-        }
-        if (value === "cancel") {
-          await clearState(db, chatId);
-          await tgAnswerCallback(cq.id, "Cancelled");
-          await tgSendMessage(chatId, "❌ Update cancelled.");
           return new Response(JSON.stringify({ ok: true }));
         }
         if (value !== "keep" && !ALLOWED_STATUSES.has(value)) {
@@ -255,10 +456,11 @@ Deno.serve(async (req) => {
           task_id: state.task_id,
           progress_pct: state.progress_pct,
           status: value,
+          card_message_id: state.card_message_id,
           step: "awaiting_note",
         });
         await tgAnswerCallback(cq.id);
-        await tgSendMessage(chatId, "📝 Add a note? Reply with text, or send /skip.");
+        await refreshCard(db, chatId, { ...state, status: value }, "awaiting_note");
         return new Response(JSON.stringify({ ok: true }));
       }
 
@@ -271,6 +473,7 @@ Deno.serve(async (req) => {
     const chatId: number | undefined = msg?.chat?.id;
     const text: string | undefined = msg?.text;
     const username: string | undefined = msg?.from?.username;
+    const messageId: number | undefined = msg?.message_id;
 
     if (!chatId || !text) {
       return new Response(JSON.stringify({ ok: true, ignored: true }));
@@ -278,8 +481,16 @@ Deno.serve(async (req) => {
 
     // /cancel — always exits any in-progress flow
     if (/^\/cancel\b/i.test(text)) {
-      await clearState(db, chatId);
-      await tgSendMessage(chatId, "❌ Update cancelled.");
+      const state = await getActiveState(db, chatId);
+      if (state) {
+        const task = await loadTask(db, state.task_id);
+        if (state.card_message_id && task) {
+          const view = renderCancelled(task);
+          await tgEditMessage(chatId, state.card_message_id, view.text, view.keyboard);
+        }
+        await clearState(db, chatId);
+      }
+      if (messageId) await tgDeleteMessage(chatId, messageId);
       return new Response(JSON.stringify({ ok: true }));
     }
 
@@ -342,42 +553,34 @@ Deno.serve(async (req) => {
         const trimmed = text.trim();
         const num = Number(trimmed);
         if (!Number.isFinite(num) || num < 0 || num > 100 || !/^\d+(\.\d+)?$/.test(trimmed)) {
-          await tgSendMessage(chatId, "⚠️ Please reply with a number from 0 to 100. Or /cancel.");
+          if (messageId) await tgDeleteMessage(chatId, messageId);
+          await refreshCard(db, chatId, state, "awaiting_progress", { warning: "Send a number 0–100." });
           return new Response(JSON.stringify({ ok: true }));
         }
         const pct = Math.round(num);
+        if (messageId) await tgDeleteMessage(chatId, messageId);
         await setState(db, chatId, {
           user_id: state.user_id,
           task_id: state.task_id,
           progress_pct: pct,
           status: state.status,
+          card_message_id: state.card_message_id,
           step: "awaiting_status",
         });
-        await tgSendMessage(chatId, `Got <b>${pct}%</b>. Now pick a status:`, statusKeyboard());
+        await refreshCard(db, chatId, { ...state, progress_pct: pct }, "awaiting_status");
         return new Response(JSON.stringify({ ok: true }));
       }
 
       if (state.step === "awaiting_status") {
-        await tgSendMessage(chatId, "Please tap one of the status buttons above, or /cancel.");
+        if (messageId) await tgDeleteMessage(chatId, messageId);
+        // user typed text; nudge to tap a button
         return new Response(JSON.stringify({ ok: true }));
       }
 
       if (state.step === "awaiting_note") {
         const note = /^\/skip\b/i.test(text) ? null : text.trim().slice(0, 1000);
-        try {
-          await finalizeTaskUpdate(db, {
-            chatId,
-            userId: state.user_id,
-            taskId: state.task_id,
-            progressPct: state.progress_pct ?? 0,
-            status: state.status,
-            note,
-          });
-        } catch (e) {
-          console.error("finalizeTaskUpdate failed:", e);
-          await tgSendMessage(chatId, "⚠️ Failed to save the update. Please try again.");
-        }
-        await clearState(db, chatId);
+        if (messageId) await tgDeleteMessage(chatId, messageId);
+        await finalizeAndShow(db, chatId, state, note);
         return new Response(JSON.stringify({ ok: true }));
       }
     }
