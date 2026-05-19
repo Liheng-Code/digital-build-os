@@ -17,9 +17,7 @@ begin
 
   -- Automatically generate the action_url for tasks
   if _entity_type = 'task' then
-    -- NOTE: Replace 'your-app-domain.com' with your actual production domain.
-    -- Telegram Mini Apps REQUIRE an HTTPS domain to show the 'Update Progress' button.
-    v_action_url := 'https://your-app-domain.com/tasks/' || _entity_id;
+    v_action_url := 'https://build-flow-dcos.lovable.app/tasks/' || _entity_id;
   end if;
 
   insert into public.notifications
