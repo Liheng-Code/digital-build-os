@@ -21,6 +21,7 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 const STATUS_LABELS: Record<string, string> = {
   open: "Open",
   assigned: "Assigned",
+  received: "Received",
   in_progress: "In Progress",
   pending_approval: "Pending Approval",
   approved: "Approved",
