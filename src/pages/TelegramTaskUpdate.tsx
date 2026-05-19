@@ -42,6 +42,7 @@ declare global {
 export default function TelegramTaskUpdate() {
   const { taskId } = useParams<{ taskId: string }>();
   const [progress, setProgress] = React.useState<number>(0);
+  const [status, setStatus] = React.useState<TaskStatus | "">("");
   const [note, setNote] = React.useState("");
   const [isSubmitted, setIsSubmitted] = React.useState(false);
 
