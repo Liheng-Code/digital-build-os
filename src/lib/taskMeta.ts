@@ -1,6 +1,7 @@
 export type TaskStatus =
   | "open"
   | "assigned"
+  | "received"
   | "in_progress"
   | "pending_approval"
   | "approved"
