@@ -799,6 +799,18 @@ Deno.serve(async (req) => {
         }
         const pct = Math.round(num);
         if (messageId) await tgDeleteMessage(chatId, messageId);
+
+        // Auto-complete shortcut: 100% skips status + note steps.
+        if (pct === 100) {
+          await finalizeAndShow(
+            db,
+            chatId,
+            { ...state, progress_pct: 100, status: "completed" },
+            null,
+          );
+          return new Response(JSON.stringify({ ok: true }));
+        }
+
         await setState(db, chatId, {
           user_id: state.user_id,
           task_id: state.task_id,
