@@ -318,7 +318,10 @@ async function refreshCard(db: any, chatId: number, state: any, step: string, op
 
 function buildTaskKeyboard(taskId: string, actionUrl: string | null, status?: string | null) {
   const kb: any[][] = [];
+  // Once the task is finished, hide all action buttons.
+  const isDone = status === "completed" || status === "closed" || status === "approved";
   if (actionUrl) kb.push([{ text: "🔎 Open in DCOS", url: actionUrl }]);
+  if (isDone) return { inline_keyboard: kb };
   let baseUrl: string | null = null;
   if (actionUrl) {
     try {
