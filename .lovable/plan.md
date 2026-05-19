@@ -1,57 +1,92 @@
-# Fix slow tab switching across the app
+# Telegram Bot Integration — Task & System Alerts
 
-## Problem found
+## Goal
 
-Tab switching is still slow because the slowdown is not limited to WBS, Procurement, or Architecture.
+Mirror in-app notifications to Telegram so team members get real-time alerts about their tasks (assigned, approved, rejected, overdue, blockers, etc.) on their phone. Phase 1 is **send-only**; schema is designed to extend to two-way replies later.
 
-Current profiling shows three app-wide issues:
+## Scope (Phase 1)
 
-1. The shared layout and sidebar still re-render a large navigation tree on every route change.
-2. The app performs duplicate startup requests for the same user, roles, projects, permissions, and notifications.
-3. Some route-level queries still fail or refetch unnecessarily, including the WBS schedule query requesting `budgeted_cost` and `actual_cost` columns that do not exist in the current database.
+**Events mirrored to Telegram (when user is linked):**
+- Task assigned / unassigned / reopened
+- Task submitted for approval / approved / rejected
+- Task overdue / blocker reported
 
-This makes every button/tab feel like a full refresh even when page data is cached.
+**Out of scope for Phase 1:** receiving messages, slash commands, HSE/NCR/RFI/PR cross-module alerts, per-user channel preferences.
 
-## Fix plan
+## User Linking
 
-### 1. Stabilize app-wide auth and project data
+Both methods supported:
 
-- Move project list loading from manual context state into React Query.
-- Cache projects for a longer window so tab navigation does not re-query project data.
-- Memoize the `AuthContext` and `ProjectContext` values so their consumers do not re-render unnecessarily.
-- Prevent duplicate profile/role loads during initial auth/session setup.
+1. **Self-link via code (preferred)**
+   - User opens Settings → Telegram, clicks "Link Telegram".
+   - App generates a 6-char one-time code (10-min TTL), stored in `telegram_link_codes`.
+   - User opens the bot in Telegram and sends `/start <code>`.
+   - Bot webhook validates code, stores `chat_id` on the user's profile, marks code used.
+2. **Admin override**
+   - Org admin enters a user's `chat_id` directly in the member profile dialog.
 
-### 2. Optimize sidebar and top bar rendering
+Linked users see status + "Unlink" button in Settings.
 
-- Precompute visible navigation groups with `useMemo` instead of filtering every group on every route update.
-- Memoize permission checks so sidebar rendering is cheap.
-- Keep notification badge reads shared through one cached query instead of multiple same-table requests.
-- Keep the current route prefetch behavior, but add click-time prefetch for direct/fast clicks that happen without hover.
+## Architecture
 
-### 3. Fix failed queries that cause repeated retries/loading
+```text
+ createNotification()  ─────► notifications row (in-app, existing)
+        │
+        └──► after insert ──► telegram-notify edge function
+                                    │
+                                    ├─ look up recipient.telegram_chat_id
+                                    ├─ skip if not linked or muted
+                                    └─ POST sendMessage via connector gateway
+                                          (Bearer LOVABLE_API_KEY + TELEGRAM_API_KEY)
 
-- Update the WBS schedule loader so it no longer selects missing task columns.
-- Keep cost rollups safe by defaulting missing budget/actual cost fields to zero on the client.
-- Review common tabs for obvious repeated failed network requests and stop them from retrying on navigation.
+ Bot webhook (telegram-webhook edge fn, verify_jwt=false)
+        └─ handles /start <code> to link chat_id (Phase 1)
+           Placeholder for future inbound commands.
+```
 
-### 4. Reduce perceived “refresh” on page switches
+## Database changes
 
-- Increase app-wide React Query `staleTime` for normal navigation data from 30 seconds to a longer practical window.
-- Use cached data immediately while background refresh happens later.
-- Avoid full-screen loading states when cached data already exists.
+- `profiles`: add `telegram_chat_id BIGINT NULL` (unique), `telegram_username TEXT NULL`, `telegram_linked_at TIMESTAMPTZ`.
+- New table `telegram_link_codes`: `code TEXT PRIMARY KEY`, `user_id UUID`, `expires_at TIMESTAMPTZ`, `used_at TIMESTAMPTZ NULL`, `created_at`.
+- New table `telegram_outbox` (idempotency + audit): `notification_id UUID PRIMARY KEY`, `chat_id BIGINT`, `status TEXT` (pending/sent/failed), `error TEXT NULL`, `sent_at`, `created_at`.
+- RLS: users read/update only their own profile telegram fields; only service role writes outbox.
 
-### 5. Validate with browser profiling
+## Code changes
 
-- Re-profile sidebar clicks across Project Info, WBS, Tasks, Architecture, and Procurement.
-- Confirm duplicate startup requests are reduced.
-- Confirm no repeated 400 requests are generated during tab switching.
+**Backend (edge functions):**
+- `supabase/functions/telegram-notify/index.ts` — invoked by `createNotification` (or DB trigger → pg_net call). Reads recipient profile, formats message, calls gateway `sendMessage`, writes outbox row.
+- `supabase/functions/telegram-webhook/index.ts` — public endpoint (`verify_jwt = false`), validates Telegram secret header, handles `/start <code>` linking.
+- `supabase/config.toml` — add `[functions.telegram-webhook] verify_jwt = false`.
 
-## Expected result
+**Service layer:**
+- `src/services/notificationEngineService.ts` — after successful `notifications` insert, fire-and-forget invoke `telegram-notify` with the new notification id (only for the 8 in-scope event types).
+- `src/services/telegramLinkService.ts` (new) — `generateLinkCode()`, `unlinkTelegram()`, `getTelegramStatus()`.
 
-After the fix, moving from one module/tab/button to another should feel near-instant after first load, and the app should stop behaving like every click triggers a full page refresh.
+**Frontend:**
+- `src/components/settings/TelegramTab.tsx` (new) — shows linked status, "Link Telegram" button (displays code + bot deep-link `https://t.me/<bot>?start=<code>`), "Unlink" button. Added to existing Settings page tabs.
+- `src/components/org/MemberFormDialog.tsx` — add admin-only `telegram_chat_id` input.
 
-## Out of scope
+**Message format:** Title (bold), body, priority emoji, "Open in DCOS" link to `action_url` if present. Uses `parse_mode: HTML`.
 
-- No UI redesign.
-- No database schema changes unless profiling proves a missing index is the real bottleneck.
-- No changes to permissions or business workflows.
+## What I need from you
+
+1. **Telegram bot** — Create one via [@BotFather](https://t.me/BotFather) on Telegram:
+   - `/newbot` → choose name (e.g. "DCOS Alerts") and username (e.g. `dcos_alerts_bot`).
+   - BotFather returns a **bot token**.
+   - Send me back the **bot username** (so the deep-link works). I'll handle the token via the Lovable Telegram connector — you'll be prompted to paste it when I connect the connector.
+2. **Confirmation to connect the Telegram connector** in this project (one-click after you have the token).
+3. *(Optional)* Public published URL is fine; webhook will register against the Supabase edge function URL automatically — no extra hosting needed.
+
+## Phase 2 (later, not built now)
+
+- Inbound `/mytasks`, `/done <task-id>`, `/ack` commands.
+- Per-user channel preference matrix (in_app / telegram / email per event type).
+- Group chat alerts per project (HSE incidents → site safety group).
+- Digest summaries (daily morning task list).
+
+## Technical notes
+
+- Uses Lovable Telegram **connector gateway** — bot token is never stored in code or `.env`; gateway injects it. Only `LOVABLE_API_KEY` + `TELEGRAM_API_KEY` env vars are used by edge functions.
+- Webhook secret is derived from `TELEGRAM_API_KEY` via SHA-256 (per Lovable connector pattern) — no extra secret to manage.
+- `telegram-notify` is fire-and-forget from the app; failures land in `telegram_outbox` with `status='failed'` and don't block in-app notifications.
+- Idempotency: outbox PK on `notification_id` prevents duplicate sends on retry.
