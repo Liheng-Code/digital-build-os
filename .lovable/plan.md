@@ -1,81 +1,89 @@
-# In-chat Progress Update Flow (Telegram)
+# Telegram Flow Polish: Dedupe Assign + In-Place Card Update
 
-Let assignees update a task's **progress %**, **status**, and an **optional note** by replying inside the Telegram chat — no Mini App round-trip needed. The existing Mini App button stays as a secondary option.
+Two changes, both server-side. No UI changes in the React app.
 
-## What the user sees in Telegram
+## 1. Remove duplicate "Task assigned" notification
 
-1. Notification message arrives with three buttons:
-   - `✍️ Update Progress` (new — starts the in-chat flow)
-   - `📈 Open Mini App` (kept)
-   - `🌐 Update in Browser` (kept)
+Today, when a task is created/assigned, two notifications fire:
 
-2. Tapping `✍️ Update Progress`:
-   ```text
-   Bot: Reply with progress % for "Install rebar grid B2" (T-0042).
-        Send a number 0–100.
-        Reply /cancel to abort.
+- From `task_assignments` insert trigger → "You were assigned a task" (per assignee)
+- From `tasks` status-change trigger → "Task assigned" (sent to every current assignee)
+
+Both produce a Telegram message of the same `task_assigned` type. Remove the second one.
+
+**Change:** New migration that updates the `tasks` status trigger function to skip the `WHEN 'assigned'` branch entirely. The `task_assignments` trigger remains the single source of truth for "you got assigned" alerts. Other status transitions (started, submitted, approved, etc.) are untouched.
+
+## 2. In-chat Update flow as a single editable card
+
+Today, each step posts a brand-new message in the chat. Replace this with one card that is edited in place at each step, then turns into the final summary at the end. Every step has a Back button.
+
+### Step states (rendered inside the same message)
+
+```text
+┌──────────────────────────────────────────┐
+│ ✍️ Update Progress                       │
+│ Task: <title> (CODE)                     │
+│ Current: 40% • In Progress               │
+│ ───────────────────────────────────────  │
+│ [step body — see below]                  │
+└──────────────────────────────────────────┘
+```
+
+1. **Progress** — body: "Reply with a number 0–100." Keyboard: `[❌ Cancel]`
+2. **Status** — body: "Progress: 60%. Pick a status." Keyboard:
+   - Row 1: `In Progress` `Pending Approval`
+   - Row 2: `Completed` `Blocked` `Keep current`
+   - Row 3: `⬅ Back` `❌ Cancel`
+3. **Note** — body: "Progress: 60% • Status: Completed. Reply with a note, or /skip." Keyboard: `[⬅ Back] [❌ Cancel]`
+4. **Final summary** (replaces card, stays in chat):
+   ```
+   ✅ Task updated
+   Task: <title> (CODE)
+   Progress: 60%
+   Status: Completed
+   Note: <text or —>
+   By: <user> at <time>
    ```
 
-3. User types `65` →
-   ```text
-   Bot: Pick a status:
-        [ In Progress ] [ Pending Approval ] [ Blocked ] [ Keep current ]
-   ```
+The card lives at the same message_id throughout, so the chat ends with one tidy summary right under the original task notification.
 
-4. User taps a status →
-   ```text
-   Bot: Add a note? Reply with text, or /skip.
-   ```
+### Back behavior
 
-5. User types note or `/skip` →
-   ```text
-   Bot: ✅ Task updated
-        Task: Install rebar grid B2 (T-0042)
-        Progress: 65%
-        Status: In Progress
-        Note: Concrete pour delayed
-   ```
+- Back from Status → re-render Progress prompt, keep saved pct in state so it shows as default ("Last: 60%").
+- Back from Note → re-render Status keyboard.
+- Back is a callback button, no new message.
 
-`/cancel` at any step ends the flow.
+### Cancellation
 
-## Technical changes
+- `❌ Cancel` button or `/cancel` text → edit card to: `❌ Update cancelled.` (no keyboard) and clear state.
 
-### 1. New table: `telegram_conversation_state`
-Tracks the multi-step conversation per chat.
+### Where progress text input fits
 
-| column            | type        | notes                                    |
-|-------------------|-------------|------------------------------------------|
-| chat_id           | bigint PK   | one active flow per chat                 |
-| user_id           | uuid        | linked DCOS user                         |
-| task_id           | uuid        | task being updated                       |
-| step              | text        | `awaiting_progress` \| `awaiting_status` \| `awaiting_note` |
-| progress_pct      | int         | filled after step 1                      |
-| status            | text        | filled after step 2                      |
-| expires_at        | timestamptz | 15-min TTL                               |
-| updated_at        | timestamptz |                                          |
+Users still type the percentage as a chat message (Telegram has no inline numeric input). When they send the number:
 
-RLS: service-role only (webhook writes via service key).
+- Validate 0–100. If invalid, edit the card to show `⚠️ Send a number 0–100.` and keep the same keyboard.
+- On valid input, delete the user's typed number (`deleteMessage`) so the chat stays clean, then edit the card forward to the Status step.
 
-### 2. Edit `supabase/functions/telegram-notify/index.ts`
-Add a third inline-keyboard button with `callback_data: "upd:<task_id>"`.
+Note replies behave the same way — accept text, delete the user message, edit card to summary.
 
-### 3. Edit `supabase/functions/telegram-webhook/index.ts`
-- Accept `callback_query` updates (register in `setWebhook` allowed_updates).
-- On `callback_data = upd:<task_id>`: verify assignment, write state `awaiting_progress`, prompt for number.
-- On text reply while state exists:
-  - `awaiting_progress`: parse 0–100 → save → prompt status with inline keyboard `st:in_progress`, `st:pending_approval`, `st:blocked`, `st:keep`.
-  - `awaiting_note`: save note → finalize via existing `telegram-task-update` logic → clear state → send confirmation.
-- On `callback_data = st:<value>`: save status → prompt for note.
-- Handle `/cancel` and `/skip`.
-- Expire states older than 15 min.
+## Technical details
 
-### 4. Extract shared update logic
-Move the task-update body (insert task_update, update tasks, send confirmation) from `telegram-task-update/index.ts` into a small shared helper inlined in both functions — or have the webhook call `telegram-task-update` internally with a service-key bypass. Simplest: inline a `finalizeTaskUpdate(db, …)` helper in the webhook file.
+Files touched:
 
-### 5. Update Telegram `setWebhook` allowed_updates
-Add `callback_query` to the list. (One-time call via gateway.)
+- `supabase/migrations/<new>.sql` — replace `notify_task_status_changes()` (or equivalent) to drop the `assigned` branch.
+- `supabase/functions/telegram-webhook/index.ts`:
+  - Add `message_id` and `original_progress`/`original_status` columns usage on `telegram_conversation_state` (extend schema with `card_message_id bigint`).
+  - Helpers: `editCard(chatId, messageId, text, keyboard)` calling `editMessageText`; `deleteMessage(chatId, messageId)`.
+  - Rewrite callback handler to branch on `upd:`, `st:<value>`, `nav:back`, `nav:cancel`.
+  - On `upd:` start: send initial card via `sendMessage`, store returned `message_id` in state.
+  - On text in `awaiting_progress` / `awaiting_note`: validate, delete user message, edit card forward.
+  - Render helpers `renderProgressStep`, `renderStatusStep`, `renderNoteStep`, `renderSummary`, `renderCancelled` so every transition uses the same template.
+- Migration: `ALTER TABLE telegram_conversation_state ADD COLUMN card_message_id bigint;`
+
+Reuses existing `finalizeTaskUpdate` for the DB write. No changes to the Mini App, browser link, or notification-fan-out logic.
 
 ## Out of scope
-- Reordering/removing existing notification buttons (keeping both Mini App and Browser).
-- Voice-note or photo updates.
-- Group-chat flows (state is per chat_id and assumes 1 user per linked chat).
+
+- Reordering the three buttons on the original task notification.
+- Translations / non-English copy.
+- Group chats with multiple linked users on one chat_id.
