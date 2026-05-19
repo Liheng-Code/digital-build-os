@@ -18,10 +18,60 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function formatMessage(n: any): string {
+const TASK_TYPE_LABELS: Record<string, string> = {
+  design: "Design",
+  procurement: "Procurement",
+  construction: "Construction",
+  inspection: "Inspection",
+  approval: "Approval",
+  documentation: "Documentation",
+  meeting: "Meeting",
+  other: "Other",
+};
+
+const TASK_STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  assigned: "Assigned",
+  in_progress: "In Progress",
+  submitted: "Submitted for Approval",
+  approved: "Approved",
+  rejected: "Rejected",
+  blocked: "Blocked",
+  on_hold: "On Hold",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return "—";
+  return String(d).slice(0, 10);
+}
+
+function labelize(v: string | null | undefined, map?: Record<string, string>): string {
+  if (!v) return "—";
+  if (map && map[v]) return map[v];
+  return v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatMessage(n: any, task: any | null): string {
   const emoji = PRIORITY_EMOJI[n.priority] ?? "🔔";
   const lines = [`${emoji} <b>${escapeHtml(n.title ?? "Notification")}</b>`];
   if (n.body) lines.push(escapeHtml(n.body));
+
+  if (task) {
+    lines.push("");
+    lines.push(`<b>Task Name:</b> ${escapeHtml(task.title ?? "—")}${task.code ? ` (${escapeHtml(task.code)})` : ""}`);
+    lines.push(`<b>Task Type:</b> ${escapeHtml(labelize(task.task_type, TASK_TYPE_LABELS))}`);
+    lines.push(`<b>Task Category:</b> ${escapeHtml(labelize(task.category))}`);
+    const wbs = task.wbs_node
+      ? `${task.wbs_node.code ? task.wbs_node.code + " — " : ""}${task.wbs_node.name ?? ""}`
+      : (task.location_zone ?? "—");
+    lines.push(`<b>WBS Location:</b> ${escapeHtml(wbs || "—")}`);
+    lines.push(`<b>Plan Start:</b> ${escapeHtml(fmtDate(task.planned_start))}`);
+    lines.push(`<b>Plan End:</b> ${escapeHtml(fmtDate(task.planned_end))}`);
+    lines.push(`<b>Status:</b> ${escapeHtml(labelize(task.status, TASK_STATUS_LABELS))}`);
+  }
+
   return lines.join("\n");
 }
 
