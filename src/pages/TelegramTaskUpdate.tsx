@@ -70,6 +70,7 @@ export default function TelegramTaskUpdate() {
   React.useEffect(() => {
     if (taskQuery.data) {
       setProgress(taskQuery.data.progress_pct || 0);
+      setStatus((taskQuery.data.status as TaskStatus) || "");
     }
   }, [taskQuery.data]);
 
