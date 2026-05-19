@@ -1,5 +1,8 @@
 # Telegram Bot Integration — Task & System Alerts
 
+**Bot:** `@dcos_alerts_bot` (deep-link: `https://t.me/dcos_alerts_bot?start=<code>`)
+
+
 ## Goal
 
 Mirror in-app notifications to Telegram so team members get real-time alerts about their tasks (assigned, approved, rejected, overdue, blockers, etc.) on their phone. Phase 1 is **send-only**; schema is designed to extend to two-way replies later.
