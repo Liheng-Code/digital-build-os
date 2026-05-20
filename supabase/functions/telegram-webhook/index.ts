@@ -592,6 +592,11 @@ function resolveMenuAction(text: string): MenuAction | null {
   return null;
 }
 
+function extractLinkCodeCandidates(text: string): string[] {
+  const candidates = text.toUpperCase().match(/[A-Z0-9]{8}/g) ?? [];
+  return [...new Set(candidates)];
+}
+
 function mainKeyboard() {
   return {
     keyboard: [
@@ -889,6 +894,66 @@ async function cyclePref(db: any, userId: string, kind: "morning" | "evening" | 
   await db.from("telegram_brief_prefs").upsert(patch, { onConflict: "user_id" });
 }
 
+async function tryLinkTelegramCode(
+  db: any,
+  chatId: number,
+  username: string | undefined,
+  text: string,
+  options?: { explicit?: boolean },
+): Promise<boolean> {
+  const candidates = extractLinkCodeCandidates(text);
+  if (candidates.length === 0) return false;
+
+  for (const code of candidates) {
+    const { data: row } = await db
+      .from("telegram_link_codes")
+      .select("user_id, expires_at, used_at")
+      .eq("code", code)
+      .maybeSingle();
+
+    if (!row) continue;
+
+    if (row.used_at) {
+      await tgSendMessage(chatId, "❌ This code has already been used.");
+      return true;
+    }
+    if (new Date(row.expires_at).getTime() < Date.now()) {
+      await tgSendMessage(chatId, "❌ Code expired. Please generate a new one.");
+      return true;
+    }
+
+    await db
+      .from("profiles")
+      .update({
+        telegram_chat_id: chatId,
+        telegram_username: username ?? null,
+        telegram_linked_at: new Date().toISOString(),
+      })
+      .eq("id", row.user_id);
+
+    await db
+      .from("telegram_link_codes")
+      .update({ used_at: new Date().toISOString() })
+      .eq("code", code);
+
+    await tgSendMessage(
+      chatId,
+      "✅ <b>Successfully connected to DCOS Web App!</b>\n\nYour Telegram account is now linked. You will receive task assignments, approvals, and system alerts here.\n\nOpen the web app anytime from the button below.",
+      {
+        inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: WEB_BASE_URL } }]],
+      },
+    );
+    return true;
+  }
+
+  if (options?.explicit || candidates.length === 1) {
+    await tgSendMessage(chatId, "❌ Invalid code. Please generate a new one in DCOS Settings → Telegram.");
+    return true;
+  }
+
+  return false;
+}
+
 // ---------- Inline search ----------
 
 async function handleInlineQuery(db: any, iq: any) {
@@ -1163,6 +1228,11 @@ Deno.serve(async (req) => {
 
     // Main menu / button intercepts
     const trimmed = text.trim();
+    const explicitStart = /^\/start(?:@\w+)?\b/i.test(trimmed);
+    if (explicitStart && await tryLinkTelegramCode(db, chatId, username, trimmed, { explicit: true })) {
+      return new Response(JSON.stringify({ ok: true }));
+    }
+
     const menuAction = resolveMenuAction(trimmed);
     if (menuAction) {
       const profile = await resolveProfile(db, chatId);
@@ -1203,57 +1273,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }));
     }
 
-    // Code linking (allows just pasting the code, e.g., "ABCD12" or "/start ABCD12")
-    const codeMatch = text.match(/^(?:\/start\s+)?([A-Z0-9]{4,12})$/i);
-    const isExplicitStart = text.toLowerCase().startsWith("/start ");
-    
-    if (codeMatch) {
-      const code = codeMatch[1]?.toUpperCase();
-      
-      const { data: row } = await db
-        .from("telegram_link_codes")
-        .select("user_id, expires_at, used_at")
-        .eq("code", code)
-        .maybeSingle();
-
-      if (row) {
-        if (row.used_at) {
-          await tgSendMessage(chatId, "❌ This code has already been used.");
-          return new Response(JSON.stringify({ ok: true }));
-        }
-        if (new Date(row.expires_at).getTime() < Date.now()) {
-          await tgSendMessage(chatId, "❌ Code expired. Please generate a new one.");
-          return new Response(JSON.stringify({ ok: true }));
-        }
-
-        await db
-          .from("profiles")
-          .update({
-            telegram_chat_id: chatId,
-            telegram_username: username ?? null,
-            telegram_linked_at: new Date().toISOString(),
-          })
-          .eq("id", row.user_id);
-
-        await db
-          .from("telegram_link_codes")
-          .update({ used_at: new Date().toISOString() })
-          .eq("code", code);
-
-        await tgSendMessage(
-          chatId,
-          "✅ <b>Successfully connected to DCOS Web App!</b>\n\nYour Telegram account is now linked. You will receive task assignments, approvals, and system alerts here.\n\nOpen the web app anytime from the button below.",
-          {
-            inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: "https://build-flow-dcos.lovable.app" } }]],
-          },
-        );
-        return new Response(JSON.stringify({ ok: true }));
-      } else if (isExplicitStart) {
-        // If they explicitly used /start but it's invalid
-        await tgSendMessage(chatId, "❌ Invalid code. Please generate a new one in DCOS Settings → Telegram.");
-        return new Response(JSON.stringify({ ok: true }));
-      }
-      // If it wasn't explicit /start and row wasn't found, it might just be a regular message (e.g. note), so let it fall through.
+    // Code linking allows a bare code or pasted helper text containing the code.
+    if (await tryLinkTelegramCode(db, chatId, username, trimmed)) {
+      return new Response(JSON.stringify({ ok: true }));
     }
 
     // ---------- in-flight conversation? ----------
