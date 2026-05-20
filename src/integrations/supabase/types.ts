@@ -7329,6 +7329,73 @@ export type Database = {
           },
         ]
       }
+      telegram_brief_log: {
+        Row: {
+          brief_kind: string
+          id: string
+          local_date: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          brief_kind: string
+          id?: string
+          local_date: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          brief_kind?: string
+          id?: string
+          local_date?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_brief_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_brief_prefs: {
+        Row: {
+          created_at: string
+          evening_at: string | null
+          morning_at: string | null
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evening_at?: string | null
+          morning_at?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evening_at?: string | null
+          morning_at?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_brief_prefs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_conversation_state: {
         Row: {
           card_message_id: number | null
