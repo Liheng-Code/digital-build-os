@@ -1139,6 +1139,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, ignored: true }));
     }
 
+    // Ensure the persistent reply keyboard is shown for any incoming message,
+    // so the 6 quick-action buttons appear at the bottom of the chat immediately
+    // after the user first interacts with the bot (no /help required).
+    await ensureMainKeyboard(chatId);
+
     // /cancel — always exits any in-progress flow
     if (/^\/cancel\b/i.test(text)) {
       const state = await getActiveState(db, chatId);
