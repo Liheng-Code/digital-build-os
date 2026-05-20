@@ -1297,12 +1297,8 @@ Deno.serve(async (req) => {
     // Default reply
     await tgSendMessage(
       chatId,
-      "ℹ️ Tap <b>✍️ Update Progress (in chat)</b> on a task notification to update it from here.",
-      {
-         keyboard: [[{ text: "☰ Main Menu" }]],
-         resize_keyboard: true,
-         is_persistent: true
-      }
+      "ℹ️ Use the menu below to view your dashboard, tasks, or update progress.\nTip: type <code>@dcos_alerts_bot keyword</code> in any chat to search your tasks.",
+      mainKeyboard(),
     );
     return new Response(JSON.stringify({ ok: true }));
   } catch (e) {
