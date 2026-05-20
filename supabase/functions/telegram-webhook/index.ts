@@ -943,6 +943,12 @@ Deno.serve(async (req) => {
   try {
     const update = await req.json();
 
+    // ---------- inline_query (search) ----------
+    if (update.inline_query) {
+      await handleInlineQuery(db, update.inline_query);
+      return new Response(JSON.stringify({ ok: true }));
+    }
+
     // ---------- callback_query (button taps) ----------
     if (update.callback_query) {
       const cq = update.callback_query;
