@@ -581,13 +581,13 @@ function resolveMenuAction(text: string): MenuAction | null {
     .trim()
     .replace(/\s+/g, " ");
 
-  if (lower === "/start" || lower === "/help" || words === "main menu") return "welcome";
-  if (words === "dashboard") return "dashboard";
-  if (words === "mytasks" || words === "my tasks") return "mytasks";
-  if (words === "today" || words === "due today") return "today";
-  if (words === "overdue") return "overdue";
-  if (words === "update") return "update";
-  if (words === "settings") return "settings";
+  if (words.includes("dashboard")) return "dashboard";
+  if (words.includes("mytasks") || words.includes("my tasks")) return "mytasks";
+  if (words.includes("due today") || words === "today" || words.endsWith(" today")) return "today";
+  if (words.includes("overdue")) return "overdue";
+  if (words.includes("update")) return "update";
+  if (words.includes("settings")) return "settings";
+  if (lower === "/start" || lower === "/help" || words.includes("main menu")) return "welcome";
 
   return null;
 }
