@@ -570,6 +570,28 @@ const BTN_TODAY = "⏰ Due Today";
 const BTN_OVERDUE = "⚠️ Overdue";
 const BTN_SETTINGS = "⚙️ Settings";
 
+type MenuAction = "welcome" | "dashboard" | "mytasks" | "today" | "overdue" | "update" | "settings";
+
+function resolveMenuAction(text: string): MenuAction | null {
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+  const words = lower
+    .replace(/^\/+/, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  if (lower === "/start" || lower === "/help" || words === "main menu") return "welcome";
+  if (words === "dashboard") return "dashboard";
+  if (words === "mytasks" || words === "my tasks") return "mytasks";
+  if (words === "today" || words === "due today") return "today";
+  if (words === "overdue") return "overdue";
+  if (words === "update") return "update";
+  if (words === "settings") return "settings";
+
+  return null;
+}
+
 function mainKeyboard() {
   return {
     keyboard: [
@@ -1141,13 +1163,8 @@ Deno.serve(async (req) => {
 
     // Main menu / button intercepts
     const trimmed = text.trim();
-    if (
-      trimmed === "/start" || trimmed === "/help" || trimmed === "☰ Main Menu" ||
-      trimmed === BTN_DASHBOARD || trimmed === BTN_MYTASKS || trimmed === BTN_UPDATE ||
-      trimmed === BTN_TODAY || trimmed === BTN_OVERDUE || trimmed === BTN_SETTINGS ||
-      trimmed === "/dashboard" || trimmed === "/mytasks" || trimmed === "/today" ||
-      trimmed === "/overdue" || trimmed === "/update" || trimmed === "/settings"
-    ) {
+    const menuAction = resolveMenuAction(trimmed);
+    if (menuAction) {
       const profile = await resolveProfile(db, chatId);
       if (!profile) {
         await tgSendMessage(
@@ -1158,22 +1175,22 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: true }));
       }
       await ensureMainKeyboard(chatId);
-      if (trimmed === BTN_DASHBOARD || trimmed === "/dashboard") {
+      if (menuAction === "dashboard") {
         const v = await renderDashboard(db, profile);
         await tgSendMessage(chatId, v.text, v.keyboard);
-      } else if (trimmed === BTN_MYTASKS || trimmed === "/mytasks") {
+      } else if (menuAction === "mytasks") {
         const v = await renderTaskList(db, profile, "all", 0);
         await tgSendMessage(chatId, v.text, v.keyboard);
-      } else if (trimmed === BTN_TODAY || trimmed === "/today") {
+      } else if (menuAction === "today") {
         const v = await renderTaskList(db, profile, "today", 0);
         await tgSendMessage(chatId, v.text, v.keyboard);
-      } else if (trimmed === BTN_OVERDUE || trimmed === "/overdue") {
+      } else if (menuAction === "overdue") {
         const v = await renderTaskList(db, profile, "overdue", 0);
         await tgSendMessage(chatId, v.text, v.keyboard);
-      } else if (trimmed === BTN_UPDATE || trimmed === "/update") {
+      } else if (menuAction === "update") {
         const v = await renderTaskPicker(db, profile, 0);
         await tgSendMessage(chatId, v.text, v.keyboard);
-      } else if (trimmed === BTN_SETTINGS || trimmed === "/settings") {
+      } else if (menuAction === "settings") {
         const v = await renderSettings(db, profile);
         await tgSendMessage(chatId, v.text, v.keyboard);
       } else {
