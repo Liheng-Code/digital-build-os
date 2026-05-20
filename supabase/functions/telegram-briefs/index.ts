@@ -2,21 +2,15 @@
 // Triggered every 15 minutes by pg_cron. Sends one brief per (user, kind, local_date).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
-
-function tgHeaders() {
-  return {
-    Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-    "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY")!,
-    "Content-Type": "application/json",
-  };
+function botUrl(method: string): string {
+  return `https://api.telegram.org/bot${Deno.env.get("TELEGRAM_API_KEY")!}/${method}`;
 }
 
 async function tgSend(chatId: number, text: string) {
   try {
-    await fetch(`${GATEWAY_URL}/sendMessage`, {
+    await fetch(botUrl("sendMessage"), {
       method: "POST",
-      headers: tgHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
         text,
@@ -59,9 +53,10 @@ function withinSlot(targetHHMM: string | null, hh: number, mm: number): boolean 
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!SUPABASE_URL || !SERVICE_KEY) return new Response("Misconfigured", { status: 500 });
+  if (!TELEGRAM_API_KEY || !SUPABASE_URL || !SERVICE_KEY) return new Response("Misconfigured", { status: 500 });
   const db = createClient(SUPABASE_URL, SERVICE_KEY);
 
   const now = new Date();

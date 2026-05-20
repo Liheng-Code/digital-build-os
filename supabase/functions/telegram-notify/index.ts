@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
-
 const PRIORITY_EMOJI: Record<string, string> = {
   low: "🔵",
   normal: "🔔",
@@ -16,6 +14,10 @@ const PRIORITY_EMOJI: Record<string, string> = {
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function botUrl(apiKey: string, method: string): string {
+  return `https://api.telegram.org/bot${apiKey}/${method}`;
 }
 
 const TASK_TYPE_LABELS: Record<string, string> = {
@@ -83,11 +85,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY || !SUPABASE_URL || !SERVICE_KEY) {
+    if (!TELEGRAM_API_KEY || !SUPABASE_URL || !SERVICE_KEY) {
       throw new Error("Missing required env vars");
     }
 
@@ -212,13 +213,9 @@ Deno.serve(async (req) => {
       ? { inline_keyboard }
       : undefined;
 
-    const tgRes = await fetch(`${GATEWAY_URL}/sendMessage`, {
+    const tgRes = await fetch(botUrl(TELEGRAM_API_KEY, "sendMessage"), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": TELEGRAM_API_KEY,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
         text,

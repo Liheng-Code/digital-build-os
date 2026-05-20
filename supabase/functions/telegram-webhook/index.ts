@@ -16,7 +16,22 @@ function safeEqual(a: string | null, b: string): boolean {
   return diff === 0;
 }
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+function botUrl(method: string): string {
+  return `https://api.telegram.org/bot${Deno.env.get("TELEGRAM_API_KEY")!}/${method}`;
+}
+
+function tgHeaders() {
+  return { "Content-Type": "application/json" };
+}
+
+async function tgApi(method: string, payload: Record<string, unknown>): Promise<any> {
+  const res = await fetch(botUrl(method), {
+    method: "POST",
+    headers: tgHeaders(),
+    body: JSON.stringify(payload),
+  });
+  try { return await res.json(); } catch { return null; }
+}
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Open",
@@ -36,67 +51,38 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function tgHeaders() {
-  return {
-    Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-    "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY")!,
-    "Content-Type": "application/json",
-  };
-}
-
 async function tgSendMessage(chatId: number, text: string, reply_markup?: any): Promise<number | null> {
-  const res = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: tgHeaders(),
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: "HTML",
-      disable_web_page_preview: true,
-      reply_markup,
-    }),
+  const j = await tgApi("sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+    reply_markup,
   });
-  try {
-    const j = await res.json();
-    return j?.result?.message_id ?? null;
-  } catch {
-    return null;
-  }
+  return j?.result?.message_id ?? null;
 }
 
 async function tgEditMessage(chatId: number, messageId: number, text: string, reply_markup?: any) {
-  await fetch(`${GATEWAY_URL}/editMessageText`, {
-    method: "POST",
-    headers: tgHeaders(),
-    body: JSON.stringify({
-      chat_id: chatId,
-      message_id: messageId,
-      text,
-      parse_mode: "HTML",
-      disable_web_page_preview: true,
-      reply_markup: reply_markup ?? { inline_keyboard: [] },
-    }),
+  await tgApi("editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+    reply_markup: reply_markup ?? { inline_keyboard: [] },
   });
 }
 
 async function tgDeleteMessage(chatId: number, messageId: number) {
   try {
-    await fetch(`${GATEWAY_URL}/deleteMessage`, {
-      method: "POST",
-      headers: tgHeaders(),
-      body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
-    });
+    await tgApi("deleteMessage", { chat_id: chatId, message_id: messageId });
   } catch {
     /* ignore */
   }
 }
 
 async function tgAnswerCallback(callbackId: string, text?: string) {
-  await fetch(`${GATEWAY_URL}/answerCallbackQuery`, {
-    method: "POST",
-    headers: tgHeaders(),
-    body: JSON.stringify({ callback_query_id: callbackId, text: text ?? "" }),
-  });
+  await tgApi("answerCallbackQuery", { callback_query_id: callbackId, text: text ?? "" });
 }
 
 // ---------- Card rendering ----------
@@ -914,15 +900,11 @@ async function handleInlineQuery(db: any, iq: any) {
       }));
   }
   try {
-    await fetch(`${GATEWAY_URL}/answerInlineQuery`, {
-      method: "POST",
-      headers: tgHeaders(),
-      body: JSON.stringify({
-        inline_query_id: iq.id,
-        results,
-        cache_time: 5,
-        is_personal: true,
-      }),
+    await tgApi("answerInlineQuery", {
+      inline_query_id: iq.id,
+      results,
+      cache_time: 5,
+      is_personal: true,
     });
   } catch (e) {
     console.error("answerInlineQuery failed:", e);

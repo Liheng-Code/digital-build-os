@@ -5,8 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
-
 const STATUS_LABELS: Record<string, string> = {
   open: "Open",
   assigned: "Assigned",
@@ -25,13 +23,16 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function botUrl(apiKey: string, method: string): string {
+  return `https://api.telegram.org/bot${apiKey}/${method}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
 
     if (!SUPABASE_URL || !SERVICE_KEY) {
@@ -141,7 +142,7 @@ Deno.serve(async (req) => {
     if (taskUpdateErr) throw taskUpdateErr;
 
     // 6. Send confirmation back to Telegram chat
-    if (LOVABLE_API_KEY && TELEGRAM_API_KEY && profile.telegram_chat_id) {
+    if (TELEGRAM_API_KEY && profile.telegram_chat_id) {
       const statusLabel = STATUS_LABELS[finalStatus ?? ""] ?? finalStatus ?? "—";
       const lines = [
         `✅ <b>Task updated</b>`,
@@ -152,13 +153,9 @@ Deno.serve(async (req) => {
       if (note) lines.push(`<b>Note:</b> ${escapeHtml(String(note))}`);
 
       try {
-        await fetch(`${GATEWAY_URL}/sendMessage`, {
+        await fetch(botUrl(TELEGRAM_API_KEY, "sendMessage"), {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "X-Connection-Api-Key": TELEGRAM_API_KEY,
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: profile.telegram_chat_id,
             text: lines.join("\n"),
