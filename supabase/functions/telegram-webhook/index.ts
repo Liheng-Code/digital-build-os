@@ -1047,6 +1047,75 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: true }));
       }
 
+      // ---------- Menu navigation callbacks ----------
+      // list:<filter>:<page>
+      if (data.startsWith("list:")) {
+        await tgAnswerCallback(cq.id);
+        const [, filter, pageStr] = data.split(":");
+        const profile = await resolveProfile(db, chatId);
+        if (!profile) {
+          await tgSendMessage(chatId, "❌ Telegram not linked.", mainKeyboard());
+          return new Response(JSON.stringify({ ok: true }));
+        }
+        const view = await renderTaskList(db, profile, filter, Number(pageStr) || 0);
+        const messageId: number | undefined = cq.message?.message_id;
+        if (messageId) await tgEditMessage(chatId, messageId, view.text, view.keyboard);
+        else await tgSendMessage(chatId, view.text, view.keyboard);
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      // open:<taskId>
+      if (data.startsWith("open:")) {
+        await tgAnswerCallback(cq.id);
+        await sendTaskDetail(db, chatId, data.slice(5));
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      // pick:<taskId> — selected from updater picker
+      if (data.startsWith("pick:")) {
+        await tgAnswerCallback(cq.id);
+        await startUpdateFlow(db, chatId, data.slice(5));
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      // pkr:<page> — picker pagination
+      if (data.startsWith("pkr:")) {
+        await tgAnswerCallback(cq.id);
+        const profile = await resolveProfile(db, chatId);
+        if (!profile) return new Response(JSON.stringify({ ok: true }));
+        const view = await renderTaskPicker(db, profile, Number(data.slice(4)) || 0);
+        const messageId: number | undefined = cq.message?.message_id;
+        if (messageId) await tgEditMessage(chatId, messageId, view.text, view.keyboard);
+        return new Response(JSON.stringify({ ok: true }));
+      }
+
+      // set:morning | set:evening | set:tz | set:unlink
+      if (data.startsWith("set:")) {
+        const kind = data.slice(4);
+        const profile = await resolveProfile(db, chatId);
+        if (!profile) {
+          await tgAnswerCallback(cq.id, "Not linked");
+          return new Response(JSON.stringify({ ok: true }));
+        }
+        if (kind === "unlink") {
+          await db.from("profiles").update({
+            telegram_chat_id: null, telegram_username: null, telegram_linked_at: null,
+          }).eq("id", profile.id);
+          await tgAnswerCallback(cq.id, "Unlinked");
+          const messageId: number | undefined = cq.message?.message_id;
+          if (messageId) await tgEditMessage(chatId, messageId, "🔗 <b>Telegram unlinked.</b>\nGenerate a new code in DCOS Settings → Telegram to relink.", { inline_keyboard: [] });
+          return new Response(JSON.stringify({ ok: true }));
+        }
+        if (kind === "morning" || kind === "evening" || kind === "tz") {
+          await cyclePref(db, profile.id, kind);
+          await tgAnswerCallback(cq.id, "Saved");
+          const view = await renderSettings(db, profile);
+          const messageId: number | undefined = cq.message?.message_id;
+          if (messageId) await tgEditMessage(chatId, messageId, view.text, view.keyboard);
+          return new Response(JSON.stringify({ ok: true }));
+        }
+      }
+
       await tgAnswerCallback(cq.id);
       return new Response(JSON.stringify({ ok: true }));
     }
