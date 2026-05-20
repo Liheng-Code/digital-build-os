@@ -24,26 +24,18 @@ export async function getTelegramStatus(userId: string): Promise<TelegramStatus>
   };
 }
 
-function makeCode(len = 8): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  const buf = new Uint8Array(len);
-  crypto.getRandomValues(buf);
-  for (let i = 0; i < len; i++) out += alphabet[buf[i] % alphabet.length];
-  return out;
-}
-
 export async function generateLinkCode(userId: string): Promise<{ code: string; deepLink: string; expiresAt: string }> {
-  const code = makeCode(8);
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  const { error } = await supabase
-    .from("telegram_link_codes")
-    .insert({ code, user_id: userId, expires_at: expiresAt });
+  const { data, error } = await supabase.functions.invoke("telegram-link-code", {
+    body: { user_id: userId }
+  });
   if (error) throw error;
+  if (!data?.ok || !data?.code || !data?.deepLink || !data?.expiresAt) {
+    throw new Error(data?.error ?? "Failed to generate Telegram link code");
+  }
   return {
-    code,
-    expiresAt,
-    deepLink: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${code}`,
+    code: data.code,
+    expiresAt: data.expiresAt,
+    deepLink: data.deepLink
   };
 }
 
