@@ -1144,15 +1144,49 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }));
     }
 
-    // Main Menu intercept
-    if (text === "☰ Main Menu" || text.trim() === "/start") {
-      await tgSendMessage(
-        chatId,
-        "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo receive task notifications, open <b>Settings → Telegram</b> in DCOS, generate a link code, then send:\n<code>YOURCODE</code>",
-        { 
-          inline_keyboard: [[{ text: "🚀 Open DCOS Web App", web_app: { url: "https://build-flow-dcos.lovable.app" } }]],
-        }
-      );
+    // Main menu / button intercepts
+    const trimmed = text.trim();
+    if (
+      trimmed === "/start" || trimmed === "/help" || trimmed === "☰ Main Menu" ||
+      trimmed === BTN_DASHBOARD || trimmed === BTN_MYTASKS || trimmed === BTN_UPDATE ||
+      trimmed === BTN_TODAY || trimmed === BTN_OVERDUE || trimmed === BTN_SETTINGS ||
+      trimmed === "/dashboard" || trimmed === "/mytasks" || trimmed === "/today" ||
+      trimmed === "/overdue" || trimmed === "/update" || trimmed === "/settings"
+    ) {
+      const profile = await resolveProfile(db, chatId);
+      if (!profile) {
+        await tgSendMessage(
+          chatId,
+          "👋 Welcome to <b>DCOS Alerts</b>.\n\nTo receive task notifications, open <b>Settings → Telegram</b> in DCOS, generate a link code, then send:\n<code>YOURCODE</code>",
+          mainKeyboard(),
+        );
+        return new Response(JSON.stringify({ ok: true }));
+      }
+      if (trimmed === BTN_DASHBOARD || trimmed === "/dashboard") {
+        const v = await renderDashboard(db, profile);
+        await tgSendMessage(chatId, v.text, v.keyboard);
+      } else if (trimmed === BTN_MYTASKS || trimmed === "/mytasks") {
+        const v = await renderTaskList(db, profile, "all", 0);
+        await tgSendMessage(chatId, v.text, v.keyboard);
+      } else if (trimmed === BTN_TODAY || trimmed === "/today") {
+        const v = await renderTaskList(db, profile, "today", 0);
+        await tgSendMessage(chatId, v.text, v.keyboard);
+      } else if (trimmed === BTN_OVERDUE || trimmed === "/overdue") {
+        const v = await renderTaskList(db, profile, "overdue", 0);
+        await tgSendMessage(chatId, v.text, v.keyboard);
+      } else if (trimmed === BTN_UPDATE || trimmed === "/update") {
+        const v = await renderTaskPicker(db, profile, 0);
+        await tgSendMessage(chatId, v.text, v.keyboard);
+      } else if (trimmed === BTN_SETTINGS || trimmed === "/settings") {
+        const v = await renderSettings(db, profile);
+        await tgSendMessage(chatId, v.text, v.keyboard);
+      } else {
+        await tgSendMessage(
+          chatId,
+          `👋 Welcome back${profile.full_name ? ", <b>" + escapeHtml(profile.full_name.split(" ")[0]) + "</b>" : ""}!\nUse the menu below to navigate.\n\nTip: in any chat type <code>@dcos_alerts_bot keyword</code> to search your tasks.`,
+          mainKeyboard(),
+        );
+      }
       return new Response(JSON.stringify({ ok: true }));
     }
 
