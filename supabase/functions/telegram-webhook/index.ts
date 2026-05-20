@@ -1170,6 +1170,7 @@ Deno.serve(async (req) => {
         );
         return new Response(JSON.stringify({ ok: true }));
       }
+      await ensureMainKeyboard(chatId);
       if (trimmed === BTN_DASHBOARD || trimmed === "/dashboard") {
         const v = await renderDashboard(db, profile);
         await tgSendMessage(chatId, v.text, v.keyboard);
