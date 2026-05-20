@@ -1,4 +1,4 @@
-project_id = "xubtjpjmkdnxdwyvskoj"
+project_id = "xgfgtsxjzfbalzqgosrn"
 
 [functions.seed-demo-users]
 verify_jwt = false
@@ -10,4 +10,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.telegram-notify]
+verify_jwt = false
+
+[functions.telegram-briefs]
+verify_jwt = false
+
+[functions.telegram-task-update]
+verify_jwt = false
+
+[functions.telegram-setup]
+verify_jwt = false
+
+[functions.telegram-link-code]
 verify_jwt = false
