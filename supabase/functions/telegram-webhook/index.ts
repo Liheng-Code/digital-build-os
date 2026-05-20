@@ -573,6 +573,354 @@ async function handleReceived(
   await tgAnswerCallback(callbackId, "Marked as received");
 }
 
+// ---------- Menu / dashboard / lists ----------
+
+const WEB_BASE_URL = "https://build-flow-dcos.lovable.app";
+
+const BTN_DASHBOARD = "📊 Dashboard";
+const BTN_MYTASKS = "📋 My Tasks";
+const BTN_UPDATE = "➕ Update";
+const BTN_TODAY = "⏰ Due Today";
+const BTN_OVERDUE = "⚠️ Overdue";
+const BTN_SETTINGS = "⚙️ Settings";
+
+function mainKeyboard() {
+  return {
+    keyboard: [
+      [{ text: BTN_DASHBOARD }, { text: BTN_MYTASKS }, { text: BTN_UPDATE }],
+      [{ text: BTN_TODAY }, { text: BTN_OVERDUE }, { text: BTN_SETTINGS }],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
+const DONE_STATUSES = new Set(["completed", "closed", "approved"]);
+const ACTIVE_STATUSES = new Set(["assigned", "received", "in_progress", "blocked", "rejected", "pending_approval"]);
+
+function statusDot(status: string): string {
+  if (DONE_STATUSES.has(status)) return "🟢";
+  if (status === "blocked" || status === "rejected") return "🔴";
+  if (status === "in_progress") return "🟡";
+  if (status === "pending_approval") return "🟠";
+  return "⚪";
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function resolveProfile(db: any, chatId: number) {
+  const { data } = await db
+    .from("profiles")
+    .select("id, full_name")
+    .eq("telegram_chat_id", chatId)
+    .maybeSingle();
+  return data;
+}
+
+async function fetchMyTasks(db: any, userId: string) {
+  const { data } = await db
+    .from("task_assignments")
+    .select("task_id, tasks!inner(id, code, title, status, progress_pct, planned_end, project_id, projects(code))")
+    .eq("user_id", userId)
+    .is("unassigned_at", null)
+    .limit(500);
+  return (data ?? [])
+    .map((r: any) => r.tasks)
+    .filter(Boolean);
+}
+
+function filterTasks(tasks: any[], filter: string): any[] {
+  const today = todayISO();
+  switch (filter) {
+    case "today":
+      return tasks.filter((t) => t.planned_end === today && !DONE_STATUSES.has(t.status));
+    case "overdue":
+      return tasks.filter((t) => t.planned_end && t.planned_end < today && !DONE_STATUSES.has(t.status));
+    case "active":
+      return tasks.filter((t) => ACTIVE_STATUSES.has(t.status));
+    case "done":
+      return tasks.filter((t) => DONE_STATUSES.has(t.status));
+    default:
+      return tasks;
+  }
+}
+
+async function renderDashboard(db: any, profile: any) {
+  const tasks = await fetchMyTasks(db, profile.id);
+  const today = todayISO();
+  const completed = tasks.filter((t) => DONE_STATUSES.has(t.status)).length;
+  const inProgress = tasks.filter((t) => t.status === "in_progress").length;
+  const overdue = tasks.filter((t) => t.planned_end && t.planned_end < today && !DONE_STATUSES.has(t.status)).length;
+  const notStarted = tasks.filter((t) => t.status === "assigned" || t.status === "open").length;
+  const dueToday = tasks.filter((t) => t.planned_end === today && !DONE_STATUSES.has(t.status)).length;
+
+  // 30-day completion rate
+  const since = new Date(Date.now() - 30 * 86400_000);
+  const recent = tasks.filter((t) => {
+    if (DONE_STATUSES.has(t.status)) return true;
+    return true; // include all open
+  });
+  const recentCompleted = tasks.filter((t) => DONE_STATUSES.has(t.status)).length;
+  const total = recent.length || 1;
+  const rate = Math.round((recentCompleted / total) * 100);
+
+  const lines = [
+    `📊 <b>My Dashboard</b>`,
+    ``,
+    `🟢 Completed       <b>${completed}</b>`,
+    `🟡 In Progress     <b>${inProgress}</b>`,
+    `🔴 Overdue         <b>${overdue}</b>`,
+    `⚪ Not Started     <b>${notStarted}</b>`,
+    ``,
+    `📅 Due Today       <b>${dueToday}</b>`,
+    `🔥 Completion 30d  <b>${rate}%</b>`,
+  ];
+  return {
+    text: lines.join("\n"),
+    keyboard: {
+      inline_keyboard: [
+        [
+          { text: "📋 My Tasks", callback_data: "list:all:0" },
+          { text: "⏰ Due Today", callback_data: "list:today:0" },
+          { text: "⚠️ Overdue", callback_data: "list:overdue:0" },
+        ],
+      ],
+    },
+  };
+}
+
+const FILTER_LABELS: Record<string, string> = {
+  all: "All", today: "Today", overdue: "Overdue", active: "Active", done: "Done",
+};
+
+async function renderTaskList(db: any, profile: any, filter: string, page: number) {
+  const all = await fetchMyTasks(db, profile.id);
+  const filtered = filterTasks(all, filter);
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const p = Math.min(Math.max(0, page), totalPages - 1);
+  const slice = filtered.slice(p * pageSize, p * pageSize + pageSize);
+
+  const head = `📋 <b>My Tasks</b> · Page ${p + 1}/${totalPages} · ${FILTER_LABELS[filter] ?? "All"} (${filtered.length})`;
+  const today = todayISO();
+  const body = slice.length === 0
+    ? "\n\n<i>No tasks in this view.</i>"
+    : "\n\n" + slice.map((t, i) => {
+        const idx = p * pageSize + i + 1;
+        const dot = statusDot(t.status);
+        const projCode = t.projects?.code ? `<code>${escapeHtml(t.projects.code)}</code>` : "";
+        const dueBit = t.planned_end
+          ? (t.planned_end < today && !DONE_STATUSES.has(t.status)
+              ? ` · <b>overdue</b>`
+              : ` · due ${escapeHtml(t.planned_end)}`)
+          : "";
+        const pct = typeof t.progress_pct === "number" ? `${t.progress_pct}%` : "—";
+        const label = STATUS_LABELS[t.status] ?? t.status;
+        return `<b>${idx}.</b> ${escapeHtml(t.title)} ${projCode}\n   ${dot} ${escapeHtml(label)} · ${pct}${dueBit}`;
+      }).join("\n");
+
+  // Filter row
+  const filterRow = ["all", "today", "overdue", "active", "done"].map((f) => ({
+    text: f === filter ? `• ${FILTER_LABELS[f]} •` : FILTER_LABELS[f],
+    callback_data: `list:${f}:0`,
+  }));
+
+  // Pager
+  const pager: any[] = [];
+  if (p > 0) pager.push({ text: "⬅ Prev", callback_data: `list:${filter}:${p - 1}` });
+  if (p < totalPages - 1) pager.push({ text: "Next ➡", callback_data: `list:${filter}:${p + 1}` });
+
+  // Number buttons
+  const numRow = slice.map((t, i) => ({
+    text: `${p * pageSize + i + 1}`,
+    callback_data: `open:${t.id}`,
+  }));
+
+  const inline_keyboard: any[][] = [filterRow];
+  if (pager.length) inline_keyboard.push(pager);
+  if (numRow.length) inline_keyboard.push(numRow);
+
+  return { text: head + body, keyboard: { inline_keyboard } };
+}
+
+async function renderTaskPicker(db: any, profile: any, page: number) {
+  const all = await fetchMyTasks(db, profile.id);
+  const open = all.filter((t) => !DONE_STATUSES.has(t.status));
+  const pageSize = 6;
+  const totalPages = Math.max(1, Math.ceil(open.length / pageSize));
+  const p = Math.min(Math.max(0, page), totalPages - 1);
+  const slice = open.slice(p * pageSize, p * pageSize + pageSize);
+
+  const head = `✍️ <b>Update which task?</b> · Page ${p + 1}/${totalPages}`;
+  const lines = slice.map((t, i) => {
+    const idx = p * pageSize + i + 1;
+    const pct = typeof t.progress_pct === "number" ? `${t.progress_pct}%` : "—";
+    return `<b>${idx}.</b> ${escapeHtml(t.title)} · ${statusDot(t.status)} ${pct}`;
+  });
+
+  const numRow = slice.map((t, i) => ({
+    text: `${p * pageSize + i + 1}`,
+    callback_data: `pick:${t.id}`,
+  }));
+  const pager: any[] = [];
+  if (p > 0) pager.push({ text: "⬅ Prev", callback_data: `pkr:${p - 1}` });
+  if (p < totalPages - 1) pager.push({ text: "Next ➡", callback_data: `pkr:${p + 1}` });
+
+  const inline_keyboard: any[][] = [];
+  if (numRow.length) inline_keyboard.push(numRow);
+  if (pager.length) inline_keyboard.push(pager);
+
+  const body = lines.length ? "\n\n" + lines.join("\n") : "\n\n<i>No open tasks.</i>";
+  return { text: head + body, keyboard: { inline_keyboard } };
+}
+
+async function sendTaskDetail(db: any, chatId: number, taskId: string) {
+  const { data: task } = await db
+    .from("tasks")
+    .select("id, code, title, status, progress_pct, planned_end, description, projects(code, name)")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!task) {
+    await tgSendMessage(chatId, "❌ Task not found.", mainKeyboard());
+    return;
+  }
+  const today = todayISO();
+  const overdue = task.planned_end && task.planned_end < today && !DONE_STATUSES.has(task.status);
+  const lines = [
+    `${statusDot(task.status)} <b>${escapeHtml(task.title)}</b>${task.code ? ` <code>${escapeHtml(task.code)}</code>` : ""}`,
+    task.projects?.name ? `Project: ${escapeHtml(task.projects.name)}` : "",
+    `Status: <b>${escapeHtml(STATUS_LABELS[task.status] ?? task.status)}</b> · Progress: <b>${task.progress_pct ?? 0}%</b>`,
+    task.planned_end ? `Due: ${escapeHtml(task.planned_end)}${overdue ? " ⚠️" : ""}` : "",
+    task.description ? `\n${escapeHtml(String(task.description).slice(0, 400))}` : "",
+  ].filter(Boolean).join("\n");
+
+  const actionUrl = `${WEB_BASE_URL}/tasks/${task.id}`;
+  const keyboard = buildTaskKeyboard(task.id, actionUrl, task.status);
+  await tgSendMessage(chatId, lines, keyboard);
+}
+
+// ---------- Settings (brief prefs) ----------
+
+const TIME_SLOTS = ["off", "07:00", "08:00", "09:00", "18:00", "19:00", "20:00"];
+
+function nextSlot(current: string | null, slots: string[]): string {
+  const idx = current ? slots.indexOf(current) : 0;
+  return slots[(idx + 1) % slots.length] ?? "off";
+}
+
+const TIMEZONES = ["UTC", "Asia/Singapore", "Asia/Kuala_Lumpur", "Asia/Bangkok", "Asia/Dubai", "Europe/London", "America/New_York"];
+
+async function getPrefs(db: any, userId: string) {
+  const { data } = await db
+    .from("telegram_brief_prefs")
+    .select("morning_at, evening_at, timezone")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data ?? { morning_at: null, evening_at: null, timezone: "Asia/Singapore" };
+}
+
+async function renderSettings(db: any, profile: any) {
+  const p = await getPrefs(db, profile.id);
+  const morn = p.morning_at ? String(p.morning_at).slice(0, 5) : "Off";
+  const eve = p.evening_at ? String(p.evening_at).slice(0, 5) : "Off";
+  const tz = p.timezone || "UTC";
+  const lines = [
+    `⚙️ <b>Settings</b>`,
+    ``,
+    `🌅 Morning brief: <b>${morn}</b>`,
+    `🌙 Evening brief: <b>${eve}</b>`,
+    `🌐 Timezone: <b>${escapeHtml(tz)}</b>`,
+    ``,
+    `<i>Tap to cycle through options.</i>`,
+  ];
+  return {
+    text: lines.join("\n"),
+    keyboard: {
+      inline_keyboard: [
+        [{ text: `🌅 Morning: ${morn}`, callback_data: "set:morning" }],
+        [{ text: `🌙 Evening: ${eve}`, callback_data: "set:evening" }],
+        [{ text: `🌐 TZ: ${tz}`, callback_data: "set:tz" }],
+        [{ text: "🔗 Unlink Telegram", callback_data: "set:unlink" }],
+      ],
+    },
+  };
+}
+
+async function cyclePref(db: any, userId: string, kind: "morning" | "evening" | "tz") {
+  const p = await getPrefs(db, userId);
+  const patch: any = { user_id: userId };
+  if (kind === "morning") {
+    const cur = p.morning_at ? String(p.morning_at).slice(0, 5) : "off";
+    const nxt = nextSlot(cur === "off" ? "off" : cur, TIME_SLOTS);
+    patch.morning_at = nxt === "off" ? null : nxt;
+    patch.evening_at = p.evening_at;
+    patch.timezone = p.timezone || "Asia/Singapore";
+  } else if (kind === "evening") {
+    const cur = p.evening_at ? String(p.evening_at).slice(0, 5) : "off";
+    const nxt = nextSlot(cur === "off" ? "off" : cur, TIME_SLOTS);
+    patch.morning_at = p.morning_at;
+    patch.evening_at = nxt === "off" ? null : nxt;
+    patch.timezone = p.timezone || "Asia/Singapore";
+  } else {
+    const cur = p.timezone || "UTC";
+    const idx = TIMEZONES.indexOf(cur);
+    patch.timezone = TIMEZONES[(idx + 1) % TIMEZONES.length];
+    patch.morning_at = p.morning_at;
+    patch.evening_at = p.evening_at;
+  }
+  await db.from("telegram_brief_prefs").upsert(patch, { onConflict: "user_id" });
+}
+
+// ---------- Inline search ----------
+
+async function handleInlineQuery(db: any, iq: any) {
+  const fromId: number | undefined = iq.from?.id;
+  const q: string = (iq.query ?? "").trim();
+  // Resolve user via chat_id == from id (private chats only — Telegram passes user id, chat_id == user id for private)
+  const { data: profile } = await db
+    .from("profiles")
+    .select("id")
+    .eq("telegram_chat_id", fromId)
+    .maybeSingle();
+  let results: any[] = [];
+  if (profile && q.length > 0) {
+    const all = await fetchMyTasks(db, profile.id);
+    const ql = q.toLowerCase();
+    results = all
+      .filter((t) => (t.title ?? "").toLowerCase().includes(ql) || (t.code ?? "").toLowerCase().includes(ql))
+      .slice(0, 20)
+      .map((t) => ({
+        type: "article",
+        id: t.id,
+        title: `${t.title}${t.code ? ` (${t.code})` : ""}`,
+        description: `${STATUS_LABELS[t.status] ?? t.status} · ${t.progress_pct ?? 0}%${t.planned_end ? ` · due ${t.planned_end}` : ""}`,
+        input_message_content: {
+          message_text: `🔎 <b>${escapeHtml(t.title)}</b>${t.code ? ` <code>${escapeHtml(t.code)}</code>` : ""}\n${statusDot(t.status)} ${escapeHtml(STATUS_LABELS[t.status] ?? t.status)} · ${t.progress_pct ?? 0}%`,
+          parse_mode: "HTML",
+        },
+        reply_markup: {
+          inline_keyboard: [[{ text: "🔎 Open in DCOS", url: `${WEB_BASE_URL}/tasks/${t.id}` }]],
+        },
+      }));
+  }
+  try {
+    await fetch(`${GATEWAY_URL}/answerInlineQuery`, {
+      method: "POST",
+      headers: tgHeaders(),
+      body: JSON.stringify({
+        inline_query_id: iq.id,
+        results,
+        cache_time: 5,
+        is_personal: true,
+      }),
+    });
+  } catch (e) {
+    console.error("answerInlineQuery failed:", e);
+  }
+}
+
 // ---------- HTTP entry ----------
 
 Deno.serve(async (req) => {
