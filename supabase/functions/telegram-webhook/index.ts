@@ -595,6 +595,14 @@ function mainKeyboard() {
   };
 }
 
+const kbSeen = new Set<number>();
+async function ensureMainKeyboard(chatId: number) {
+  if (kbSeen.has(chatId)) return;
+  kbSeen.add(chatId);
+  // Invisible LRM character; sole purpose is to (re)assert the persistent reply keyboard.
+  await tgSendMessage(chatId, "\u200E", mainKeyboard());
+}
+
 const DONE_STATUSES = new Set(["completed", "closed", "approved"]);
 const ACTIVE_STATUSES = new Set(["assigned", "received", "in_progress", "blocked", "rejected", "pending_approval"]);
 
