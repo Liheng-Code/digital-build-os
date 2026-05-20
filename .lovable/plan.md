@@ -1,89 +1,154 @@
-# Telegram Flow Polish: Dedupe Assign + In-Place Card Update
+# Telegram Bot UX Upgrade — Workspace, Dashboard, Tasks, Briefs
 
-Two changes, both server-side. No UI changes in the React app.
+Turn the bot from a notification responder into a self-serve mobile control center. All work is server-side in `telegram-webhook` plus one new scheduled function and a small Settings UI addition. No changes to the React task pages.
 
-## 1. Remove duplicate "Task assigned" notification
+## 1. Persistent reply keyboard (always visible)
 
-Today, when a task is created/assigned, two notifications fire:
-
-- From `task_assignments` insert trigger → "You were assigned a task" (per assignee)
-- From `tasks` status-change trigger → "Task assigned" (sent to every current assignee)
-
-Both produce a Telegram message of the same `task_assigned` type. Remove the second one.
-
-**Change:** New migration that updates the `tasks` status trigger function to skip the `WHEN 'assigned'` branch entirely. The `task_assignments` trigger remains the single source of truth for "you got assigned" alerts. Other status transitions (started, submitted, approved, etc.) are untouched.
-
-## 2. In-chat Update flow as a single editable card
-
-Today, each step posts a brand-new message in the chat. Replace this with one card that is edited in place at each step, then turns into the final summary at the end. Every step has a Back button.
-
-### Step states (rendered inside the same message)
+Replace the single `☰ Main Menu` button with a 2-row docked keyboard that follows the user everywhere:
 
 ```text
-┌──────────────────────────────────────────┐
-│ ✍️ Update Progress                       │
-│ Task: <title> (CODE)                     │
-│ Current: 40% • In Progress               │
-│ ───────────────────────────────────────  │
-│ [step body — see below]                  │
-└──────────────────────────────────────────┘
+[ 📊 Dashboard ]  [ 📋 My Tasks ]  [ ➕ Update ]
+[ ⏰ Due Today ]  [ ⚠️ Overdue  ]  [ ⚙️ Settings ]
 ```
 
-1. **Progress** — body: "Reply with a number 0–100." Keyboard: `[❌ Cancel]`
-2. **Status** — body: "Progress: 60%. Pick a status." Keyboard:
-   - Row 1: `In Progress` `Pending Approval`
-   - Row 2: `Completed` `Blocked` `Keep current`
-   - Row 3: `⬅ Back` `❌ Cancel`
-3. **Note** — body: "Progress: 60% • Status: Completed. Reply with a note, or /skip." Keyboard: `[⬅ Back] [❌ Cancel]`
-4. **Final summary** (replaces card, stays in chat):
-   ```
-   ✅ Task updated
-   Task: <title> (CODE)
-   Progress: 60%
-   Status: Completed
-   Note: <text or —>
-   By: <user> at <time>
-   ```
+- Set via `reply_markup: { keyboard, resize_keyboard: true, is_persistent: true }` on every bot reply.
+- Also register `/start /dashboard /mytasks /today /overdue /update /settings /help` via `setMyCommands` so the slash menu mirrors it.
+- `/start` (no code) shows a welcome card + the keyboard. `/start CODE` still links accounts.
 
-The card lives at the same message_id throughout, so the chat ends with one tidy summary right under the original task notification.
+## 2. Dashboard (📊)
 
-### Back behavior
+Cross-project rollup for the logged-in user. One card, no pagination.
 
-- Back from Status → re-render Progress prompt, keep saved pct in state so it shows as default ("Last: 60%").
-- Back from Note → re-render Status keyboard.
-- Back is a callback button, no new message.
+```text
+📊 My Dashboard
 
-### Cancellation
+🟢 Completed       5
+🟡 In Progress     8
+🔴 Overdue         3
+⚪ Not Started     2
 
-- `❌ Cancel` button or `/cancel` text → edit card to: `❌ Update cancelled.` (no keyboard) and clear state.
+📅 Due Today       4
+🔥 Completion 30d  62%
 
-### Where progress text input fits
+[ 📋 My Tasks ] [ ⏰ Due Today ] [ ⚠️ Overdue ]
+```
 
-Users still type the percentage as a chat message (Telegram has no inline numeric input). When they send the number:
+- "Completion 30d" = completed in last 30 days ÷ (completed + still-open assigned in same window).
+- Numbers come from `tasks` joined to `task_assignments` where assignee = linked user, across every project they belong to.
 
-- Validate 0–100. If invalid, edit the card to show `⚠️ Send a number 0–100.` and keep the same keyboard.
-- On valid input, delete the user's typed number (`deleteMessage`) so the chat stays clean, then edit the card forward to the Status step.
+## 3. My Tasks — filtered, paginated list (📋)
 
-Note replies behave the same way — accept text, delete the user message, edit card to summary.
+Inline tabs at the top, 5 tasks per page, inline pager.
+
+```text
+📋 My Tasks  ·  Page 1/4
+Filter: [All] [Today] [Overdue] [Active] [Done]
+
+1. AI Automation                    PRJ-A
+   🟡 In Progress · 60% · due Fri
+2. Pile Cap Design                  PRJ-B
+   🔴 Overdue · 20%  · due Mon
+3. Shop Drawing Review              PRJ-A
+   🟢 Completed
+…
+
+[⬅ Prev]  [Next ➡]
+[1] [2] [3] [4] [5]   ← view buttons, one per task on this page
+```
+
+- Filter buttons re-render the same card (`editMessageText`) with a new query.
+- Tapping a number opens the **existing task detail card** (already built — reused as Level 2).
+- All status/progress/note actions on the detail card stay exactly as they are today (Level 3).
+
+## 4. Quick Update entry point (➕)
+
+`➕ Update` taps reuse the in-place editable update card, but prepend a picker:
+
+```text
+✍️ Update which task?
+1. AI Automation        🟡 60%
+2. Pile Cap Design      🔴 20%
+3. Shop Drawing Review  🟢 ✓
+[⬅ Prev] [Next ➡]
+```
+
+Picking a task jumps straight into the existing Progress → Status → Note flow. No duplicate code path.
+
+## 5. Inline search (`@dcos_alerts_bot pile`)
+
+Telegram's inline mode — typing the bot username in any chat opens a live dropdown of matching tasks.
+
+- Handle `inline_query` updates in the webhook.
+- Query: case-insensitive match on `title` or `code`, limit 20, scoped to the inviting user's assigned tasks across projects.
+- Each result is an `InlineQueryResultArticle` whose tap sends a compact summary message with a `[🔎 Open]` button → opens the task detail card in DM with the bot.
+- Register `setMyCommands` and ensure `allowed_updates` includes `inline_query` when calling `setWebhook`.
+
+## 6. Settings (⚙️) — briefs opt-in + unlink
+
+Two surfaces, kept in sync:
+
+- **Bot card**: tap ⚙️ → card with toggles `[Morning brief: 08:00]` `[Evening brief: 18:00]` `[Timezone: Asia/Singapore]` `[Unlink]`. Time taps cycle through `Off · 07:00 · 08:00 · 09:00`.
+- **Web** (`src/components/settings/TelegramTab.tsx`): same toggles + a proper time-of-day picker and IANA timezone select, only shown when linked.
+
+Both write to a new table.
+
+## 7. Morning + Evening briefs (scheduled)
+
+A new edge function `telegram-briefs` runs every 15 minutes via `pg_cron + pg_net`. For each user whose local time matches their `morning_at` or `evening_at` (rounded to the slot), it sends:
+
+```text
+🌅 Morning Brief
+📌 Today: 4 tasks due
+⚠️ Overdue: 2
+👉 Tap 📋 My Tasks
+```
+
+```text
+🌙 Daily Wrap
+✅ Completed today: 2
+📈 Progress updated: 5
+Keep pushing.
+```
+
+Each user gets one morning + one evening message per local day; idempotency via `(user_id, brief_kind, local_date)` unique row in `telegram_brief_log`.
+
+---
 
 ## Technical details
 
-Files touched:
+### Files
 
-- `supabase/migrations/<new>.sql` — replace `notify_task_status_changes()` (or equivalent) to drop the `assigned` branch.
-- `supabase/functions/telegram-webhook/index.ts`:
-  - Add `message_id` and `original_progress`/`original_status` columns usage on `telegram_conversation_state` (extend schema with `card_message_id bigint`).
-  - Helpers: `editCard(chatId, messageId, text, keyboard)` calling `editMessageText`; `deleteMessage(chatId, messageId)`.
-  - Rewrite callback handler to branch on `upd:`, `st:<value>`, `nav:back`, `nav:cancel`.
-  - On `upd:` start: send initial card via `sendMessage`, store returned `message_id` in state.
-  - On text in `awaiting_progress` / `awaiting_note`: validate, delete user message, edit card forward.
-  - Render helpers `renderProgressStep`, `renderStatusStep`, `renderNoteStep`, `renderSummary`, `renderCancelled` so every transition uses the same template.
-- Migration: `ALTER TABLE telegram_conversation_state ADD COLUMN card_message_id bigint;`
+- `supabase/functions/telegram-webhook/index.ts`
+  - Helper `mainKeyboard()` returning the persistent reply keyboard; attach it to every outbound `sendMessage` that isn't an in-place card edit.
+  - Add command/text routes: `/dashboard`, `/mytasks`, `/today`, `/overdue`, `/update`, `/settings`, and the matching button labels.
+  - New render helpers: `renderDashboard`, `renderTaskList(filter, page)`, `renderTaskPicker(page)`, `renderSettings`.
+  - New callback prefixes: `list:<filter>:<page>`, `open:<taskId>`, `pick:<taskId>`, `set:morning:<slot>`, `set:evening:<slot>`, `set:tz:<id>`.
+  - New `inline_query` handler returning up to 20 `InlineQueryResultArticle` items.
+  - Call `setMyCommands` once on cold start (cached in memory).
+- `supabase/functions/telegram-briefs/index.ts` — new. Loops users with prefs, renders + sends, writes log row.
+- `src/components/settings/TelegramTab.tsx` — add brief preferences UI (only when linked) calling existing supabase client.
+- Migrations:
+  - `telegram_brief_prefs(user_id pk, morning_at time null, evening_at time null, timezone text default 'UTC', updated_at)` with RLS allowing owner select/upsert.
+  - `telegram_brief_log(id, user_id, brief_kind text check in ('morning','evening'), local_date date, sent_at, unique(user_id,brief_kind,local_date))` — service-role only.
+  - `pg_cron` schedule that POSTs to the briefs function every 15 minutes.
 
-Reuses existing `finalizeTaskUpdate` for the DB write. No changes to the Mini App, browser link, or notification-fan-out logic.
+### Webhook registration
+
+Re-run `setWebhook` so `allowed_updates` includes `inline_query` (currently only `message`, `callback_query`). Done from the sandbox per the Telegram skill.
+
+### Reuses (no rewrites)
+
+- The existing editable update card (Progress → Status → Note → summary).
+- The existing task detail keyboard (`buildTaskKeyboard`) and Received-Task / Update-Status / Open-in-DCOS buttons.
+- The existing `tgSendMessage` / `tgEditMessage` helpers.
 
 ## Out of scope
 
-- Reordering the three buttons on the original task notification.
-- Translations / non-English copy.
-- Group chats with multiple linked users on one chat_id.
+- Group chats / multi-user single chat_id.
+- Translations.
+- Push notifications for newly-created tasks (already covered by `telegram-notify`).
+- Charts / images inside Telegram messages.
+
+## Open question to decide during build
+
+Brief slot granularity: cron every 15 minutes means users pick from `:00 / :15 / :30 / :45`. If you'd rather offer free-form HH:MM, change cron to every 5 minutes.
