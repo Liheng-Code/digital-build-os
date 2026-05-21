@@ -21,7 +21,7 @@ const APPROVERS: SeedUser[] = [
   { email: "connor.constr@demo.test",      full_name: "Connor Construction", job_title: "Construction Supervisor",   app_role: "supervisor" },
 ];
 
-const PASSWORD = "DcosDemo#2026";
+const PASSWORD = "Demo1234!";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {

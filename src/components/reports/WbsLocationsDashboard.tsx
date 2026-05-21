@@ -19,7 +19,6 @@ import {
   buildWbsTree,
   type WbsTreeNode,
 } from "@/lib/wbsMeta";
-import { fetchWbsNodeTypes } from "@/services/adminConfigService";
 
 interface TaskRow {
   id: string;
@@ -84,26 +83,6 @@ export function WbsLocationsDashboard({
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [nodeTypeLabels, setNodeTypeLabels] =
-    useState<Record<string, string>>(WBS_NODE_TYPE_LABELS);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchWbsNodeTypes()
-      .then((types) => {
-        if (cancelled || types.length === 0) return;
-        setNodeTypeLabels({
-          ...WBS_NODE_TYPE_LABELS,
-          ...Object.fromEntries(types.map((type) => [type.code, type.name])),
-        });
-      })
-      .catch(() => {
-        // Keep local fallback labels if the admin config table is unavailable.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Load WBS + tasks for project
   useEffect(() => {
@@ -256,7 +235,7 @@ export function WbsLocationsDashboard({
     const groups: { title: string; items: WbsTreeNode[]; activeId: string | null }[] = [];
     if (tree.length) {
       groups.push({
-        title: tree[0]?.node_type ? `${nodeTypeLabels[tree[0].node_type].toUpperCase()}S` : "ROOTS",
+        title: tree[0]?.node_type ? `${WBS_NODE_TYPE_LABELS[tree[0].node_type].toUpperCase()}S` : "ROOTS",
         items: tree,
         activeId: breadcrumb[0]?.id ?? null,
       });
@@ -277,14 +256,14 @@ export function WbsLocationsDashboard({
       if (tn && tn.children.length) {
         const childType = tn.children[0].node_type;
         groups.push({
-          title: `${nodeTypeLabels[childType].toUpperCase()}S`,
+          title: `${WBS_NODE_TYPE_LABELS[childType].toUpperCase()}S`,
           items: tn.children,
           activeId: breadcrumb[idx + 1]?.id ?? null,
         });
       }
     });
     return groups;
-  }, [tree, breadcrumb, nodeTypeLabels]);
+  }, [tree, breadcrumb]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -416,7 +395,7 @@ export function WbsLocationsDashboard({
                           title={hasChildren ? "Drill in" : "No child nodes"}
                         >
                           <div className="text-xs text-muted-foreground mb-0.5">
-                            {nodeTypeLabels[s.node.node_type]} · {s.node.code}
+                            {WBS_NODE_TYPE_LABELS[s.node.node_type]} · {s.node.code}
                           </div>
                           <div className="text-sm font-semibold truncate">{s.node.name}</div>
                           <div className="text-2xl font-bold mt-1">{s.total}</div>
@@ -469,7 +448,7 @@ export function WbsLocationsDashboard({
                             <TableCell>
                               <div className="font-medium">{s.node.name}</div>
                               <div className="text-xs text-muted-foreground">
-                                {nodeTypeLabels[s.node.node_type]} · {s.node.code}
+                                {WBS_NODE_TYPE_LABELS[s.node.node_type]} · {s.node.code}
                               </div>
                             </TableCell>
                             <TableCell className="text-right tabular-nums">{s.total}</TableCell>

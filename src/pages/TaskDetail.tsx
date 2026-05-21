@@ -21,7 +21,6 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
-import { TaskConstraintForm } from "@/components/wbs/TaskConstraintForm";
 import {
   TaskStatus, TaskPriority, TaskType,
   TASK_PRIORITY_LABELS, TASK_PRIORITY_TONE, TASK_TYPE_LABELS, TASK_STATUS_LABELS,
@@ -37,9 +36,8 @@ import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { Department } from "@/lib/departmentMeta";
 import { DepartmentBadge } from "@/components/DepartmentBadge";
 import { TaskQaQcTab } from "@/components/qaqc/TaskQaQcTab";
-import { TaskMaterialsTab } from "@/components/procurement/TaskMaterialsTab";
+import { TaskMaterialsTab } from "@/components/materials/TaskMaterialsTab";
 import { TaskFinancialsTab } from "@/components/financials/TaskFinancialsTab";
-import { TaskResourcesTab } from "@/components/wbs/TaskResourcesTab";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
 interface Task {
@@ -323,7 +321,6 @@ export default function TaskDetail() {
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="resources">Resources</TabsTrigger>
               <TabsTrigger value="qaqc">QA / QC</TabsTrigger>
               <TabsTrigger value="materials">Materials</TabsTrigger>
               <TabsTrigger value="financials">Financials</TabsTrigger>
@@ -432,10 +429,6 @@ export default function TaskDetail() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="resources" className="mt-4">
-              <TaskResourcesTab taskId={task.id} projectId={task.project_id} canEdit={canPlan} />
-            </TabsContent>
-
             <TabsContent value="qaqc">
               <TaskQaQcTab taskId={task.id} />
             </TabsContent>
@@ -477,8 +470,6 @@ export default function TaskDetail() {
               </div>
             </CardContent>
           </Card>
-
-          <TaskConstraintForm taskId={task.id} />
 
           <AssignmentsCard
             taskId={task.id}

@@ -25,22 +25,6 @@ export type NotificationType =
   | "task_closed"
   | "task_reopened"
   | "task_blocker_reported"
-  | "task_submitted_for_review"
-  | "task_overdue"
-  | "document_submitted_for_review"
-  | "document_approved"
-  | "document_rejected"
-  | "rfi_created"
-  | "rfi_overdue"
-  | "pr_approval_required"
-  | "po_approved"
-  | "ncr_created"
-  | "ncr_overdue"
-  | "safety_incident_reported"
-  | "failed_login_repeated"
-  | "role_permission_changed"
-  | "approval_required"
-  | "approval_overdue"
   | "timesheet_submitted"
   | "timesheet_approved"
   | "timesheet_rejected"
@@ -79,13 +63,6 @@ export interface NotificationRow {
   entity_type: string | null;
   entity_id: string | null;
   project_id: string | null;
-  module_code?: string | null;
-  event_code?: string | null;
-  notification_kind?: string | null;
-  action_url?: string | null;
-  status?: string | null;
-  snoozed_until?: string | null;
-  actioned_at?: string | null;
   metadata: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
@@ -102,22 +79,6 @@ export const NOTIFICATION_ICON: Record<NotificationType, LucideIcon> = {
   task_closed: ClipboardList,
   task_reopened: RefreshCw,
   task_blocker_reported: ShieldAlert,
-  task_submitted_for_review: ClipboardCheck,
-  task_overdue: AlertTriangle,
-  document_submitted_for_review: ClipboardCheck,
-  document_approved: CheckCircle2,
-  document_rejected: XCircle,
-  rfi_created: ClipboardList,
-  rfi_overdue: AlertTriangle,
-  pr_approval_required: ClipboardCheck,
-  po_approved: CheckCircle2,
-  ncr_created: ShieldAlert,
-  ncr_overdue: AlertTriangle,
-  safety_incident_reported: ShieldAlert,
-  failed_login_repeated: AlertTriangle,
-  role_permission_changed: ShieldAlert,
-  approval_required: ClipboardCheck,
-  approval_overdue: AlertTriangle,
   timesheet_submitted: Clock,
   timesheet_approved: CheckCircle2,
   timesheet_rejected: XCircle,
@@ -138,8 +99,7 @@ export const PRIORITY_DOT: Record<NotificationPriority, string> = {
   critical: "bg-destructive",
 };
 
-export function getNotificationRoute(n: Pick<NotificationRow, "entity_type" | "entity_id" | "action_url">): string | null {
-  if (n.action_url) return n.action_url;
+export function getNotificationRoute(n: Pick<NotificationRow, "entity_type" | "entity_id">): string | null {
   if (!n.entity_type || !n.entity_id) return null;
   if (n.entity_type === "task") return `/tasks/${n.entity_id}`;
   if (n.entity_type === "timesheet_entry") return "/timesheets";

@@ -20,52 +20,31 @@ import { WbsScheduleCard } from "@/components/wbs/WbsScheduleCard";
 import { WbsGanttTree } from "@/components/wbs/WbsGanttTree";
 import { WbsGantt } from "@/components/wbs/WbsGantt";
 import { TaskDependencyDialog, DependencyLink } from "@/components/wbs/TaskDependencyDialog";
-import { WbsFilterBar, WbsFilters, useWbsFilters } from "@/components/wbs/WbsFilterBar";
-import { SavedViewsMenu } from "@/components/wbs/SavedViewsMenu";
-import { BaselinePanel } from "@/components/wbs/BaselinePanel";
-import { CpmPanel } from "@/components/wbs/CpmPanel";
-import { CalendarsPanel } from "@/components/wbs/CalendarsPanel";
-import { LaborCatalogPanel } from "@/components/wbs/LaborCatalogPanel";
-import { ManpowerHistogramPanel } from "@/components/wbs/ManpowerHistogramPanel";
-import { SCurvePanel } from "@/components/wbs/SCurvePanel";
-import { ImportTemplateDialog } from "@/components/wbs/ImportTemplateDialog";
-import { DEPARTMENT_LABELS, Department } from "@/lib/departmentMeta";
 import { buildGanttRows, GanttRow } from "@/lib/wbsGanttRows";
 import {
-  Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare, Activity, FolderTree,
+  Search, PanelLeftClose, PanelLeftOpen, ChevronRight, LayoutList, GanttChartSquare,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { WBS_NODE_TYPE_LABELS, WbsNodeType } from "@/lib/wbsMeta";
+import { WBS_NODE_TYPE_LABELS } from "@/lib/wbsMeta";
 import { supabase } from "@/integrations/supabase/client";
-import { DepRelation, CpmMap } from "@/lib/scheduleMeta";
-import { computeCpm, cascade } from "@/lib/schedule";
+import { DepRelation } from "@/lib/scheduleMeta";
 import { toast } from "sonner";
-import { fetchWbsNodeTypes } from "@/services/adminConfigService";
 
 type EditMode =
   | { kind: "view" }
   | { kind: "edit"; nodeId: string }
   | { kind: "create"; parentId: string | null };
 
-type MainView = "tree" | "gantt" | "schedule";
+type MainView = "tree" | "gantt";
 
 const STORAGE_KEY = "buildtrack.wbs.layout";
-
-interface WbsRpcClient {
-  rpc(
-    name: "reorder_wbs_nodes",
-    args: { _updates: { id: string; sort_order: number }[] }
-  ): Promise<{ error: { message: string } | null }>;
-}
-
-const wbsRpcClient = supabase as unknown as WbsRpcClient;
 
 export default function WbsPage() {
   const { activeProject } = useProjects();
   const { roles } = useAuth();
   const projectId = activeProject?.id ?? null;
   const { nodes, tree, nodeStats, loading, refresh } = useWbsTree(projectId);
-  const { tasks, rollupByNode, projectRollup, refresh: refreshSchedule } = useWbsSchedule(projectId, nodes);
+  const { tasks, rollupByNode, projectRollup } = useWbsSchedule(projectId, nodes);
   const { dateSet: holidaySet } = useProjectHolidays(projectId);
 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -81,46 +60,16 @@ export default function WbsPage() {
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null);
   const [secondTaskId, setSecondTaskId] = React.useState<string | null>(null);
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
-  const [editMode, setEditMode] = React.useState(false);
-  const [filters, setFilters] = useWbsFilters();
-  const [currentZoom, setCurrentZoom] = React.useState("week");
   const [editLink, setEditLink] = React.useState<DependencyLink | null>(null);
   const [editRelation, setEditRelation] = React.useState<DepRelation>("FS");
   const [editLag, setEditLag] = React.useState("0");
-  const [wbsNodeTypeLabels, setWbsNodeTypeLabels] =
-    React.useState<Record<string, string>>(WBS_NODE_TYPE_LABELS);
-  const [wbsNodeTypeOptions, setWbsNodeTypeOptions] = React.useState<WbsNodeType[]>(
-    Object.keys(WBS_NODE_TYPE_LABELS) as WbsNodeType[],
-  );
 
-  const [importOpen, setImportOpen] = React.useState(false);
-  const [importTargetId, setImportTargetId] = React.useState<string | null>(null);
+  const leftGanttBodyRef = React.useRef<HTMLDivElement>(null);
+  const rightGanttBodyRef = React.useRef<HTMLDivElement>(null);
+  const syncingPaneRef = React.useRef<"left" | "right" | null>(null);
 
   const canEdit = roles.includes("admin") || roles.includes("project_manager");
   const canManage = canEdit;
-
-  React.useEffect(() => {
-    let cancelled = false;
-    fetchWbsNodeTypes()
-      .then((types) => {
-        if (cancelled || types.length === 0) return;
-        const validTypes = types.filter((type) =>
-          Object.prototype.hasOwnProperty.call(WBS_NODE_TYPE_LABELS, type.code),
-        ) as Array<(typeof types)[number] & { code: WbsNodeType }>;
-        if (validTypes.length === 0) return;
-        setWbsNodeTypeLabels({
-          ...WBS_NODE_TYPE_LABELS,
-          ...Object.fromEntries(validTypes.map((type) => [type.code, type.name])),
-        });
-        setWbsNodeTypeOptions(validTypes.map((type) => type.code));
-      })
-      .catch(() => {
-        // Keep local fallback labels if the admin config table is unavailable.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const selectedNode = React.useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
@@ -154,47 +103,6 @@ export default function WbsPage() {
       setSuccessors(succResult.data ?? []);
     });
   }, [projectId, tasks]);
-
-  const cpmMap = React.useMemo<CpmMap>(() => {
-    if (tasks.length === 0 || predecessors.length === 0) return new Map();
-    return computeCpm(tasks, predecessors);
-  }, [tasks, predecessors]);
-
-  const filteredTasks = React.useMemo(() => {
-    let result = tasks;
-    if (filters.status && filters.status.length > 0) {
-      result = result.filter(t => filters.status!.includes(t.status ?? ""));
-    }
-    if (filters.department && filters.department.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      result = result.filter(t => filters.department!.includes((t as any).department ?? ""));
-    }
-    if (filters.critical) {
-      const criticalIds = new Set<string>();
-      for (const [id, r] of cpmMap) {
-        if (r.isCritical) criticalIds.add(id);
-      }
-      result = result.filter(t => criticalIds.has(t.id));
-    }
-    if (filters.overdue) {
-      const today = new Date();
-      result = result.filter(t => t.planned_end && new Date(t.planned_end) < today && t.status !== "completed" && t.status !== "closed");
-    }
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(t => (t.title?.toLowerCase() ?? "").includes(q) || (t.code?.toLowerCase() ?? "").includes(q));
-    }
-    return result;
-  }, [tasks, filters, cpmMap]);
-
-  const filteredRows = React.useMemo(() => {
-    const filteredTaskIds = new Set(filteredTasks.map(t => t.id));
-    return rows.filter(row => row.kind !== "task" || filteredTaskIds.has(row.id));
-  }, [rows, filteredTasks]);
-
-  const leftGanttBodyRef = React.useRef<HTMLDivElement>(null);
-  const rightGanttBodyRef = React.useRef<HTMLDivElement>(null);
-  const syncingPaneRef = React.useRef<"left" | "right" | null>(null);
 
   const toggleTree = () => {
     const next = !treeOpen;
@@ -269,14 +177,14 @@ export default function WbsPage() {
     ];
 
     try {
-      const { error } = await wbsRpcClient.rpc("reorder_wbs_nodes", { _updates: updates });
+      const { error } = await (supabase.rpc as any)("reorder_wbs_nodes", { _updates: updates });
       if (error) {
         for (const up of updates) {
           await supabase.from("wbs_nodes").update({ sort_order: up.sort_order }).eq("id", up.id);
         }
       }
       refresh();
-    } catch {
+    } catch (err) {
       toast.error("Failed to move node");
     }
   };
@@ -293,7 +201,7 @@ export default function WbsPage() {
       predecessor_id: selectedTaskId,
       relation_type: "FS",
       lag_days: 0,
-    });
+    } as any);
 
     if (error) {
       toast.error(error.message);
@@ -310,105 +218,6 @@ export default function WbsPage() {
     setPredecessors(predResult.data ?? []);
     setSuccessors(succResult.data ?? []);
     setSecondTaskId(null);
-  };
-
-  const refreshDeps = async () => {
-    if (!projectId || tasks.length === 0) return;
-    const ids = tasks.map((t) => t.id);
-    const [predResult, succResult] = await Promise.all([
-      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("task_id", ids),
-      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("predecessor_id", ids),
-    ]);
-    setPredecessors(predResult.data ?? []);
-    setSuccessors(succResult.data ?? []);
-  };
-
-  const handleCreateLink = async (
-    predecessorId: string,
-    taskId: string,
-    relation: "FS" | "SS" | "FF" | "SF",
-  ) => {
-    if (!projectId) return;
-    // Block duplicates
-    const exists = predecessors.some(
-      (p) => p.task_id === taskId && p.predecessor_id === predecessorId,
-    );
-    if (exists) {
-      toast.error("These tasks are already linked");
-      return;
-    }
-    const { error } = await supabase.from("task_predecessors").insert({
-      task_id: taskId,
-      predecessor_id: predecessorId,
-      relation_type: relation,
-      lag_days: 0,
-    });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    const pred = tasks.find((t) => t.id === predecessorId);
-    const succ = tasks.find((t) => t.id === taskId);
-    toast.success(`Linked ${pred?.code ?? "task"} → ${succ?.code ?? "task"} (${relation})`);
-    await refreshDeps();
-  };
-
-  const handleProposeShift = async (shift: { taskId: string; title: string; code: string | null; planned_start: string; planned_end: string }) => {
-    if (!projectId) return;
-    // Fetch current dates for undo
-    const { data: current } = await supabase
-      .from("tasks")
-      .select("planned_start, planned_end")
-      .eq("id", shift.taskId)
-      .single();
-    const oldStart = current?.planned_start;
-    const oldEnd = current?.planned_end;
-
-    // Apply the shift
-    const { error } = await supabase
-      .from("tasks")
-      .update({ planned_start: shift.planned_start, planned_end: shift.planned_end })
-      .eq("id", shift.taskId);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success(`"${shift.title}" rescheduled`, {
-      action: oldStart || oldEnd ? {
-        label: "Undo",
-        onClick: async () => {
-          await supabase
-            .from("tasks")
-            .update({ planned_start: oldStart, planned_end: oldEnd })
-            .eq("id", shift.taskId);
-          await refreshSchedule();
-        },
-      } : undefined,
-    });
-    // Cascade to successors
-    const allTasks = tasks;
-    const proposed = new Map<string, { planned_start: string; planned_end: string }>();
-    proposed.set(shift.taskId, { planned_start: shift.planned_start, planned_end: shift.planned_end });
-    const shifted = cascade(allTasks, predecessors, proposed);
-    for (const s of shifted) {
-      if (s.id === shift.taskId) continue;
-      await supabase
-        .from("tasks")
-        .update({ planned_start: s.newStart, planned_end: s.newEnd })
-        .eq("id", s.id);
-    }
-    if (shifted.length > 1) {
-      toast.info(`${shifted.length - 1} successor${shifted.length - 1 !== 1 ? "s" : ""} also shifted`);
-    }
-    // Refresh
-    const ids = tasks.map((t) => t.id);
-    const [predResult, succResult] = await Promise.all([
-      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("task_id", ids),
-      supabase.from("task_predecessors").select("task_id, predecessor_id, relation_type, lag_days").in("predecessor_id", ids),
-    ]);
-    setPredecessors(predResult.data ?? []);
-    setSuccessors(succResult.data ?? []);
-    await refreshSchedule();
   };
 
   if (!activeProject) {
@@ -454,88 +263,50 @@ export default function WbsPage() {
               <GanttChartSquare className="mr-1.5 h-3.5 w-3.5" />
               Gantt
             </Button>
-            <Button
-              size="sm"
-              variant={mainView === "schedule" ? "secondary" : "ghost"}
-              className="h-8 rounded-lg px-3 text-xs"
-              onClick={() => setMainView("schedule")}
-            >
-              <Activity className="mr-1.5 h-3.5 w-3.5" />
-              Schedule
-            </Button>
           </div>
 
-          {mainView === "gantt" && projectId && (
-            <SavedViewsMenu
-              projectId={projectId}
-              currentFilters={filters}
-              currentZoom={currentZoom}
-              onLoadView={(f, z) => { setFilters(f); setCurrentZoom(z); }}
-            />
-          )}
-
           {mainView === "tree" && (
-            <div className="flex items-center gap-2">
-              {canEdit && (
-                <Button variant="outline" size="sm" onClick={() => {
-                  setImportTargetId(selectedId);
-                  setImportOpen(true);
-                }}>
-                  <FolderTree className="h-4 w-4 mr-1.5" />
-                  Import Template
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={toggleTree}>
-                {treeOpen ? <PanelLeftClose className="h-4 w-4 mr-1.5" /> : <PanelLeftOpen className="h-4 w-4 mr-1.5" />}
-                {treeOpen ? "Hide tree" : "Show tree"}
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={toggleTree}>
+              {treeOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+              {treeOpen ? "Hide tree" : "Show tree"}
+            </Button>
           )}
         </div>
       </div>
 
-      <ImportTemplateDialog 
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        projectId={projectId!}
-        targetParentId={importTargetId}
-        onImported={() => {
-            refresh();
-            refreshSchedule();
-        }}
-      />
-
-        {mainView === "schedule" ? (
-          <div className="flex-1 min-h-0 overflow-auto p-2">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-5xl mx-auto">
-              <BaselinePanel projectId={projectId!} canEdit={canEdit} />
-              <CpmPanel projectId={projectId!} canEdit={canEdit} />
-              <LaborCatalogPanel projectId={projectId!} canEdit={canEdit} />
-              <ManpowerHistogramPanel projectId={projectId!} />
-              <div className="lg:col-span-2">
-                <CalendarsPanel projectId={projectId!} canEdit={canEdit} />
-              </div>
-            </div>
-          </div>
-        ) : mainView === "gantt" ? (
+        {mainView === "gantt" ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full rounded-2xl border bg-card shadow-sm overflow-hidden">
-            {/* Drag-to-link hint */}
-            {canEdit && (
-              <div className="border-b px-3 py-1.5 flex items-center gap-2 bg-muted/20 text-[11px] text-muted-foreground">
-                <span className="font-medium text-foreground">Tip:</span>
-                Drag from a task's <span className="inline-block h-2 w-2 rounded-full border border-primary bg-background mx-0.5" /> handle to another task to create a dependency. Start↔Finish handles set the relation type (FS, SS, FF, SF) automatically.
+            {/* Link Tasks Toolbar */}
+            {canEdit && (selectedTaskId || secondTaskId) && (
+              <div className="border-b p-2 flex items-center gap-2 bg-muted/30">
+                <span className="text-xs text-muted-foreground">
+                  {selectedTaskId && <span>Predecessor: {tasks.find(t => t.id === selectedTaskId)?.code || "Selected"}</span>}
+                  {selectedTaskId && secondTaskId && <span className="mx-2">→</span>}
+                  {secondTaskId && <span>Successor: {tasks.find(t => t.id === secondTaskId)?.code || "Selected"}</span>}
+                </span>
+                <Button
+                  size="sm"
+                  onClick={handleLinkTasks}
+                  disabled={!selectedTaskId || !secondTaskId}
+                  className="ml-auto text-xs h-7"
+                >
+                  Link Tasks (FS)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setSelectedTaskId(null); setSecondTaskId(null); }}
+                  className="text-xs h-7"
+                >
+                  Clear
+                </Button>
               </div>
             )}
-            <WbsFilterBar
-              filters={filters}
-              onChange={setFilters}
-              departmentOptions={Object.entries(DEPARTMENT_LABELS).map(([value, label]) => ({ value, label }))}
-            />
             <ResizablePanelGroup direction="horizontal" className="h-full">
               <ResizablePanel defaultSize={40} minSize={20} className="min-h-0 overflow-hidden">
                 <WbsGanttTree
-                  rows={filteredRows}
+                  rows={rows}
                   collapsed={collapsed}
                   onToggle={toggleCollapse}
                   holidaySet={holidaySet}
@@ -550,10 +321,10 @@ export default function WbsPage() {
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={60} minSize={40} className="min-h-0 overflow-hidden">
                 <WbsGantt
-                  rows={filteredRows}
+                  rows={rows}
                   collapsed={collapsed}
                   onToggle={toggleCollapse}
-                  tasks={filteredTasks}
+                  tasks={tasks}
                   predecessors={predecessors}
                   holidaySet={holidaySet}
                   rollupByNode={rollupByNode}
@@ -568,11 +339,6 @@ export default function WbsPage() {
                     setEditRelation(link.relation_type);
                     setEditLag(String(link.lag_days ?? 0));
                   }}
-                  cpmMap={cpmMap}
-                  editMode={editMode}
-                  onEditModeChange={setEditMode}
-                  onProposeShift={handleProposeShift}
-                  onCreateLink={canEdit ? handleCreateLink : undefined}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>
@@ -589,7 +355,7 @@ export default function WbsPage() {
                 .update({
                   relation_type: editRelation,
                   lag_days: Number(editLag) || 0,
-                })
+                } as any)
                 .eq("task_id", editLink.task_id)
                 .eq("predecessor_id", editLink.predecessor_id);
 
@@ -660,7 +426,7 @@ export default function WbsPage() {
                 predecessor_id: predId,
                 relation_type: "FS",
                 lag_days: 0,
-              });
+              } as any);
               if (error) { toast.error(error.message); return false; }
               toast.success("Dependency created (FS)");
               const ids = tasks.map((t) => t.id);
@@ -723,7 +489,6 @@ export default function WbsPage() {
                         onMove={handleMove}
                         canEdit={canEdit}
                         search={search}
-                        nodeTypeLabels={wbsNodeTypeLabels}
                       />
                     )}
                   </div>
@@ -741,8 +506,6 @@ export default function WbsPage() {
                     parentId={mode.parentId}
                     parentPath={mode.parentId ? nodes.find((n) => n.id === mode.parentId)?.path_text ?? null : null}
                     parentType={mode.parentId ? nodes.find((n) => n.id === mode.parentId)?.node_type ?? null : null}
-                    nodeTypeOptions={wbsNodeTypeOptions}
-                    nodeTypeLabels={wbsNodeTypeLabels}
                     canEdit={canEdit}
                     onSaved={async () => {
                       await refresh();
@@ -768,7 +531,7 @@ export default function WbsPage() {
                       <div>
                         <h2 className="text-2xl font-semibold">{selectedNode.name}</h2>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary">{wbsNodeTypeLabels[selectedNode.node_type]}</Badge>
+                          <Badge variant="secondary">{WBS_NODE_TYPE_LABELS[selectedNode.node_type]}</Badge>
                           <span className="font-mono text-xs text-muted-foreground">{selectedNode.code}</span>
                           {(nodeStats.get(selectedNode.id)?.taskCount ?? 0) > 0 && (
                             <Badge variant="outline" className="text-xs">
@@ -799,7 +562,7 @@ export default function WbsPage() {
                         )}
                         <Card>
                           <CardContent className="p-6 space-y-3 text-sm">
-                            <Row label="Type">{wbsNodeTypeLabels[selectedNode.node_type]}</Row>
+                            <Row label="Type">{WBS_NODE_TYPE_LABELS[selectedNode.node_type]}</Row>
                             <Row label="Code"><span className="font-mono">{selectedNode.code}</span></Row>
                             <Row label="Full path"><span className="font-mono">{selectedNode.path_text}</span></Row>
                             <Row label="Depth">{selectedNode.depth}</Row>
@@ -837,8 +600,6 @@ export default function WbsPage() {
                           parentId={selectedNode.parent_id}
                           parentPath={null}
                           parentType={selectedNode.parent_id ? nodes.find((n) => n.id === selectedNode.parent_id)?.node_type ?? null : null}
-                          nodeTypeOptions={wbsNodeTypeOptions}
-                          nodeTypeLabels={wbsNodeTypeLabels}
                           canEdit={canEdit}
                           onSaved={refresh}
                           onDeleted={async () => {

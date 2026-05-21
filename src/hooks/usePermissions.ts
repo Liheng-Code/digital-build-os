@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,38 +10,44 @@ export interface Permission {
 
 export function usePermissions() {
   const { roles } = useAuth();
-  const rolesKey = React.useMemo(() => [...roles].sort().join(","), [roles]);
+  const [permissions, setPermissions] = React.useState<Permission[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  const { data: permissions = [], isLoading, refetch } = useQuery({
-    queryKey: ["role_permissions", rolesKey],
-    enabled: roles.length > 0,
-    staleTime: 5 * 60_000,
-    gcTime: 10 * 60_000,
-    queryFn: async () => {
+  const loadPermissions = React.useCallback(async () => {
+    if (roles.length === 0) {
+      setPermissions([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
       const { data, error } = await supabase
         .from("role_permissions")
         .select("module, action, is_allowed")
         .in("role", roles)
         .eq("is_allowed", true);
+
       if (error) throw error;
-      return (data ?? []) as Permission[];
-    },
-  });
+      setPermissions(data || []);
+    } catch (e) {
+      console.error("Error loading permissions:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [roles]);
 
-  const isAdmin = roles.includes("admin");
-  const permSet = React.useMemo(() => {
-    const s = new Set<string>();
-    for (const p of permissions) s.add(`${p.module}:${p.action}`);
-    return s;
-  }, [permissions]);
+  React.useEffect(() => {
+    loadPermissions();
+  }, [loadPermissions]);
 
-  const can = React.useCallback(
-    (action: string, module: string) => {
-      if (isAdmin) return true;
-      return permSet.has(`${module}:${action}`);
-    },
-    [isAdmin, permSet],
-  );
+  const can = (action: string, module: string) => {
+    // Admins can do everything by default
+    if (roles.includes("admin")) return true;
+    
+    return permissions.some(
+      (p) => p.module === module && p.action === action
+    );
+  };
 
-  return { can, loading: isLoading, refresh: refetch };
+  return { can, loading, refresh: loadPermissions };
 }

@@ -359,14 +359,7 @@ function ManpowerTab({ dsrId, rows, canEdit, onChange }: { dsrId: string; rows: 
 /* ---------------- Equipment ---------------- */
 
 function EquipmentTab({ dsrId, rows, canEdit, onChange }: { dsrId: string; rows: Row[]; canEdit: boolean; onChange: () => void }) {
-  const [equipmentTypes, setEquipmentTypes] = useState<{ id: string; name: string }[]>([]);
   const [draft, setDraft] = useState<Row>({ equipment_name: "", quantity: 1, hours_operated: 0, idle_hours: 0, idle_reason: "" });
-  
-  useEffect(() => {
-    supabase.from("equipment_types").select("id, name").order("name")
-      .then(({ data }) => setEquipmentTypes(data ?? []));
-  }, []);
-
   const add = async () => {
     if (!draft.equipment_name) return toast.error("Equipment name required");
     const { error } = await (supabase.from("daily_equipment") as any).insert({ ...draft, dsr_id: dsrId });
@@ -374,78 +367,39 @@ function EquipmentTab({ dsrId, rows, canEdit, onChange }: { dsrId: string; rows:
     setDraft({ equipment_name: "", quantity: 1, hours_operated: 0, idle_hours: 0, idle_reason: "" });
     onChange();
   };
-
-  const totalOperated = rows.reduce((sum, r) => sum + (Number(r.hours_operated) * Number(r.quantity)), 0);
-  const totalIdle = rows.reduce((sum, r) => sum + (Number(r.idle_hours) * Number(r.quantity)), 0);
-  const utilization = totalOperated + totalIdle > 0 ? (totalOperated / (totalOperated + totalIdle)) * 100 : 0;
-
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-success-soft/30 border-success-soft">
-          <CardContent className="pt-4">
-            <p className="text-[10px] font-bold text-success uppercase tracking-wider">Total Operated</p>
-            <div className="text-2xl font-bold text-success">{totalOperated.toFixed(1)} hrs</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-warning-soft/30 border-warning-soft">
-          <CardContent className="pt-4">
-            <p className="text-[10px] font-bold text-warning uppercase tracking-wider">Total Idle</p>
-            <div className="text-2xl font-bold text-warning">{totalIdle.toFixed(1)} hrs</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-primary-soft/30 border-primary-soft">
-          <CardContent className="pt-4">
-            <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Utilization</p>
-            <div className="text-2xl font-bold text-primary">{utilization.toFixed(0)}%</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader><CardTitle className="text-base">Equipment on site</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <Table>
-            <TableHeader><TableRow>
-              <TableHead>Equipment</TableHead><TableHead>Qty</TableHead>
-              <TableHead>Hours operated</TableHead><TableHead>Idle hrs</TableHead><TableHead>Idle reason</TableHead><TableHead></TableHead>
-            </TableRow></TableHeader>
-            <TableBody>
-              {rows.length === 0 && <TableRow><TableCell colSpan={6} className="text-muted-foreground text-center py-4">No equipment.</TableCell></TableRow>}
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.equipment_name}</TableCell><TableCell>{r.quantity}</TableCell>
-                  <TableCell>{r.hours_operated}</TableCell><TableCell>{r.idle_hours}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.idle_reason}</TableCell>
-                  <TableCell>{canEdit && <Button size="icon" variant="ghost" onClick={() => deleteRow("daily_equipment", r.id, onChange)}><Trash2 className="h-4 w-4" /></Button>}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {canEdit && (
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end border-t pt-3">
-              <div className="md:col-span-2">
-                <Label className="text-xs">Equipment Type</Label>
-                <Select value={draft.equipment_name} onValueChange={(v) => setDraft({ ...draft, equipment_name: v })}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select equipment..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {equipmentTypes.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
-                    {equipmentTypes.length === 0 && <SelectItem value="custom" disabled>No types configured</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label className="text-xs">Qty</Label><Input className="h-9" type="number" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })} /></div>
-              <div><Label className="text-xs">Hours</Label><Input className="h-9" type="number" value={draft.hours_operated} onChange={(e) => setDraft({ ...draft, hours_operated: Number(e.target.value) })} /></div>
-              <div><Label className="text-xs">Idle</Label><Input className="h-9" type="number" value={draft.idle_hours} onChange={(e) => setDraft({ ...draft, idle_hours: Number(e.target.value) })} /></div>
-              <div><Label className="text-xs">Idle reason</Label><Input className="h-9" value={draft.idle_reason} onChange={(e) => setDraft({ ...draft, idle_reason: e.target.value })} /></div>
-              <div className="md:col-span-6"><Button onClick={add} className="h-9"><Plus className="h-4 w-4 mr-1" />Add Entry</Button></div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader><CardTitle className="text-base">Equipment on site</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Equipment</TableHead><TableHead>Qty</TableHead>
+            <TableHead>Hours operated</TableHead><TableHead>Idle hrs</TableHead><TableHead>Idle reason</TableHead><TableHead></TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {rows.length === 0 && <TableRow><TableCell colSpan={6} className="text-muted-foreground text-center py-4">No equipment.</TableCell></TableRow>}
+            {rows.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell>{r.equipment_name}</TableCell><TableCell>{r.quantity}</TableCell>
+                <TableCell>{r.hours_operated}</TableCell><TableCell>{r.idle_hours}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{r.idle_reason}</TableCell>
+                <TableCell>{canEdit && <Button size="icon" variant="ghost" onClick={() => deleteRow("daily_equipment", r.id, onChange)}><Trash2 className="h-4 w-4" /></Button>}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        {canEdit && (
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end border-t pt-3">
+            <div className="md:col-span-2"><Label className="text-xs">Name</Label><Input value={draft.equipment_name} onChange={(e) => setDraft({ ...draft, equipment_name: e.target.value })} /></div>
+            <div><Label className="text-xs">Qty</Label><Input type="number" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })} /></div>
+            <div><Label className="text-xs">Hours</Label><Input type="number" value={draft.hours_operated} onChange={(e) => setDraft({ ...draft, hours_operated: Number(e.target.value) })} /></div>
+            <div><Label className="text-xs">Idle</Label><Input type="number" value={draft.idle_hours} onChange={(e) => setDraft({ ...draft, idle_hours: Number(e.target.value) })} /></div>
+            <div><Label className="text-xs">Idle reason</Label><Input value={draft.idle_reason} onChange={(e) => setDraft({ ...draft, idle_reason: e.target.value })} /></div>
+            <div className="md:col-span-6"><Button onClick={add}><Plus className="h-4 w-4 mr-1" />Add</Button></div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

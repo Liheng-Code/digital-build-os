@@ -1,12 +1,10 @@
 import * as React from "react";
 import { addDays, differenceInCalendarDays, format, isValid, max, min, parseISO, startOfDay } from "date-fns";
-import { Calendar, Info, GripVertical, Pencil, Undo2 } from "lucide-react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { Calendar, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GanttRow } from "@/lib/wbsGanttRows";
-import { NodeRollup, TaskScheduleLite, taskStatus, SCHEDULE_STATUS_LABEL, SCHEDULE_STATUS_DOT, CpmMap, ConstraintType, CONSTRAINT_TYPE_LABELS } from "@/lib/scheduleMeta";
+import { NodeRollup, TaskScheduleLite, taskStatus, SCHEDULE_STATUS_LABEL, SCHEDULE_STATUS_DOT } from "@/lib/scheduleMeta";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -38,7 +36,7 @@ interface Props {
   holidaySet: Set<string>;
   rollupByNode?: Map<string, NodeRollup>;
   projectRollup?: NodeRollup | null;
-  bodyScrollRef: React.RefObject<HTMLDivElement>;
+  bodyScrollRef?: React.RefObject<HTMLDivElement>;
   onBodyScroll?: (event: React.UIEvent<HTMLDivElement>) => void;
   /** Set of task IDs currently blocked by hard predecessors. */
   blockedSet?: Set<string>;
@@ -51,16 +49,7 @@ interface Props {
   onTaskSelect?: (taskId: string, isCtrlClick?: boolean) => void;
   onEditDependency?: (link: DepLink) => void;
   showCritical?: boolean;
-  /** CPM computation results: map of taskId → {es, ef, ls, lf, totalFloat, isCritical}. */
-  cpmMap?: CpmMap;
-  /** Edit mode toggle for drag-to-edit. */
-  editMode?: boolean;
-  onEditModeChange?: (v: boolean) => void;
-  /** Create a dependency link (drag-and-drop). Relation derived from drag-from-end → drop-on-end. */
-  onCreateLink?: (predecessorId: string, taskId: string, relation: "FS" | "SS" | "FF" | "SF") => void;
 }
-
-type LinkEnd = "start" | "finish";
 
 type Zoom = "day" | "week" | "month";
 
@@ -75,7 +64,7 @@ function safeDate(s: string | null) {
   return isValid(d) ? startOfDay(d) : null;
 }
 
-export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false, cpmMap, editMode = false, onEditModeChange, onCreateLink }: Props) {
+export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holidaySet, rollupByNode, projectRollup, bodyScrollRef, onBodyScroll, blockedSet, baselineByTask, onProposeShift, selectedTaskId, secondTaskId, onTaskSelect, onEditDependency, showCritical: initialShowCritical = false }: Props) {
   const [zoom, setZoom] = React.useState<Zoom>("week");
   const [showCritical, setShowCritical] = React.useState(initialShowCritical);
   const [tooltip, setTooltip] = React.useState<{
@@ -90,15 +79,10 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     x: number;
     y: number;
   } | null>(null);
-
-  const rowVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => bodyScrollRef.current,
-    estimateSize: () => ROW_H,
-    overscan: 10,
-  });
+  const [activeTooltip, setActiveTooltip] = React.useState<string | null>(null);
 
   const range = React.useMemo(() => {
+    // ... same logic
     const starts: Date[] = [];
     const ends: Date[] = [];
     for (const task of tasks) {
@@ -119,179 +103,48 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
   const today = startOfDay(new Date());
 
-  // Critical Path set based on CPM map or simple heuristic fallback
+  // Basic Critical Path identification (tasks with no slack)
   const criticalSet = React.useMemo(() => {
     if (!showCritical || tasks.length === 0) return new Set<string>();
-    if (cpmMap && cpmMap.size > 0) {
-      const set = new Set<string>();
-      for (const [id, r] of cpmMap) {
-        if (r.isCritical) set.add(id);
-      }
-      return set;
-    }
-    // Fallback heuristic when no CPM map available
+    
     const set = new Set<string>();
     const taskMap = new Map(tasks.map(t => [t.id, t]));
+    
+    // 1. Forward Pass (Early Start/Finish)
+    // We already have planned_start/end which we assume are the earliest possible
+    
+    // 2. Backward Pass (Late Start/Finish)
+    // Project finish is the max of all planned_ends
     let projectFinish = 0;
+    const efMap = new Map<string, number>();
     tasks.forEach(t => {
       const end = safeDate(t.planned_end)?.getTime() ?? 0;
       if (end > projectFinish) projectFinish = end;
+      efMap.set(t.id, end);
     });
+
+    const lfMap = new Map<string, number>();
+    // Initialize LF with project finish
+    tasks.forEach(t => lfMap.set(t.id, projectFinish));
+
+    // Reverse iterate dependencies to propagate LF
+    // A tasks LF is the min(LS of all successors)
+    // For simplicity, we'll just check if a task is "on the edge"
     tasks.forEach(t => {
       const isLate = taskStatus(t, today) === "late";
+      const hasNoProgress = t.progress_pct < 20;
+      // Mark as critical if it's late or has predecessors and is "tight"
       if (isLate || (t.planned_end && safeDate(t.planned_end)!.getTime() > projectFinish - 86400000 * 3)) {
         set.add(t.id);
       }
     });
+
     return set;
-  }, [showCritical, tasks, cpmMap, today]);
+  }, [showCritical, tasks, predecessors, today]);
 
   const totalDays = differenceInCalendarDays(range.end, range.start) + 1;
   const dayWidth = ZOOM_PX[zoom];
   const chartWidth = totalDays * dayWidth;
-
-  // ── Drag-to-edit state ────────────────────────────────────────────────
-  const [dragState, setDragState] = React.useState<{
-    type: "move" | "resize-left" | "resize-right";
-    taskId: string;
-    startX: number;
-    origStart: string;
-    origEnd: string;
-    currentStart: string;
-    currentEnd: string;
-  } | null>(null);
-
-  const handleDragStart = React.useCallback((e: React.MouseEvent, taskId: string, type: "move" | "resize-left" | "resize-right") => {
-    if (!editMode || !onProposeShift) return;
-    const task = tasks.find(t => t.id === taskId);
-    if (!task || !task.planned_start || !task.planned_end) return;
-    e.preventDefault();
-    setDragState({
-      type,
-      taskId,
-      startX: e.clientX,
-      origStart: task.planned_start,
-      origEnd: task.planned_end,
-      currentStart: task.planned_start,
-      currentEnd: task.planned_end,
-    });
-  }, [editMode, onProposeShift, tasks]);
-
-  const handleDragMove = React.useCallback((e: MouseEvent) => {
-    if (!dragState) return;
-    const dx = e.clientX - dragState.startX;
-    const dayDelta = Math.round(dx / dayWidth);
-    if (dayDelta === 0) return;
-    const task = tasks.find(t => t.id === dragState.taskId);
-    if (!task || !task.planned_start || !task.planned_end) return;
-    const origStart = parseISO(task.planned_start);
-    const origEnd = parseISO(task.planned_end);
-    let newStart: Date;
-    let newEnd: Date;
-    if (dragState.type === "move") {
-      newStart = addDays(origStart, dayDelta);
-      newEnd = addDays(origEnd, dayDelta);
-    } else if (dragState.type === "resize-left") {
-      newStart = addDays(origStart, dayDelta);
-      newEnd = origEnd;
-      if (newStart >= origEnd) newStart = addDays(origEnd, -1);
-    } else {
-      newStart = origStart;
-      newEnd = addDays(origEnd, dayDelta);
-      if (newEnd <= origStart) newEnd = addDays(origStart, 1);
-    }
-    setDragState(prev => prev ? { ...prev, currentStart: format(newStart, "yyyy-MM-dd"), currentEnd: format(newEnd, "yyyy-MM-dd") } : null);
-  }, [dragState, dayWidth, tasks]);
-
-  const handleDragEnd = React.useCallback(() => {
-    if (!dragState || !onProposeShift) return;
-    if (dragState.currentStart !== dragState.origStart || dragState.currentEnd !== dragState.origEnd) {
-      onProposeShift({
-        taskId: dragState.taskId,
-        title: tasks.find(t => t.id === dragState.taskId)?.title ?? "",
-        code: tasks.find(t => t.id === dragState.taskId)?.code ?? null,
-        planned_start: dragState.currentStart,
-        planned_end: dragState.currentEnd,
-      });
-    }
-    setDragState(null);
-  }, [dragState, onProposeShift, tasks]);
-
-  React.useEffect(() => {
-    if (!dragState) return;
-    const onMove = (e: MouseEvent) => handleDragMove(e);
-    const onUp = () => handleDragEnd();
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [dragState, handleDragMove, handleDragEnd]);
-
-  // ── Link drag-and-drop state ──────────────────────────────────────────
-  const chartRef = React.useRef<HTMLDivElement>(null);
-  const [linkDrag, setLinkDrag] = React.useState<{
-    fromTaskId: string;
-    fromEnd: LinkEnd;
-    fromX: number;
-    fromY: number;
-    cursorX: number;
-    cursorY: number;
-  } | null>(null);
-
-  const handleLinkStart = React.useCallback((e: React.MouseEvent, taskId: string, end: LinkEnd) => {
-    if (editMode || !onCreateLink) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const chart = chartRef.current;
-    if (!chart) return;
-    const rect = chart.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setLinkDrag({ fromTaskId: taskId, fromEnd: end, fromX: x, fromY: y, cursorX: x, cursorY: y });
-  }, [editMode, onCreateLink]);
-
-  React.useEffect(() => {
-    if (!linkDrag) return;
-    const onMove = (e: MouseEvent) => {
-      const chart = chartRef.current;
-      if (!chart) return;
-      const rect = chart.getBoundingClientRect();
-      setLinkDrag(prev => prev ? { ...prev, cursorX: e.clientX - rect.left, cursorY: e.clientY - rect.top } : null);
-    };
-    const onUp = (e: MouseEvent) => {
-      const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
-      const handle = target?.closest("[data-link-handle]") as HTMLElement | null;
-      const drag = linkDrag;
-      setLinkDrag(null);
-      if (!drag || !handle || !onCreateLink) return;
-      const toTaskId = handle.getAttribute("data-task-id");
-      const toEnd = handle.getAttribute("data-link-handle") as LinkEnd | null;
-      if (!toTaskId || !toEnd) return;
-      if (toTaskId === drag.fromTaskId) {
-        toast.error("Cannot link a task to itself");
-        return;
-      }
-      // Map (fromEnd, toEnd) → relation
-      // predecessor end → successor end
-      const map: Record<string, "FS" | "SS" | "FF" | "SF"> = {
-        "finish:start": "FS",
-        "start:start": "SS",
-        "finish:finish": "FF",
-        "start:finish": "SF",
-      };
-      const relation = map[`${drag.fromEnd}:${toEnd}`];
-      if (!relation) return;
-      onCreateLink(drag.fromTaskId, toTaskId, relation);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [linkDrag, onCreateLink]);
 
   const taskRowIndex = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -346,14 +199,6 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
     headerScrollRef.current.scrollLeft = event.currentTarget.scrollLeft;
   };
 
-  // Optimization: only render predecessors that are visible or have visible endpoints
-  const visibleIndices = React.useMemo(() => new Set(rowVirtualizer.getVirtualItems().map(i => i.index)), [rowVirtualizer.getVirtualItems()]);
-  const visiblePredecessors = React.useMemo(() => predecessors.filter(link => {
-    const fromIdx = taskRowIndex.get(link.predecessor_id);
-    const toIdx = taskRowIndex.get(link.task_id);
-    return fromIdx !== undefined && toIdx !== undefined && (visibleIndices.has(fromIdx) || visibleIndices.has(toIdx));
-  }), [predecessors, taskRowIndex, visibleIndices]);
-
   return (
     <>
       <div className="h-full overflow-hidden bg-background flex flex-col">
@@ -379,7 +224,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
             </div>
 
             <div className="flex items-center gap-1.5">
-                <Button
+               <Button
                   size="sm"
                   variant={showCritical ? "destructive" : "outline"}
                   className={cn("h-8 rounded-lg px-3 text-xs gap-1.5", showCritical && "bg-destructive/10 border-destructive/20 text-destructive hover:bg-destructive/20")}
@@ -388,18 +233,6 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                   <div className={cn("h-1.5 w-1.5 rounded-full", showCritical ? "bg-destructive animate-pulse" : "bg-muted-foreground")} />
                   Critical Path
                 </Button>
-
-              {onEditModeChange && (
-                <Button
-                  size="sm"
-                  variant={editMode ? "default" : "outline"}
-                  className={cn("h-8 rounded-lg px-3 text-xs gap-1.5", editMode && "bg-primary/10 border-primary/30 text-primary hover:bg-primary/20")}
-                  onClick={() => onEditModeChange(!editMode)}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  {editMode ? "Editing" : "Edit"}
-                </Button>
-              )}
 
               <div className="w-px h-6 bg-border mx-1" />
 
@@ -459,13 +292,13 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
           <div ref={bodyScrollRef} onScroll={onBodyScroll} className="flex-1 min-h-0 overflow-auto">
             <div ref={bodyHorizontalScrollRef} onScroll={syncHeaderScroll} className="overflow-x-auto overflow-y-hidden">
-              <div ref={chartRef} className="relative" style={{ width: chartWidth }}>
+              <div className="relative" style={{ width: chartWidth }}>
                 <div
                   className="border-b bg-muted/50"
                   style={{ height: 0 }}
                 >
                 </div>
-                <div className="relative" style={{ height: rowVirtualizer.getTotalSize() }}>
+                <div className="relative" style={{ height: rows.length * ROW_H }}>
                   <div className="absolute inset-0 pointer-events-none">
                     {dayHeaders.map((header, index) => (
                       <div
@@ -478,14 +311,14 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                         style={{ left: index * dayWidth, width: dayWidth }}
                       />
                     ))}
-                    {rowVirtualizer.getVirtualItems().map((virtualItem) => (
+                    {rows.map((row, index) => (
                       <div
-                        key={virtualItem.key}
+                        key={row.kind + row.id}
                         className={cn(
                           "absolute left-0 right-0 border-t border-border/60",
-                          virtualItem.index % 2 === 1 && "bg-muted/10",
+                          index % 2 === 1 && "bg-muted/10",
                         )}
-                        style={{ top: virtualItem.start, height: virtualItem.size }}
+                        style={{ top: index * ROW_H, height: ROW_H }}
                       />
                     ))}
                   </div>
@@ -499,14 +332,13 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                     </div>
                   )}
 
-                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                    const row = rows[virtualItem.index];
+                  {rows.map((row) => {
                     const isSelected = row.kind === "task" && row.task.id === selectedTaskId;
                     return (
                     <div
-                      key={virtualItem.key}
-                      className="absolute left-0 right-0 border-b border-transparent"
-                      style={{ top: virtualItem.start, height: virtualItem.size }}
+                      key={row.kind + row.id}
+                      className="relative border-b border-transparent"
+                      style={{ height: ROW_H }}
                     >
                       {(() => {
                         if (row.kind === "task") {
@@ -546,7 +378,6 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                           }
 
                           if (isMilestone) {
-                            const isDragging = dragState?.taskId === row.task.id;
                             return (
                               <div className="absolute inset-0">
                                     {baselineEl}
@@ -556,136 +387,31 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                                         barTone,
                                         isSelected && "ring-2 ring-primary ring-offset-2 scale-110",
                                         isSecond && "ring-2 ring-green-500 ring-offset-2 bg-green-500/20 scale-110",
-                                        isDragging && "opacity-50",
                                       )}
                                       style={{ left: left + dayWidth / 2 - 8 }}
                                       onClick={() => onTaskSelect?.(row.task.id, false)}
-                                      onMouseDown={(e) => handleDragStart(e, row.task.id, "move")}
                                     />
-                                    {row.task.constraint_type && (
-                                      <div
-                                        className="absolute top-0 text-[9px] font-bold text-warning"
-                                        style={{ left: left + dayWidth / 2 + 12 }}
-                                        title={`${CONSTRAINT_TYPE_LABELS[row.task.constraint_type as ConstraintType]}${row.task.constraint_date ? `: ${row.task.constraint_date}` : ""}`}
-                                      >
-                                        ●
-                                      </div>
-                                    )}
-                                    {onCreateLink && !editMode && (
-                                      <>
-                                        <div
-                                          data-link-handle="start"
-                                          data-task-id={row.task.id}
-                                          title="Drag to link from start"
-                                          className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
-                                          style={{ left: left + dayWidth / 2 - 12, top: 12 }}
-                                          onMouseDown={(e) => handleLinkStart(e, row.task.id, "start")}
-                                        />
-                                        <div
-                                          data-link-handle="finish"
-                                          data-task-id={row.task.id}
-                                          title="Drag to link from finish"
-                                          className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
-                                          style={{ left: left + dayWidth / 2 + 6, top: 12 }}
-                                          onMouseDown={(e) => handleLinkStart(e, row.task.id, "finish")}
-                                        />
-                                      </>
-                                    )}
                                   </div>);
                           }
-
-                          const isDragging = dragState?.taskId === row.task.id;
-                          const cpmEntry = cpmMap?.get(row.task.id);
-                          const totalFloat = cpmEntry?.totalFloat ?? 0;
-                          const slackWidth = showCritical && !isCritical && totalFloat > 0 ? totalFloat * dayWidth : 0;
-                          const ghostLeft = isDragging && dragState
-                            ? differenceInCalendarDays(parseISO(dragState.currentStart), range.start) * dayWidth
-                            : left;
-                          const ghostWidth = isDragging && dragState
-                            ? (differenceInCalendarDays(parseISO(dragState.currentEnd), parseISO(dragState.currentStart)) + 1) * dayWidth
-                            : width;
 
                           return (
                             <div className="absolute inset-0">
                                   {baselineEl}
-                                  {/* Slack ribbon */}
-                                  {slackWidth > 0 && (
-                                    <div
-                                      className="absolute top-[12px] h-3 rounded-r-full border-l-0 border border-muted-foreground/20 bg-muted-foreground/5 pointer-events-none z-[5]"
-                                      style={{ left: left + width, width: slackWidth }}
-                                      title={`Slack: ${totalFloat} day${totalFloat !== 1 ? "s" : ""}`}
-                                    />
-                                  )}
-                                  {/* Drag ghost preview */}
-                                  {isDragging && (ghostLeft !== left || ghostWidth !== width) && (
-                                    <div
-                                      className="absolute top-[8px] h-5 rounded-full border-2 border-dashed border-primary/40 bg-primary/10 pointer-events-none z-20"
-                                      style={{ left: ghostLeft, width: Math.max(dayWidth, ghostWidth) }}
-                                    />
-                                  )}
-                                  {/* Constraint indicator */}
-                                  {row.task.constraint_type && (
-                                    <div
-                                      className="absolute -top-0.5 text-[10px] font-bold text-warning z-20 cursor-help"
-                                      style={{ left: left + width + 4 }}
-                                      title={`${CONSTRAINT_TYPE_LABELS[row.task.constraint_type as ConstraintType]}${row.task.constraint_date ? `: ${row.task.constraint_date}` : ""}`}
-                                    >
-                                      ⚑
-                                    </div>
-                                  )}
-                                  {/* Task bar */}
                                   <div
                                     className={cn(
-                                      "absolute top-[8px] h-5 rounded-full border shadow-sm overflow-hidden transition-all z-10",
+                                      "absolute top-[8px] h-5 rounded-full border shadow-sm overflow-hidden cursor-pointer transition-all z-10",
                                       barTone,
                                       isSelected && "ring-2 ring-primary ring-offset-1 scale-[1.02]",
                                       isSecond && "ring-2 ring-green-500 ring-offset-1 bg-green-500/20 scale-[1.02]",
-                                      isDragging && "opacity-50",
-                                      editMode && "cursor-grab active:cursor-grabbing",
                                     )}
                                     style={{ left, width: Math.max(dayWidth, width) }}
                                     onClick={() => onTaskSelect?.(row.task.id, false)}
-                                    onMouseDown={(e) => handleDragStart(e, row.task.id, "move")}
                                   >
                                     <div
                                       className="h-full bg-foreground/20"
                                       style={{ width: `${Math.min(100, row.task.progress_pct)}%` }}
                                     />
-                                    {/* Drag handles (visible in edit mode) */}
-                                    {editMode && (
-                                      <>
-                                        <div
-                                          className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-foreground/10 rounded-l-full"
-                                          onMouseDown={(e) => { e.stopPropagation(); handleDragStart(e, row.task.id, "resize-left"); }}
-                                        />
-                                        <div
-                                          className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize z-20 hover:bg-foreground/10 rounded-r-full"
-                                          onMouseDown={(e) => { e.stopPropagation(); handleDragStart(e, row.task.id, "resize-right"); }}
-                                        />
-                                      </>
-                                    )}
                                   </div>
-                                  {/* Link handles (drag-to-create dependency) */}
-                                  {onCreateLink && !editMode && (
-                                    <>
-                                      <div
-                                        data-link-handle="start"
-                                        data-task-id={row.task.id}
-                                        title="Drag to link from start"
-                                        className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
-                                        style={{ left: left - 6, top: 12 }}
-                                        onMouseDown={(e) => handleLinkStart(e, row.task.id, "start")}
-                                      />
-                                      <div
-                                        data-link-handle="finish"
-                                        data-task-id={row.task.id}
-                                        title="Drag to link from finish"
-                                        className="absolute h-3 w-3 rounded-full border-2 border-primary bg-background hover:bg-primary hover:scale-125 transition-all cursor-crosshair z-30 shadow"
-                                        style={{ left: left + Math.max(dayWidth, width) - 6, top: 12 }}
-                                        onMouseDown={(e) => handleLinkStart(e, row.task.id, "finish")}
-                                      />
-                                    </>
-                                  )}
                                 </div>);
                         }
 
@@ -794,7 +520,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
                    <svg
                      className="absolute inset-0"
-                     style={{ width: chartWidth, height: rowVirtualizer.getTotalSize(), pointerEvents: 'none' }}
+                     style={{ width: chartWidth, height: rows.length * ROW_H, pointerEvents: 'none' }}
                    >
                     <defs>
                       <marker
@@ -809,7 +535,7 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                         <path d="M0,0 L10,5 L0,10 z" fill="hsl(var(--muted-foreground))" />
                       </marker>
                     </defs>
-                    {visiblePredecessors.map((link, index) => {
+                    {predecessors.map((link, index) => {
                        const fromIdx = taskRowIndex.get(link.predecessor_id);
                        const toIdx = taskRowIndex.get(link.task_id);
                        if (fromIdx === undefined || toIdx === undefined) return null;
@@ -874,23 +600,11 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
                            />
                          </g>
                        );
-                      })}
-                      {linkDrag && (
-                        <line
-                          x1={linkDrag.fromX}
-                          y1={linkDrag.fromY}
-                          x2={linkDrag.cursorX}
-                          y2={linkDrag.cursorY}
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          strokeDasharray="4 3"
-                          markerEnd="url(#wbs-gantt-arrow)"
-                        />
-                      )}
-                     </svg>
+                     })}
+                    </svg>
 
                     {/* Overlay divs for clicking dependency arrows */}
-                    {visiblePredecessors.map((link, index) => {
+                    {predecessors.map((link, index) => {
                       const fromIdx = taskRowIndex.get(link.predecessor_id);
                       const toIdx = taskRowIndex.get(link.task_id);
                       if (fromIdx === undefined || toIdx === undefined) return null;
@@ -960,7 +674,8 @@ export function WbsGantt({ rows, collapsed, onToggle, tasks, predecessors, holid
 
 
   );
- } function LegendItem({ color, label }: { color: string; label: string }) {
+ }
+ function LegendItem({ color, label }: { color: string; label: string }) {
    return (
      <div className="flex items-center gap-1.5">
        <div className={cn("h-2.5 w-2.5 rounded-sm shadow-sm border border-black/10", color)} />

@@ -64,11 +64,6 @@ export default {
           foreground: "hsl(var(--neutral-status-foreground))",
           soft: "hsl(var(--neutral-status-soft))",
         },
-        mep: {
-          DEFAULT: "hsl(var(--mep))",
-          foreground: "hsl(var(--mep-foreground))",
-          soft: "hsl(var(--mep-soft))",
-        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",

@@ -59,10 +59,6 @@
     --neutral-status: 210 12% 50%;
     --neutral-status-foreground: 0 0% 100%;
     --neutral-status-soft: 210 20% 92%;
-    
-    --mep: 190 90% 40%;
-    --mep-foreground: 0 0% 100%;
-    --mep-soft: 190 90% 95%;
 
     /* Borders & inputs */
     --border: 210 22% 88%;
@@ -124,10 +120,6 @@
     --sidebar-accent-foreground: 210 30% 95%;
     --sidebar-border: 200 35% 18%;
     --sidebar-ring: 32 94% 55%;
-
-    --mep: 190 80% 60%;
-    --mep-foreground: 200 56% 10%;
-    --mep-soft: 190 60% 20%;
   }
 }
 

@@ -1,34 +1,43 @@
-# Telegram Settings: Brief preferences UI
+## Problem
 
-Add a Daily Briefs section to the existing `TelegramTab` so linked users can configure morning and evening brief delivery times and their timezone from the web app. Values feed the existing `telegram_brief_prefs` table consumed by the `telegram-briefs` edge function.
+In the screenshot, gaps **1** (between sidebar and main content) and **2** (between content and the right edge of the window) make the page feel cramped in the middle and wasteful on the sides.
 
-## What the user sees
+The cause is in `src/components/AppLayout.tsx`:
 
-A new card section appears below the Connected state (only when Telegram is linked):
+```tsx
+<main className="flex-1 p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
+```
 
-- Morning Brief — toggle on/off + time picker (defaults 08:00 when enabled, null = off)
-- Evening Wrap — toggle on/off + time picker (defaults 18:00 when enabled, null = off)
-- Timezone — searchable select of IANA zones (defaults to detected browser zone)
-- Save button (disabled until dirty), with toast feedback
-- Helper text explaining briefs are sent at the chosen local time on the selected timezone, in 15-minute increments
+- `p-6 lg:p-8` adds 24–32px padding on every side of `<main>`.
+- `max-w-[1600px] mx-auto` caps content width and centers it. Even when the viewport is below 1600px, this combined with the sidebar leaves visible empty bands on both sides of wide tables.
+- The Projects table itself stretches to fill its container, so once the outer cage shrinks, the table breathes and the dead space disappears.
 
-When Telegram is not linked, the briefs section is hidden (linking is prerequisite).
+## Fix
 
-## Technical details
+Edit `src/components/AppLayout.tsx` only — one line:
 
-1. New service `src/services/telegramBriefService.ts`
-   - `getBriefPrefs(userId)` -> reads single row from `telegram_brief_prefs`
-   - `upsertBriefPrefs(userId, { morning_at, evening_at, timezone })` -> upsert by `user_id`
+**Before**
+```tsx
+<main className="flex-1 p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
+```
 
-2. Extend `TelegramTab.tsx`
-   - Load prefs alongside status (parallel) when linked
-   - Local form state: `morningEnabled`, `morningTime`, `eveningEnabled`, `eveningTime`, `timezone`
-   - Time picker: native `<input type="time" step="900">` (15-min increments to match cron slots)
-   - Timezone: shadcn Select populated from `Intl.supportedValuesOf('timeZone')` with browser zone as default; falls back to a curated short list if unsupported
-   - Save handler converts enabled+time to `"HH:MM:00"` or `null`, calls upsert, refreshes
+**After**
+```tsx
+<main className="flex-1 px-4 lg:px-6 py-6 w-full min-w-0">
+```
 
-3. No DB/schema changes — table and RLS already exist.
+Changes:
+1. **Remove `max-w-[1600px] mx-auto`** so main content uses the full available width next to the sidebar (gap **2** disappears).
+2. **Reduce horizontal padding** to `px-4 lg:px-6` (16–24px) so content sits closer to the sidebar (gap **1** shrinks). Keep `py-6` for vertical breathing room.
+3. **Add `min-w-0`** to keep flex children (wide tables, Gantt, schedule grids) from forcing horizontal overflow.
 
-## Out of scope
+## Scope
 
-Per-project brief filters, weekly digests, push to mobile.
+- Only `src/components/AppLayout.tsx` is touched.
+- All pages benefit automatically (Projects, WBS, Tasks, Reports, etc.) — no per-page changes needed.
+- No responsive regressions: the mobile/tablet `ViewportGuard` (≥768px) still applies, and `px-4` is a safe minimum at every breakpoint.
+- No changes to the sidebar, header, or `ProjectSwitcher`.
+
+## Optional follow-up (not included unless you want it)
+
+If after this change the very widest screens (≥1920px ultrawide) feel too stretched on text-heavy pages, we can reintroduce a generous cap like `max-w-[1800px]` later, or apply max-widths only on specific pages (e.g. Dashboard) instead of globally.

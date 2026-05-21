@@ -3,8 +3,7 @@ export type Department =
   | "structure"
   | "mep"
   | "procurement"
-  | "construction"
-  | "accounting";
+  | "construction";
 
 export type DeptStatus =
   | "draft" | "internal_review" | "coordination" | "dept_approved" | "issued"
@@ -14,16 +13,12 @@ export type DeptStatus =
 
 export type DeptRole = "member" | "reviewer" | "approver";
 
-export const DISCIPLINE_CONFIG_TABLE = "disciplines";
-
-// Fallback labels for synchronous UI paths. Runtime selectors should read active rows from disciplines.
 export const DEPARTMENT_LABELS: Record<Department, string> = {
   architecture: "Architecture",
   structure: "Structural",
   mep: "MEP",
   procurement: "Procurement",
   construction: "Construction",
-  accounting: "Accounting",
 };
 
 /** Tailwind tone classes (use semantic tokens already defined in index.css). */
@@ -33,7 +28,6 @@ export const DEPARTMENT_TONE: Record<Department, { bg: string; fg: string; dot: 
   mep:          { bg: "bg-success-soft",       fg: "text-success",       dot: "bg-success" },
   procurement:  { bg: "bg-neutral-status-soft", fg: "text-neutral-status", dot: "bg-neutral-status" },
   construction: { bg: "bg-destructive-soft",   fg: "text-destructive",   dot: "bg-destructive" },
-  accounting:   { bg: "bg-info-soft",          fg: "text-info",          dot: "bg-info" },
 };
 
 export const DEPT_ROLE_LABELS: Record<DeptRole, string> = {
@@ -70,7 +64,6 @@ export const DEPT_INITIAL_STAGE: Record<Department, DeptStatus> = {
   mep: "draft",
   procurement: "request",
   construction: "assigned",
-  accounting: "assigned",
 };
 
 /** Allowed next stages from the current stage, mirrors the DB trigger. */
@@ -111,12 +104,6 @@ export const DEPT_TRANSITIONS: Record<Department, Partial<Record<DeptStatus, Dep
     site_approved: ["completed", "cancelled"],
     rejected: ["in_progress", "assigned"],
   },
-  accounting: {
-    assigned: ["in_progress", "cancelled"],
-    in_progress: ["completed", "cancelled"],
-    completed: ["cancelled"],
-    rejected: ["assigned"],
-  },
 };
 
 /** Stages that require an "approver" role in that department. */
@@ -153,8 +140,5 @@ export const DISCIPLINE_FIELDS: Record<Department, DisciplineField[]> = {
   construction: [
     { key: "inspection_ref", label: "Inspection ref", type: "text", placeholder: "INS-0001" },
     { key: "lot_no",         label: "Lot #",          type: "text", placeholder: "Lot-12" },
-  ],
-  accounting: [
-    { key: "invoice_ref", label: "Invoice ref", type: "text", placeholder: "INV-0001" },
   ],
 };

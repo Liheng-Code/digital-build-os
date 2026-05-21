@@ -3,27 +3,18 @@ export type DocumentStatus =
   | "submitted"
   | "reviewing"
   | "approved"
-  | "approved_with_comment"
-  | "rejected"
   | "for_construction"
-  | "superseded"
-  | "archived";
+  | "superseded";
 
 export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
   draft: "Draft",
   submitted: "Submitted",
   reviewing: "Reviewing",
   approved: "Approved",
-  approved_with_comment: "Approved w/ Comment",
-  rejected: "Rejected",
   for_construction: "For Construction",
   superseded: "Superseded",
-  archived: "Archived",
 };
 
-export const DOCUMENT_TYPE_CONFIG_TABLE = "document_types";
-
-// Fallback seed values. Runtime consumers should read active rows from document_types.
 export const DOCUMENT_DISCIPLINES = [
   { value: "GEN", label: "General" },
   { value: "ARC", label: "Architecture" },

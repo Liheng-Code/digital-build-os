@@ -38,17 +38,6 @@ import {
   Info,
   Mail,
   Building2,
-  Zap,
-  Package,
-  Calendar,
-  BookOpen,
-  Receipt,
-  GitCompareArrows,
-  TrendingUp,
-  Calculator,
-  ChevronDown,
-  AlertTriangle,
-  Truck,
 } from "lucide-react";
 import { ProjectSwitcher } from "@/components/ProjectSwitcher";
 import { useAuth, ROLE_LABELS, AppRole } from "@/contexts/AuthContext";
@@ -67,7 +56,6 @@ import { Badge } from "@/components/ui/badge";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useTaskUnread } from "@/hooks/useTaskUnread";
 import { useApprovalUnread } from "@/hooks/useApprovalUnread";
-import { prefetchRoute } from "@/lib/routePrefetch";
 
 interface NavItem {
   to: string;
@@ -91,79 +79,26 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Work",
     items: [
       { to: "/tasks", label: "Tasks", icon: ClipboardList, module: "tasks" },
+      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
+        roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
       { to: "/timesheets", label: "Timesheets", icon: Clock, module: "timesheets" },
       { to: "/approvals", label: "Approvals", icon: CheckSquare, module: "approvals",
         roles: ["admin", "project_manager", "supervisor", "accountant", "qaqc_inspector"] },
       { to: "/workload", label: "Workload", icon: Activity,
         roles: ["admin", "project_manager", "supervisor"] },
-      { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
-    ],
-  },
-  {
-    label: "Design",
-    items: [
-      { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
-      { to: "/structural", label: "Structural Engineering", icon: HardHat, module: "structural" },
-      { to: "/mep", label: "MEP Engineering", icon: Zap, module: "mep" },
-    ],
-  },
-  {
-    label: "Procurement",
-    items: [
       { to: "/procurement", label: "Procurement & MTO", icon: ShoppingCart, module: "procurement" },
-      { to: "/procurement/rfqs", label: "RFQs", icon: FileText, module: "procurement" },
-      { to: "/procurement/pos", label: "Purchase Orders", icon: ClipboardList, module: "procurement" },
-      { to: "/procurement/invoices", label: "Invoices", icon: FileText, module: "procurement" },
-      { to: "/procurement/grns", label: "GRNs", icon: Package, module: "procurement" },
-      { to: "/procurement/budgets", label: "Budgets", icon: DollarSign, module: "procurement" },
-      { to: "/procurement/inventory", label: "Inventory / Stock", icon: Package, module: "inventory" },
-      { to: "/procurement/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
-    ],
-  },
-  {
-    label: "Construction",
-    items: [
-      { to: "/construction", label: "Construction Management", icon: HardHat, module: "construction" },
-      { to: "/daily-reports", label: "Daily Reports", icon: ClipboardCheck, module: "daily_reports",
-        roles: ["admin", "project_manager", "engineer", "supervisor", "accountant", "qaqc_inspector", "worker"] },
-      { to: "/equipment-tracking", label: "Equipment Tracking", icon: Truck, module: "construction" },
-      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck, module: "qaqc" },
       { to: "/hse", label: "Safety & HSE", icon: ShieldCheck, module: "hse" },
-    ],
-  },
-  {
-    label: "Project Closure",
-    items: [
-      { to: "/handover", label: "Handover & Commissioning", icon: Package, module: "construction" },
-      { to: "/dlp", label: "Defect Liability (DLP)", icon: AlertTriangle, module: "construction" },
+      { to: "/subcontractors", label: "Subcontractors", icon: Building2, module: "subcontractors" },
+      { to: "/rfis", label: "RFIs", icon: HelpCircle, module: "rfis" },
+      { to: "/financials", label: "Financials", icon: DollarSign, module: "financials" },
+      { to: "/quality", label: "Quality (QA/QC)", icon: ShieldCheck },
     ],
   },
   {
     label: "Finance",
     items: [
-      { to: "/financials", label: "Financial Control", icon: BarChart3, module: "financials" },
-      { to: "/financial-reports", label: "Financial Reports", icon: BarChart3, module: "financials" },
-      { to: "/kpi-alerts", label: "KPI Alerts", icon: AlertTriangle, module: "financials" },
-      { to: "/report-schedules", label: "Report Schedules", icon: Calendar, module: "financials" },
-
-      { to: "/account/client-invoices", label: "Client Invoices", icon: Receipt, module: "financials" },
-      { to: "/account/payment-requests", label: "Payment Requests", icon: ClipboardList, module: "financials" },
-      { to: "/account/variation-orders", label: "Variation Orders", icon: GitCompareArrows, module: "financials" },
-      { to: "/account/cash-flow", label: "Cash Flow", icon: TrendingUp, module: "financials" },
-      { to: "/account/chart-of-accounts", label: "Chart of Accounts", icon: BookOpen, module: "financials" },
-      { to: "/account/resource-rates", label: "Resource Rates", icon: Calculator, module: "financials" },
-      { to: "/account/final-account", label: "Final Account", icon: FileText, module: "financials" },
       { to: "/payroll", label: "Payroll", icon: DollarSign,
         roles: ["admin", "accountant"] },
-    ],
-  },
-  {
-    label: "HR Management",
-    items: [
-      { to: "/hr", label: "HR Dashboard", icon: Activity, module: "hr" },
-      { to: "/hr/leave", label: "Leave", icon: Calendar, module: "hr" },
-      { to: "/hr/attendance", label: "Attendance", icon: Clock, module: "hr" },
-      { to: "/hr/people", label: "People", icon: Users, module: "hr" },
     ],
   },
   {
@@ -171,59 +106,43 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { to: "/analytics", label: "Progress & Analytics", icon: BarChart2, module: "analytics" },
       { to: "/reports", label: "Reports", icon: BarChart3 },
-      { to: "/executive-dashboard", label: "Executive Dashboard", icon: BarChart3,
-        roles: ["admin", "project_manager"] },
-      { to: "/client-dashboard", label: "Client Dashboard", icon: BarChart3,
-        roles: ["admin"] },
       { to: "/documents", label: "Document Register", icon: FileText },
       { to: "/transmittals", label: "Transmittals", icon: Mail },
+    ],
+  },
+  {
+    label: "Disciplines",
+    items: [
+      { to: "/architecture", label: "Architecture", icon: Layout, module: "architecture" },
+      { to: "/structural", label: "Structural Engineering", icon: HardHat, module: "structural" },
     ],
   },
   {
     label: "Administration",
     items: [
       { to: "/stakeholders", label: "Stakeholders", icon: Building2, module: "stakeholders", roles: ["admin", "project_manager"] },
-      { to: "/organization", label: "Organization", icon: Network, roles: ["admin"] },
+      { to: "/team", label: "Team & Roles", icon: Users, roles: ["admin"] },
+      { to: "/permissions", label: "Permissions", icon: ShieldCheck, roles: ["admin"] },
       { to: "/audit", label: "Audit Log", icon: ShieldCheck, roles: ["admin"] },
-      { to: "/admin/config", label: "Admin Config", icon: Settings, roles: ["admin"] },
       { to: "/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
 
-const AppSidebar = React.memo(function AppSidebar() {
+function AppSidebar() {
   const { roles } = useAuth();
   const { can } = usePermissions();
   const { totalTaskUnread } = useTaskUnread();
   const { totalApprovalUnread } = useApprovalUnread();
-  const [openGroups, setOpenGroups] = React.useState<Set<string>>(
-    () => new Set(NAV_GROUPS.length > 0 ? [NAV_GROUPS[0].label] : [])
-  );
-  const toggleGroup = (label: string) => {
-    setOpenGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(label)) next.delete(label);
-      else next.add(label);
-      return next;
-    });
-  };
   
-  const canSee = React.useCallback(
-    (item: NavItem) => {
-      if (item.module) return can("view", item.module);
-      return !item.roles || item.roles.some((r) => roles.includes(r));
-    },
-    [can, roles],
-  );
-
-  const visibleGroups = React.useMemo(
-    () =>
-      NAV_GROUPS.map((group) => ({
-        label: group.label,
-        items: group.items.filter(canSee),
-      })).filter((g) => g.items.length > 0),
-    [canSee],
-  );
+  const canSee = (item: NavItem) => {
+    // If it has a module, check dynamic permissions
+    if (item.module) {
+      return can("view", item.module);
+    }
+    // Fallback to legacy roles check
+    return !item.roles || item.roles.some((r) => roles.includes(r));
+  };
 
   const badgeFor = (to: string): number => {
     if (to === "/tasks") return totalTaskUnread;
@@ -246,27 +165,13 @@ const AppSidebar = React.memo(function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {visibleGroups.map((group) => {
-          const items = group.items;
-          const isOpen = openGroups.has(group.label);
+        {NAV_GROUPS.map((group) => {
+          const items = group.items.filter(canSee);
+          if (items.length === 0) return null;
           return (
             <SidebarGroup key={group.label}>
-              <button
-                onClick={() => toggleGroup(group.label)}
-                className="flex w-full items-center justify-between px-2 py-1.5 text-xs font-semibold text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
-              >
-                {group.label}
-                <ChevronDown
-                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                    isOpen ? "" : "-rotate-90"
-                  }`}
-                />
-              </button>
-              <SidebarGroupContent
-                className={`overflow-hidden transition-all duration-200 ${
-                  isOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
-                }`}
-              >
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
                 <SidebarMenu>
                   {items.map((item) => {
                     const count = badgeFor(item.to);
@@ -277,8 +182,6 @@ const AppSidebar = React.memo(function AppSidebar() {
                           <NavLink
                             to={item.to}
                             end={item.to === "/"}
-                            onMouseEnter={() => prefetchRoute(item.to)}
-                            onFocus={() => prefetchRoute(item.to)}
                             className={({ isActive }) =>
                               isActive ? "data-[active=true]:bg-sidebar-accent" : ""
                             }
@@ -324,7 +227,7 @@ const AppSidebar = React.memo(function AppSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
-});
+}
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { profile, roles, signOut, user } = useAuth();

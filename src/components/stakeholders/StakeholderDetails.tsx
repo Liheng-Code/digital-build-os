@@ -7,11 +7,7 @@ import {
   Stakeholder, 
   STAKEHOLDER_TYPE_LABELS, 
   STAKEHOLDER_STATUS_COLORS,
-  PROJECT_ROLE_OPTIONS,
-  APPROVAL_LEVEL_LABELS,
-  WORKFLOW_LABELS,
-  ApprovalLevel,
-  ProjectStakeholder,
+  PROJECT_ROLE_OPTIONS
 } from "@/lib/stakeholderMeta";
 import { 
   useStakeholderContacts, 
@@ -24,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Plus, Mail, Phone, MapPin, Building2, UserPlus, 
   Link as LinkIcon, ExternalLink, Trash2, Save, X, 
-  ChevronRight, Loader2, ShieldCheck, Edit2, Pencil
+  ChevronRight, Loader2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,8 +34,6 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WbsNodePicker } from "@/components/wbs/WbsNodePicker";
-import { StakeholderDialog } from "./StakeholderDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -47,20 +41,17 @@ interface StakeholderDetailsProps {
   stakeholder: Stakeholder | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mode?: "sheet" | "panel";
 }
 
-export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sheet" }: StakeholderDetailsProps) {
+export function StakeholderDetails({ stakeholder, open, onOpenChange }: StakeholderDetailsProps) {
   const [isContactDialogOpen, setIsContactDialogOpen] = React.useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false);
   const [isEditingNotes, setIsEditingNotes] = React.useState(false);
   const [notes, setNotes] = React.useState("");
-  const [editingAssignment, setEditingAssignment] = React.useState<ProjectStakeholder | null>(null);
-  const [isEditOpen, setIsEditOpen] = React.useState(false);
 
   const stakeholderId = stakeholder?.id;
   const { contactsQuery, createContact, deleteContact } = useStakeholderContacts(stakeholderId);
-  const { stakeholderProjectsQuery, linkProject, unlinkProject, updateAssignment } = useStakeholderProjects(stakeholderId);
+  const { stakeholderProjectsQuery, linkProject, unlinkProject } = useStakeholderProjects(stakeholderId);
   const { updateStakeholder } = useStakeholders();
   const { projects } = useProjects();
 
@@ -125,93 +116,51 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
     } catch (err) {}
   };
 
-  const handleUpdateAssignment = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!editingAssignment) return;
-
-    const fd = new FormData(e.currentTarget);
-    const responsibilities = {
-      executes_tasks: fd.get("wf_executes_tasks") === "on",
-      reviews_rfis: fd.get("wf_reviews_rfis") === "on",
-      approves_inspections: fd.get("wf_approves_inspections") === "on",
-      receives_transmittals: fd.get("wf_receives_transmittals") === "on",
-      procurement_involvement: fd.get("wf_procurement_involvement") === "on",
-      safety_oversight: fd.get("wf_safety_oversight") === "on",
-    };
-
-    const updates = {
-      id: editingAssignment.id,
-      project_role: fd.get("project_role") as string,
-      discipline: fd.get("discipline") as string,
-      approval_level: fd.get("approval_level") as ApprovalLevel,
-      approval_authority: (fd.get("approval_level") as string) !== "none",
-      responsibilities: responsibilities as any,
-    };
-
-    try {
-      await updateAssignment.mutateAsync(updates);
-      setEditingAssignment(null);
-    } catch (err) {}
-  };
-
-  const content = (
-    <div className={cn("flex flex-col h-full", mode === "panel" ? "p-0" : "")}>
-      <div className={cn("space-y-4", mode === "panel" ? "p-6 border-b" : "pr-6")}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="font-normal capitalize">
-              {STAKEHOLDER_TYPE_LABELS[stakeholder.type]}
-            </Badge>
-            <Badge className={cn("font-normal capitalize", STAKEHOLDER_STATUS_COLORS[stakeholder.status])}>
-              {stakeholder.status}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditOpen(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Button>
-            {mode === "panel" && (
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => onOpenChange(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">{stakeholder.organization_name}</h2>
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Building2 className="h-3 w-3" />
-            ID: {stakeholder.id.slice(0, 8)}...
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 py-4 border-y border-dashed mt-4">
-          <div className="space-y-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Email</span>
-            <div className="flex items-center gap-2 text-xs truncate">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              {stakeholder.email || "—"}
+  return (
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent className="sm:max-w-xl overflow-y-auto">
+          <SheetHeader className="space-y-4 pr-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="font-normal capitalize">
+                  {STAKEHOLDER_TYPE_LABELS[stakeholder.type]}
+                </Badge>
+                <Badge className={cn("font-normal capitalize", STAKEHOLDER_STATUS_COLORS[stakeholder.status])}>
+                  {stakeholder.status}
+                </Badge>
+              </div>
+              <SheetTitle className="text-2xl font-bold">{stakeholder.organization_name}</SheetTitle>
+              <SheetDescription className="flex items-center gap-2">
+                <Building2 className="h-3 w-3" />
+                ID: {stakeholder.id.slice(0, 8)}...
+              </SheetDescription>
             </div>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Phone</span>
-            <div className="flex items-center gap-2 text-xs">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              {stakeholder.phone || "—"}
-            </div>
-          </div>
-          <div className="col-span-2 space-y-1">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Address</span>
-            <div className="flex items-center gap-2 text-xs">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              {stakeholder.address || "No address provided"}
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className={cn("flex-1 overflow-y-auto", mode === "panel" ? "p-6" : "")}>
+            <div className="grid grid-cols-2 gap-4 py-4 border-y border-dashed">
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                  {stakeholder.email || "—"}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                  {stakeholder.phone || "—"}
+                </div>
+              </div>
+              <div className="col-span-2 space-y-1">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                  {stakeholder.address || "No address provided"}
+                </div>
+              </div>
+            </div>
+          </SheetHeader>
 
           <Tabs defaultValue="contacts" className="mt-8">
             <TabsList className="w-full justify-start border-b rounded-none bg-transparent h-auto p-0">
@@ -232,12 +181,6 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
               >
                 Internal Notes
-              </TabsTrigger>
-              <TabsTrigger 
-                value="performance" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
-              >
-                Performance
               </TabsTrigger>
             </TabsList>
 
@@ -318,167 +261,37 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
                   <p className="text-sm text-muted-foreground">No project associations found.</p>
                 </div>
               ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-3">
                   {stakeholderProjectsQuery.data?.map((lp) => (
-                    <Card key={lp.id} className="overflow-hidden border-muted-foreground/20">
-                      <div className="bg-muted/30 px-4 py-2 border-b flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">{lp.project.name}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground bg-background px-1 rounded">{lp.project.code}</span>
+                    <Card key={lp.id}>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm">{lp.project.name}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">{lp.project.code}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-[10px] py-0">{lp.project_role || "External Party"}</Badge>
+                            {lp.approval_authority && (
+                              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 text-[10px] py-0">Approver</Badge>
+                            )}
+                          </div>
                         </div>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           onClick={() => {
                             if (confirm("Unlink this project?")) unlinkProject.mutate(lp.id);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      </div>
-                      <CardContent className="p-4 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground uppercase">Project Role</Label>
-                            <div className="text-sm font-medium">{lp.project_role || "External Party"}</div>
-                          </div>
-                          <div className="space-y-1 text-right">
-                            <Label className="text-[10px] text-muted-foreground uppercase">Approval Authority</Label>
-                            <div>
-                              <Badge 
-                                variant={lp.approval_authority ? "default" : "outline"}
-                                className={cn("text-[10px] py-0", lp.approval_authority ? "bg-emerald-500" : "")}
-                              >
-                                {lp.approval_authority ? "Authorized" : "No Authority"}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3 pt-3 border-t">
-                          <Label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-2">
-                            <ShieldCheck className="h-3 w-3" />
-                            Workflow Responsibility Mapping
-                          </Label>
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-2 pb-2">
-                            {Object.entries(WORKFLOW_LABELS).map(([key, label]) => (
-                              <div key={key} className="flex items-center justify-between group">
-                                <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">{label}</span>
-                                <div className="h-3.5 w-7 rounded-full bg-muted relative cursor-not-allowed">
-                                  <div className={cn(
-                                    "absolute top-0.5 left-0.5 h-2.5 w-2.5 rounded-full transition-all",
-                                    key === 'receives_transmittals' ? "bg-primary translate-x-3" : "bg-muted-foreground/30"
-                                  )} />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          <Label className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-2 pt-2 border-t border-dashed">
-                            <MapPin className="h-3 w-3" />
-                            Access & Location Restrictions
-                          </Label>
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">Access Level</span>
-                              <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 h-5 border-emerald-500/50 text-emerald-600 bg-emerald-50/50">
-                                Full Access
-                              </Badge>
-                            </div>
-                            <div className="flex items-center justify-between group">
-                              <span className="text-xs text-muted-foreground group-hover:text-foreground">WBS Restriction</span>
-                              <span className="text-[10px] text-muted-foreground italic">No restrictions (All Locations)</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="pt-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="w-full h-8 text-[11px] gap-2 text-primary border border-dashed hover:bg-primary/5"
-                            onClick={() => setEditingAssignment(lp)}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                            Manage Controls & Restrictions
-                          </Button>
-                        </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value="performance" className="pt-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Response Rate</span>
-                      <Badge variant="outline" className="text-[10px] bg-background border-emerald-500/50 text-emerald-600 h-4 px-1">Excellent</Badge>
-                    </div>
-                    <div className="text-2xl font-bold">92%</div>
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 w-[92%]" />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground italic">Avg. Response: 1.2 Days</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-amber-500/5 border-amber-500/20">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">Reliability Score</span>
-                      <Badge variant="outline" className="text-[10px] bg-background border-amber-500/50 text-amber-600 h-4 px-1">Good</Badge>
-                    </div>
-                    <div className="text-2xl font-bold">85%</div>
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500 w-[85%]" />
-                    </div>
-                    <p className="text-[10px] text-muted-foreground italic">On-time delivery performance</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Workflow Completion Analytics
-                </h4>
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-[11px]">
-                      <span>RFI Review Participation</span>
-                      <span className="font-mono">14/15 Closed</span>
-                    </div>
-                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary w-[93%]" />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-[11px]">
-                      <span>Task Execution Quality</span>
-                      <span className="font-mono">88% Passing</span>
-                    </div>
-                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 w-[88%]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <div className="bg-muted/30 p-3 rounded-lg flex items-start gap-3 border border-dashed">
-                  <ShieldCheck className="h-4 w-4 text-primary mt-0.5" />
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-bold">Accountability Status</div>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      No active escalations found for this stakeholder. All performance metrics are currently within the project threshold (Director Standard).
-                    </p>
-                  </div>
-                </div>
-              </div>
             </TabsContent>
 
             <TabsContent value="notes" className="pt-6">
@@ -517,21 +330,8 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
               </div>
             </TabsContent>
           </Tabs>
-        </div>
-      </div>
-    );
-
-  return (
-    <>
-      {mode === "sheet" ? (
-        <Sheet open={open} onOpenChange={onOpenChange}>
-          <SheetContent className="sm:max-w-xl overflow-y-auto p-0">
-            {content}
-          </SheetContent>
-        </Sheet>
-      ) : (
-        content
-      )}
+        </SheetContent>
+      </Sheet>
 
       {/* Add Contact Dialog */}
       <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
@@ -593,78 +393,22 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Stakeholder Role *</Label>
-                <Select name="project_role" defaultValue={PROJECT_ROLE_OPTIONS[0]} required>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Pick a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROJECT_ROLE_OPTIONS.map(role => (
-                      <SelectItem key={role} value={role} className="text-xs">{role}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Discipline</Label>
-                <Select name="discipline" defaultValue="General">
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Pick a discipline" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="General" className="text-xs">General / All</SelectItem>
-                    <SelectItem value="ARC" className="text-xs">Architectural (ARC)</SelectItem>
-                    <SelectItem value="STR" className="text-xs">Structural (STR)</SelectItem>
-                    <SelectItem value="MEP" className="text-xs">Mechanical/Elec (MEP)</SelectItem>
-                    <SelectItem value="CIV" className="text-xs">Civil / Infrastructure</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label>Approval Authority Level</Label>
-              <Select name="approval_level" defaultValue="none">
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Select level" />
+              <Label>Stakeholder Role in Project</Label>
+              <Select name="project_role" defaultValue={PROJECT_ROLE_OPTIONS[0]}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(APPROVAL_LEVEL_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value} className="text-xs">{label}</SelectItem>
+                  {PROJECT_ROLE_OPTIONS.map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="bg-muted/30 p-3 rounded-lg space-y-2">
-              <Label className="text-[10px] font-bold text-muted-foreground uppercase">Initial Workflow Access</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(WORKFLOW_LABELS).map(([key, label]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <input type="checkbox" name={`wf_${key}`} id={`wf_${key}`} defaultChecked={key === 'receives_transmittals'} className="h-3 w-3 rounded" />
-                    <Label htmlFor={`wf_${key}`} className="text-[10px] font-normal cursor-pointer">{label}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <Label>Project Access Level</Label>
-                <div className="flex bg-muted rounded-lg p-0.5">
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-[10px] px-2 bg-background shadow-sm">Full</Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-[10px] px-2 opacity-50">Restricted</Button>
-                </div>
-              </div>
-              
-              <div className="space-y-2 opacity-50 pointer-events-none">
-                <Label className="text-[10px] uppercase">WBS Location Restriction</Label>
-                <div className="text-xs italic text-muted-foreground bg-muted/20 p-2 rounded border border-dashed text-center">
-                  Select "Restricted" above to bind to specific WBS nodes
-                </div>
-              </div>
+            <div className="flex items-center gap-2 pt-2">
+              <input type="checkbox" name="approval_authority" id="approval_authority" className="h-4 w-4 rounded" />
+              <Label htmlFor="approval_authority">Has approval authority</Label>
             </div>
             <DialogFooter className="pt-4">
               <Button type="button" variant="ghost" onClick={() => setIsLinkDialogOpen(false)}>Cancel</Button>
@@ -676,130 +420,6 @@ export function StakeholderDetails({ stakeholder, open, onOpenChange, mode = "sh
           </form>
         </DialogContent>
       </Dialog>
-      {/* Edit Assignment Dialog */}
-      <Dialog open={!!editingAssignment} onOpenChange={(o) => !o && setEditingAssignment(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Manage Controls & Restrictions</DialogTitle>
-          </DialogHeader>
-          {editingAssignment && (
-            <form onSubmit={handleUpdateAssignment} className="space-y-4 pt-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Stakeholder Role *</Label>
-                  <Select name="project_role" defaultValue={editingAssignment.project_role || PROJECT_ROLE_OPTIONS[0]} required>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="Pick a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROJECT_ROLE_OPTIONS.map(role => (
-                        <SelectItem key={role} value={role} className="text-xs">{role}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Discipline</Label>
-                  <Select name="discipline" defaultValue={editingAssignment.discipline || "General"}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue placeholder="Pick a discipline" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="General" className="text-xs">General / All</SelectItem>
-                      <SelectItem value="ARC" className="text-xs">Architectural (ARC)</SelectItem>
-                      <SelectItem value="STR" className="text-xs">Structural (STR)</SelectItem>
-                      <SelectItem value="MEP" className="text-xs">Mechanical/Elec (MEP)</SelectItem>
-                      <SelectItem value="CIV" className="text-xs">Civil / Infrastructure</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Approval Authority Level</Label>
-                <Select name="approval_level" defaultValue={editingAssignment.approval_level || "none"}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(APPROVAL_LEVEL_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value} className="text-xs">{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="bg-muted/30 p-3 rounded-lg space-y-2">
-                <Label className="text-[10px] font-bold text-muted-foreground uppercase">Workflow Responsibility Mapping</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(WORKFLOW_LABELS).map(([key, label]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        name={`wf_${key}`} 
-                        id={`edit_wf_${key}`} 
-                        defaultChecked={!!(editingAssignment.responsibilities as any)?.[key]} 
-                        className="h-3 w-3 rounded" 
-                      />
-                      <Label htmlFor={`edit_wf_${key}`} className="text-[10px] font-normal cursor-pointer">{label}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <Label>Project Access Level</Label>
-                  <div className="flex bg-muted rounded-lg p-0.5">
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      className={cn("h-7 text-[10px] px-2", editingAssignment.access_level === 'full' && "bg-background shadow-sm")}
-                    >
-                      Full
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      className={cn("h-7 text-[10px] px-2", editingAssignment.access_level === 'restricted' && "bg-background shadow-sm")}
-                    >
-                      Restricted
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase">WBS Location Restriction</Label>
-                  <WbsNodePicker
-                    projectId={editingAssignment.project_id}
-                    value={editingAssignment.restricted_wbs_ids?.[0] || null}
-                    onChange={(id) => {
-                      // Currently supporting single WBS restriction via UI
-                    }}
-                  />
-                </div>
-              </div>
-
-              <DialogFooter className="pt-4">
-                <Button type="button" variant="ghost" onClick={() => setEditingAssignment(null)}>Cancel</Button>
-                <Button type="submit" disabled={updateAssignment.isPending}>
-                  {updateAssignment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Changes
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Stakeholder Dialog */}
-      <StakeholderDialog
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        stakeholder={stakeholder}
-      />
     </>
   );
 }

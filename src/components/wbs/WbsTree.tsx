@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   ChevronRight, Folder, FolderOpen, Plus, FolderKanban,
-  Building2, Layers, Box, DoorOpen, Compass, Briefcase, type LucideIcon
+  Building2, Layers, Box, DoorOpen, Compass, Briefcase
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ interface Props {
   nodeStats: Map<string, WbsNodeStat>;
   onMove?: (id: string, direction: "up" | "down") => void;
   projectRoot?: ProjectRoot | null;
-  nodeTypeLabels?: Record<string, string>;
 }
 
 export function WbsTree({
@@ -39,7 +38,6 @@ export function WbsTree({
   nodeStats,
   onMove,
   projectRoot,
-  nodeTypeLabels = WBS_NODE_TYPE_LABELS,
 }: Props) {
   const [projectOpen, setProjectOpen] = useState(true);
   return (
@@ -122,7 +120,6 @@ export function WbsTree({
                       search={search.toLowerCase()}
                       nodeStats={nodeStats}
                       onMove={onMove}
-                      nodeTypeLabels={nodeTypeLabels}
                     />
                   ))}
                 </ul>
@@ -149,7 +146,6 @@ export function WbsTree({
               search={search.toLowerCase()}
               nodeStats={nodeStats}
               onMove={onMove}
-              nodeTypeLabels={nodeTypeLabels}
             />
           ))}
         </ul>
@@ -158,7 +154,7 @@ export function WbsTree({
   );
 }
 
-const NODE_ICONS: Record<string, LucideIcon> = {
+const NODE_ICONS: Record<string, any> = {
   building: Building2,
   level: Layers,
   zone: Box,
@@ -180,7 +176,6 @@ function TreeRow({
   search,
   nodeStats,
   onMove,
-  nodeTypeLabels,
 }: {
   node: WbsTreeNode;
   depth: number;
@@ -191,7 +186,6 @@ function TreeRow({
   search: string;
   nodeStats: Map<string, WbsNodeStat>;
   onMove?: (id: string, direction: "up" | "down") => void;
-  nodeTypeLabels: Record<string, string>;
 }) {
   const [open, setOpen] = useState(true);
   const hasChildren = node.children.length > 0;
@@ -261,7 +255,7 @@ function TreeRow({
             </span>
             <span className="truncate text-[13px]">{node.name}</span>
             <span className="text-[10px] text-muted-foreground/60 hidden sm:inline shrink-0">
-              {nodeTypeLabels[node.node_type] ?? WBS_NODE_TYPE_LABELS[node.node_type]}
+              {WBS_NODE_TYPE_LABELS[node.node_type]}
             </span>
           </div>
 
@@ -337,7 +331,6 @@ function TreeRow({
               search={search}
               nodeStats={nodeStats}
               onMove={onMove}
-              nodeTypeLabels={nodeTypeLabels}
             />
           ))}
         </ul>

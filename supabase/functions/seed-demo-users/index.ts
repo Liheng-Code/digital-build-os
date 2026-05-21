@@ -15,7 +15,7 @@ type AppRole =
   | "qaqc_inspector"
   | "accountant";
 
-const DEMO_PASSWORD = "DcosDemo#2026";
+const DEMO_PASSWORD = "Demo1234!";
 
 const DEMO_USERS: Array<{
   email: string;

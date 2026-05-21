@@ -8,11 +8,11 @@ import { useMaterialRequests, useStockBalances, usePurchaseOrders } from '@/hook
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { formatMrStatus, formatPoStatus } from '@/lib/materialsMeta';
-import { CreateMrDialog } from '@/components/procurement/CreateMrDialog';
-import { IssueMaterialDialog } from '@/components/procurement/IssueMaterialDialog';
-import { BoqManager } from '@/components/procurement/BoqManager';
-import { CreatePoDialog } from '@/components/procurement/CreatePoDialog';
-import { CreateGrnDialog } from '@/components/procurement/CreateGrnDialog';
+import { CreateMrDialog } from '@/components/materials/CreateMrDialog';
+import { IssueMaterialDialog } from '@/components/materials/IssueMaterialDialog';
+import { BoqManager } from '@/components/materials/BoqManager';
+import { CreatePoDialog } from '@/components/materials/CreatePoDialog';
+import { CreateGrnDialog } from '@/components/materials/CreateGrnDialog';
 import { BookOpen } from 'lucide-react';
 
 export default function MaterialsProcurement() {

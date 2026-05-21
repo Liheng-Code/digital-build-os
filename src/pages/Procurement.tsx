@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects } from "@/contexts/ProjectContext";
 import { useWbsTree } from "@/hooks/useWbsTree";
@@ -8,8 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, ShoppingCart, Plus, Search, Filter, ArrowRight, ClipboardList, CheckCircle2, Clock, Building, Layers, ArrowUpRight, Loader2, FileText } from "lucide-react";
-import { Link } from "react-router-dom";
+import { 
+  Package, 
+  ShoppingCart, 
+  Plus, 
+  Search, 
+  Filter, 
+  ArrowRight, 
+  ClipboardList, 
+  CheckCircle2, 
+  Clock,
+  Building,
+  Layers,
+  ArrowUpRight,
+  Loader2
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { 
@@ -29,64 +41,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { updatePRStatus } from "@/services/procurementService";
 
 export default function Procurement() {
   const { activeProject } = useProjects();
-  const projectId = activeProject?.id ?? null;
+  const [loading, setLoading] = React.useState(true);
+  const [prs, setPrs] = React.useState<any[]>([]);
+  const [catalog, setCatalog] = React.useState<any[]>([]);
   const [activeTab, setActiveTab] = React.useState("dashboard");
   const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
   const [isCreatePrOpen, setIsCreatePrOpen] = React.useState(false);
-  const [prBusy, setPrBusy] = React.useState<string | null>(null);
 
-  const dataQuery = useQuery({
-    queryKey: ["procurement", "dashboard", projectId],
-    enabled: !!projectId,
-    staleTime: 60_000,
-    queryFn: async () => {
+  const loadData = async () => {
+    if (!activeProject) return;
+    setLoading(true);
+    try {
       const [prsRes, catalogRes] = await Promise.all([
         supabase
           .from("purchase_requisitions")
           .select("*, pr_items(count)")
-          .eq("project_id", projectId!)
+          .eq("project_id", activeProject.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("material_catalog")
           .select("*")
           .order("name", { ascending: true })
       ]);
-      return {
-        prs: (prsRes.data || []) as any[],
-        catalog: (catalogRes.data || []) as any[],
-      };
-    },
-  });
-  const prs = dataQuery.data?.prs ?? [];
-  const catalog = dataQuery.data?.catalog ?? [];
-  const loading = dataQuery.isLoading;
-  const loadData = React.useCallback(async () => { await dataQuery.refetch(); }, [dataQuery]);
 
-
-  const changePrStatus = async (id: string, status: string) => {
-    setPrBusy(id);
-    try {
-      await updatePRStatus(id, status);
-      toast.success(`PR ${status}`);
-      loadData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update PR");
+      setPrs(prsRes.data || []);
+      setCatalog(catalogRes.data || []);
+    } catch (e: any) {
+      toast.error(e.message);
     } finally {
-      setPrBusy(null);
+      setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    loadData();
+  }, [activeProject]);
 
   if (!activeProject) {
     return <div className="p-8 text-muted-foreground">Select a project to view procurement.</div>;
@@ -131,63 +123,62 @@ export default function Procurement() {
         </div>
       </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="mto">MTO from RDS</TabsTrigger>
-            <TabsTrigger value="prs">Purchase Requisitions</TabsTrigger>
-            <TabsTrigger value="rfqs">RFQs</TabsTrigger>
-          </TabsList>
-           
-          <TabsContent value="dashboard" className="space-y-4">
-            <div className="grid md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase">Pending PRs</p>
-                      <div className="text-2xl font-bold">{prs.filter(p => p.status === 'submitted').length}</div>
-                    </div>
-                    <Clock className="h-8 w-8 text-amber-500 opacity-20" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="mto">MTO from RDS</TabsTrigger>
+          <TabsTrigger value="prs">Purchase Requisitions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-4">
+          <div className="grid md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Pending PRs</p>
+                    <div className="text-2xl font-bold">{prs.filter(p => p.status === 'submitted').length}</div>
                   </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase">Total Approved</p>
-                      <div className="text-2xl font-bold">{prs.filter(p => p.status === 'approved').length}</div>
-                    </div>
-                    <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-20" />
+                  <Clock className="h-8 w-8 text-amber-500 opacity-20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Total Approved</p>
+                    <div className="text-2xl font-bold">{prs.filter(p => p.status === 'approved').length}</div>
                   </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase">Catalogue Items</p>
-                      <div className="text-2xl font-bold">{catalog.length}</div>
-                    </div>
-                    <Package className="h-8 w-8 text-blue-500 opacity-20" />
+                  <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Catalogue Items</p>
+                    <div className="text-2xl font-bold">{catalog.length}</div>
                   </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase">Budget Utilized</p>
-                      <div className="text-2xl font-bold text-emerald-600">
-                        ${prs.filter(p => p.status === 'approved').reduce((acc, p) => acc + (p.total_estimate || 0), 0).toLocaleString()}
-                      </div>
+                  <Package className="h-8 w-8 text-blue-500 opacity-20" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Budget Utilized</p>
+                    <div className="text-2xl font-bold text-emerald-600">
+                      ${prs.filter(p => p.status === 'approved').reduce((acc, p) => acc + (p.total_estimate || 0), 0).toLocaleString()}
                     </div>
-                    <ArrowUpRight className="h-8 w-8 text-emerald-500 opacity-20" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <ArrowUpRight className="h-8 w-8 text-emerald-500 opacity-20" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <Card>
             <CardHeader>
@@ -213,23 +204,7 @@ export default function Procurement() {
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold">${(pr.total_estimate || 0).toLocaleString()}</div>
-                      <div className="flex justify-end gap-1 mt-1">
-                        {pr.status === "draft" && (
-                          <Button variant="outline" size="sm" className="h-8 px-2 text-[10px]" disabled={prBusy === pr.id} onClick={() => changePrStatus(pr.id, "submitted")}>
-                            Submit
-                          </Button>
-                        )}
-                        {pr.status === "submitted" && (
-                          <>
-                            <Button variant="outline" size="sm" className="h-8 px-2 text-[10px]" disabled={prBusy === pr.id} onClick={() => changePrStatus(pr.id, "rejected")}>
-                              Reject
-                            </Button>
-                            <Button size="sm" className="h-8 px-2 text-[10px]" disabled={prBusy === pr.id} onClick={() => changePrStatus(pr.id, "approved")}>
-                              Approve
-                            </Button>
-                          </>
-                        )}
-                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px]">View Details</Button>
                     </div>
                   </div>
                 ))}
@@ -267,32 +242,8 @@ export default function Procurement() {
               </div>
             </CardContent>
           </Card>
-          </TabsContent>
-
-          <TabsContent value="rfqs" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Request for Quotation (RFQ)</CardTitle>
-                    <CardDescription>Manage supplier bidding and quotation process</CardDescription>
-                  </div>
-                  <Button asChild className="gap-2">
-                    <Link to="/procurement/rfqs">
-                      <FileText className="h-4 w-4" /> View All RFQs
-                    </Link>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                  Click "View All RFQs" to manage your Request for Quotations, invite suppliers, and compare quotations.
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -458,6 +409,15 @@ function MtoDetailView({ room, rds, catalog }: any) {
   );
 }
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 function MaterialCatalogManager({ catalog, onRefresh }: any) {
   const [submitting, setSubmitting] = React.useState(false);
   const [newItem, setNewItem] = React.useState({
@@ -587,7 +547,7 @@ function CreatePrForm({ projectId, catalog, onSuccess }: any) {
         .select("*", { count: "exact", head: true })
         .eq("project_id", projectId);
       
-      const prNum = `PR-${((count || 0) + 1).toString().padStart(3, '0')}`;
+      const prNum = `PR-${(count || 0 + 1).toString().padStart(3, '0')}`;
 
       // 2. Create PR
       const { data: pr, error: prErr } = await supabase

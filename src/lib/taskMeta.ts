@@ -1,7 +1,6 @@
 export type TaskStatus =
   | "open"
   | "assigned"
-  | "received"
   | "in_progress"
   | "pending_approval"
   | "approved"
@@ -24,7 +23,6 @@ export type TaskType =
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   open: "Open",
   assigned: "Assigned",
-  received: "Received",
   in_progress: "In Progress",
   pending_approval: "Pending Approval",
   approved: "Approved",
@@ -41,7 +39,6 @@ export const TASK_STATUS_TONE: Record<
 > = {
   open: { bg: "bg-neutral-status-soft", fg: "text-neutral-status", dot: "bg-neutral-status" },
   assigned: { bg: "bg-info-soft", fg: "text-info", dot: "bg-info" },
-  received: { bg: "bg-success-soft", fg: "text-success", dot: "bg-success" },
   in_progress: { bg: "bg-info-soft", fg: "text-info", dot: "bg-info" },
   pending_approval: { bg: "bg-warning-soft", fg: "text-warning", dot: "bg-warning" },
   approved: { bg: "bg-success-soft", fg: "text-success", dot: "bg-success" },
@@ -78,8 +75,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
 /** Allowed status transitions, mirrored from the DB trigger. */
 export const ALLOWED_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   open: ["assigned", "closed"],
-  assigned: ["received", "in_progress", "open", "closed"],
-  received: ["in_progress", "closed"],
+  assigned: ["in_progress", "open", "closed"],
   in_progress: ["pending_approval", "assigned", "closed"],
   pending_approval: ["approved", "rejected"],
   approved: ["completed", "closed"],

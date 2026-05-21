@@ -23,7 +23,7 @@ export function useStakeholders() {
     mutationFn: async (stakeholder: Partial<Stakeholder>) => {
       const { data, error } = await supabase
         .from("stakeholders")
-        .insert(stakeholder as any)
+        .insert(stakeholder)
         .select()
         .single();
       if (error) throw error;
@@ -103,7 +103,7 @@ export function useStakeholderContacts(stakeholderId?: string) {
     mutationFn: async (contact: Partial<StakeholderContact>) => {
       const { data, error } = await supabase
         .from("stakeholder_contacts")
-        .insert(contact as any)
+        .insert(contact)
         .select()
         .single();
       if (error) throw error;
@@ -144,7 +144,7 @@ export function useStakeholderProjects(stakeholderId?: string) {
         `)
         .eq("stakeholder_id", stakeholderId);
       if (error) throw error;
-      return data as unknown as (ProjectStakeholder & { project: { id: string; name: string; code: string } })[];
+      return data as (ProjectStakeholder & { project: { id: string; name: string; code: string } })[];
     },
     enabled: !!stakeholderId,
   });
@@ -153,7 +153,7 @@ export function useStakeholderProjects(stakeholderId?: string) {
     mutationFn: async (link: Partial<ProjectStakeholder>) => {
       const { data, error } = await supabase
         .from("project_stakeholders")
-        .insert(link as any)
+        .insert(link)
         .select()
         .single();
       if (error) throw error;
@@ -179,27 +179,7 @@ export function useStakeholderProjects(stakeholderId?: string) {
     },
   });
 
-  const updateAssignment = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ProjectStakeholder> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("project_stakeholders")
-        .update(updates as any)
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stakeholder-projects", stakeholderId] });
-      toast.success("Assignment updated successfully");
-    },
-    onError: (error) => {
-      toast.error(`Error updating assignment: ${error.message}`);
-    },
-  });
-
-  return { stakeholderProjectsQuery, linkProject, unlinkProject, updateAssignment };
+  return { stakeholderProjectsQuery, linkProject, unlinkProject };
 }
 
 export function useProjectStakeholders(projectId?: string) {
@@ -217,7 +197,7 @@ export function useProjectStakeholders(projectId?: string) {
         `)
         .eq("project_id", projectId);
       if (error) throw error;
-      return data as unknown as ProjectStakeholder[];
+      return data as ProjectStakeholder[];
     },
     enabled: !!projectId,
   });
@@ -226,7 +206,7 @@ export function useProjectStakeholders(projectId?: string) {
     mutationFn: async (link: Partial<ProjectStakeholder>) => {
       const { data, error } = await supabase
         .from("project_stakeholders")
-        .insert(link as any)
+        .insert(link)
         .select()
         .single();
       if (error) throw error;

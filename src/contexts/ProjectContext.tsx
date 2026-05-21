@@ -1,5 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
@@ -34,24 +33,33 @@ const STORAGE_KEY = "buildtrack.activeProjectId";
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY),
   );
+  const [loading, setLoading] = useState(true);
 
-  const { data: projects = [], isLoading } = useQuery({
-    queryKey: ["projects", "list", user?.id ?? null],
-    enabled: !!user,
-    staleTime: 5 * 60_000,
-    gcTime: 10 * 60_000,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("projects")
-        .select(`*, client:stakeholders(organization_name)`)
-        .order("created_at", { ascending: false });
-      return (data ?? []) as Project[];
-    },
-  });
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const { data } = await supabase
+      .from("projects")
+      .select(`
+        *,
+        client:stakeholders(organization_name)
+      `)
+      .order("created_at", { ascending: false });
+    setProjects((data ?? []) as Project[]);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   // Default active project to first one if none selected
   useEffect(() => {
@@ -65,28 +73,21 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }, [projects, activeProjectId]);
 
-  const setActiveProjectId = useCallback((id: string | null) => {
+  const setActiveProjectId = (id: string | null) => {
     setActiveProjectIdState(id);
     if (id) localStorage.setItem(STORAGE_KEY, id);
     else localStorage.removeItem(STORAGE_KEY);
-  }, []);
+  };
 
-  const refresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["projects", "list"] });
-  }, [queryClient]);
+  const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
 
-  const value = useMemo<ProjectContextValue>(() => {
-    const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
-    return {
-      projects,
-      activeProject,
-      setActiveProjectId,
-      loading: isLoading,
-      refresh,
-    };
-  }, [projects, activeProjectId, isLoading, setActiveProjectId, refresh]);
-
-  return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
+  return (
+    <ProjectContext.Provider
+      value={{ projects, activeProject, setActiveProjectId, loading, refresh }}
+    >
+      {children}
+    </ProjectContext.Provider>
+  );
 }
 
 export function useProjects() {

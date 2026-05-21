@@ -1,39 +1,5 @@
 // Scheduling helpers for WBS Phase 1
-import { differenceInCalendarDays, parseISO, isValid, addDays, format, startOfDay } from "date-fns";
-
-export type ConstraintType = "ASAP" | "ALAP" | "SNET" | "SNLT" | "FNET" | "FNLT" | "MSO" | "MFO";
-
-export const CONSTRAINT_TYPE_LABELS: Record<ConstraintType, string> = {
-  ASAP: "As Soon As Possible",
-  ALAP: "As Late As Possible",
-  SNET: "Start No Earlier Than",
-  SNLT: "Start No Later Than",
-  FNET: "Finish No Earlier Than",
-  FNLT: "Finish No Later Than",
-  MSO: "Mandatory Start",
-  MFO: "Mandatory Finish",
-};
-
-export interface CpmTask {
-  id: string;
-  planned_start: string | null;
-  planned_end: string | null;
-  constraint_type?: ConstraintType | null;
-  constraint_date?: string | null;
-  deadline_date?: string | null;
-}
-
-export interface CpmResult {
-  es: Date;
-  ef: Date;
-  ls: Date;
-  lf: Date;
-  totalFloat: number;
-  freeFloat: number;
-  isCritical: boolean;
-}
-
-export type CpmMap = Map<string, CpmResult>;
+import { differenceInCalendarDays, parseISO, isValid, addDays, format } from "date-fns";
 
 export type DepRelation = "FS" | "SS" | "FF" | "SF";
 export const DEP_RELATION_LABELS: Record<DepRelation, string> = {
@@ -78,12 +44,7 @@ export interface TaskScheduleLite {
   actual_end: string | null;
   progress_pct: number;
   estimated_hours: number | null;
-  budgeted_cost: number | null;
-  actual_cost: number | null;
   status?: string;
-  constraint_type?: ConstraintType | null;
-  constraint_date?: string | null;
-  deadline_date?: string | null;
 }
 
 export interface NodeRollup {
@@ -95,12 +56,6 @@ export interface NodeRollup {
   progressPct: number; // 0..100, weighted by estimated_hours when available
   lateCount: number;
   status: ScheduleStatus;
-  // EVM Metrics
-  plannedValue: number;    // BCWS (Total Budgeted Cost)
-  earnedValue: number;     // BCWP (Budgeted Cost of Work Performed)
-  actualCost: number;      // ACWP (Actual Cost of Work Performed)
-  spi: number;             // Schedule Performance Index (EV / PV_at_now)
-  cpi: number;             // Cost Performance Index (EV / AC)
 }
 
 const safe = (s: string | null | undefined): Date | null => {
@@ -178,23 +133,11 @@ export function rollupTasks(tasks: TaskScheduleLite[], today: Date = new Date())
   let worst: ScheduleStatus = "done";
   let allDone = true;
 
-  // EVM Aggregators
-  let totalBudgetedCost = 0; // PV Total
-  let totalEarnedValue = 0;  // EV Total
-  let totalActualCost = 0;   // AC Total
-  let totalPlannedValueAtNow = 0; // PV at current date
-
   for (const t of tasks) {
-    const ps = safe(t.planned_start);
-    const pe = safe(t.planned_end);
-    const as = safe(t.actual_start);
-    const ae = safe(t.actual_end);
-
-    plannedStart = minDate(plannedStart, ps);
-    plannedEnd = maxDate(plannedEnd, pe);
-    actualStart = minDate(actualStart, as);
-    actualEnd = maxDate(actualEnd, ae);
-
+    plannedStart = minDate(plannedStart, safe(t.planned_start));
+    plannedEnd = maxDate(plannedEnd, safe(t.planned_end));
+    actualStart = minDate(actualStart, safe(t.actual_start));
+    actualEnd = maxDate(actualEnd, safe(t.actual_end));
     const w = Math.max(0.0001, Number(t.estimated_hours ?? 0)) || 1;
     weightedProg += (Number(t.progress_pct) || 0) * w;
     totalWeight += w;
@@ -203,31 +146,7 @@ export function rollupTasks(tasks: TaskScheduleLite[], today: Date = new Date())
     if (st !== "done") allDone = false;
     if (st === "late") lateCount++;
     if (SEVERITY[st] > SEVERITY[worst]) worst = st;
-
-    // EVM Calculations
-    const bc = Number(t.budgeted_cost ?? 0);
-    const ac = Number(t.actual_cost ?? 0);
-    const prog = (Number(t.progress_pct) || 0) / 100;
-
-    totalBudgetedCost += bc;
-    totalEarnedValue += bc * prog;
-    totalActualCost += ac;
-
-    // Planned Value at Now (Interpolated)
-    if (ps && pe) {
-        if (today >= pe) {
-            totalPlannedValueAtNow += bc;
-        } else if (today > ps) {
-            const totalDays = differenceInCalendarDays(pe, ps) || 1;
-            const elapsedDays = differenceInCalendarDays(today, ps);
-            const plannedProg = Math.max(0, Math.min(1, elapsedDays / totalDays));
-            totalPlannedValueAtNow += bc * plannedProg;
-        }
-    }
   }
-
-  const spi = totalPlannedValueAtNow > 0 ? totalEarnedValue / totalPlannedValueAtNow : 1;
-  const cpi = totalActualCost > 0 ? totalEarnedValue / totalActualCost : 1;
 
   return {
     totalTasks: tasks.length,
@@ -238,10 +157,5 @@ export function rollupTasks(tasks: TaskScheduleLite[], today: Date = new Date())
     progressPct: totalWeight > 0 ? Math.round(weightedProg / totalWeight) : 0,
     lateCount,
     status: worst,
-    plannedValue: totalBudgetedCost,
-    earnedValue: totalEarnedValue,
-    actualCost: totalActualCost,
-    spi,
-    cpi,
   };
 }

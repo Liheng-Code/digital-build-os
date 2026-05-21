@@ -11,8 +11,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { HardHat, Loader2 } from "lucide-react";
-import { DemoLoginPanel } from "@/components/org/DemoLoginPanel";
-import { ORG_REGISTRY, ORG_DEPT_LABELS, DEMO_PASSWORD } from "@/lib/orgMeta";
 
 const signInSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -23,11 +21,21 @@ const signUpSchema = signInSchema.extend({
   fullName: z.string().trim().min(2, { message: "Full name is required" }).max(100),
 });
 
-const DEMO_ACCOUNTS = ORG_REGISTRY.map((m) => ({
-  email: m.email,
-  name: m.full_name,
-  role: `${ORG_DEPT_LABELS[m.department]} · ${m.position}`,
-}));
+const DEMO_ACCOUNTS = [
+  { email: "admin@buildtrack.demo", name: "Alex Admin", role: "Admin" },
+  { email: "pm@buildtrack.demo", name: "Pat Planner", role: "PM" },
+  { email: "engineer@buildtrack.demo", name: "Erin Engineer", role: "Engineer" },
+  { email: "supervisor@buildtrack.demo", name: "Sam Supervisor", role: "Supervisor" },
+  { email: "worker@buildtrack.demo", name: "Wes Worker", role: "Worker" },
+  { email: "qaqc@buildtrack.demo", name: "Quinn Inspector", role: "QA/QC" },
+  { email: "accountant@buildtrack.demo", name: "Avery Accountant", role: "Accountant" },
+  // Department approvers (seeded via Settings → Departments → Seed demo data)
+  { email: "aria.architect@demo.test", name: "Aria Architect", role: "Architecture" },
+  { email: "stella.struct@demo.test", name: "Stella Struct", role: "Structure" },
+  { email: "marco.mep@demo.test", name: "Marco MEP", role: "MEP" },
+  { email: "pierre.proc@demo.test", name: "Pierre Procurement", role: "Procurement" },
+  { email: "connor.constr@demo.test", name: "Connor Construction", role: "Construction" },
+];
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -69,7 +77,7 @@ export default function Auth() {
     const passwordInput = document.getElementById("signin-password") as HTMLInputElement;
     if (emailInput && passwordInput) {
       emailInput.value = email;
-      passwordInput.value = DEMO_PASSWORD;
+      passwordInput.value = "Demo1234!";
       passwordInput.focus();
     }
   };
@@ -118,10 +126,9 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-[1fr_minmax(420px,560px)] bg-background">
-      <h1 className="sr-only">BuildTrack — Sign in</h1>
-      {/* Brand panel — now hosts the demo org chart */}
-      <div className="hidden lg:flex flex-col bg-gradient-primary text-primary-foreground p-8 overflow-y-auto">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      {/* Brand panel */}
+      <div className="hidden lg:flex flex-col justify-between bg-gradient-primary text-primary-foreground p-12">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
             <HardHat className="h-6 w-6" />
@@ -213,7 +220,7 @@ export default function Auth() {
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3 text-center">Password for all: <span className="font-mono font-medium text-foreground">{DEMO_PASSWORD}</span></p>
+                    <p className="text-xs text-muted-foreground mt-3 text-center">Password for all: <span className="font-mono font-medium text-foreground">Demo1234!</span></p>
                   </div>
                 </TabsContent>
 
